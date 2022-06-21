@@ -113,6 +113,7 @@ async fn generate(
             bot.send_photo(message.chat.id, InputFile::memory(buffer.into_inner()))
                 .caption(caption)
                 .caption_entities(entities)
+                .reply_to_message_id(message.id)
                 .send()
                 .await?;
         }
