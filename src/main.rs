@@ -1,17 +1,22 @@
 #![warn(clippy::pedantic)]
 
 mod craiyon;
+mod utils;
 
 use std::env;
 use std::error::Error;
+use std::fmt::Write;
+use std::io::Cursor;
+use std::time::Instant;
 
+use image::{ImageFormat, ImageOutputFormat};
 use log::LevelFilter;
+use reqwest::StatusCode;
 use simple_logger::SimpleLogger;
 use teloxide::prelude::*;
-use teloxide::types::{InputFile, InputMedia, InputMediaPhoto, MessageEntity};
+use teloxide::types::{InputFile, MessageEntity};
 use teloxide::utils::command::BotCommands;
-
-const ERROR_TEXT: &str = "zjebalo sie";
+use utils::CollageOptions;
 
 #[tokio::main]
 async fn main() {
@@ -41,11 +46,11 @@ async fn main() {
 }
 
 #[derive(BotCommands, Clone)]
-#[command(rename = "lowercase", description = "These commands are supported:")]
+#[command(rename = "lowercase")]
 enum Command {
-    #[command(description = "start the bot")]
+    #[command()]
     Start,
-    #[command(description = "generate images")]
+    #[command()]
     Generate { prompt: String },
 }
 
@@ -76,29 +81,52 @@ async fn generate(
         .reply_to_message_id(message.id)
         .send()
         .await?;
+    let start = Instant::now();
     match craiyon::generate(prompt.clone()).await {
         Ok(images) => {
-            bot.send_media_group(
-                message.chat.id,
-                images.into_iter().enumerate().map(|(i, image)| {
-                    let mut photo = InputMediaPhoto::new(InputFile::memory(image));
-                    if i == 0 {
-                        photo = photo
-                            .caption(format!("Generated from prompt: {prompt}"))
-                            .caption_entities([MessageEntity::bold(23, prompt.chars().count())]);
-                    }
-                    InputMedia::Photo(photo)
+            let duration = start.elapsed();
+
+            let image = utils::image_collage(
+                images.iter().map(|image| {
+                    image::load_from_memory_with_format(image, ImageFormat::Jpeg).unwrap()
                 }),
+                CollageOptions {
+                    image_count: (3, 3),
+                    image_size: (256, 256),
+                    gap: 8,
+                },
+            );
+
+            let (mut caption, entities) = if prompt.is_empty() {
+                ("Generated without a prompt".to_string(), Vec::new())
+            } else {
+                (
+                    format!("Generated from prompt: {prompt}"),
+                    Vec::from([MessageEntity::bold(23, prompt.chars().count())]),
+                )
+            };
+            write!(caption, " in {}.", utils::format_duration(duration)).unwrap();
+
+            let mut buffer = Cursor::new(Vec::new());
+            image.write_to(&mut buffer, ImageOutputFormat::Png).unwrap();
+
+            bot.send_photo(message.chat.id, InputFile::memory(buffer.into_inner()))
+                .caption(caption)
+                .caption_entities(entities)
+                .send()
+                .await?;
+        }
+        Err(err) => {
+            bot.send_message(
+                message.chat.id,
+                format!(
+                    "zjebalo sie: {}",
+                    err.status().unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
+                ),
             )
             .reply_to_message_id(message.id)
             .send()
             .await?;
-        }
-        Err(_) => {
-            bot.send_message(message.chat.id, ERROR_TEXT)
-                .reply_to_message_id(message.id)
-                .send()
-                .await?;
         }
     };
 
