@@ -32,7 +32,8 @@ async fn main() {
         ),
     )
     .default_handler(|_| async {})
-    .distribution_function::<()>(|_| None)
+    .worker_queue_size(8)
+    .distribution_function(|update| update.user().map(|u| u.id))
     .build()
     .setup_ctrlc_handler()
     .dispatch()
@@ -79,12 +80,14 @@ async fn generate(
         Ok(images) => {
             bot.send_media_group(
                 message.chat.id,
-                images.into_iter().map(|image| {
-                    InputMedia::Photo(
-                        InputMediaPhoto::new(InputFile::memory(image))
+                images.into_iter().enumerate().map(|(i, image)| {
+                    let mut photo = InputMediaPhoto::new(InputFile::memory(image));
+                    if i == 0 {
+                        photo = photo
                             .caption(format!("Generated from prompt: {prompt}"))
-                            .caption_entities([MessageEntity::bold(23, prompt.len())]),
-                    )
+                            .caption_entities([MessageEntity::bold(23, prompt.chars().count())]);
+                    }
+                    InputMedia::Photo(photo)
                 }),
             )
             .reply_to_message_id(message.id)
