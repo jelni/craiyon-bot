@@ -11,6 +11,8 @@ use teloxide::prelude::*;
 use teloxide::types::{InputFile, InputMedia, InputMediaPhoto, MessageEntity};
 use teloxide::utils::command::BotCommands;
 
+const ERROR_TEXT: &str = "zjebalo sie";
+
 #[tokio::main]
 async fn main() {
     dotenv::dotenv().unwrap();
@@ -59,23 +61,29 @@ async fn generate(
         .reply_to_message_id(message.id)
         .send()
         .await?;
-    let images = craiyon::generate(prompt.clone()).await?;
-    bot.send_media_group(
-        message.chat.id,
-        images.into_iter().map(|image| {
-            InputMedia::Photo(
-                InputMediaPhoto::new(InputFile::memory(image))
-                    .caption(format!("Generated from: {prompt}"))
-                    .caption_entities([MessageEntity::bold(17, prompt.len())]),
+    match craiyon::generate(prompt.clone()).await {
+        Ok(images) => {
+            bot.send_media_group(
+                message.chat.id,
+                images.into_iter().map(|image| {
+                    InputMedia::Photo(
+                        InputMediaPhoto::new(InputFile::memory(image))
+                            .caption(format!("Generated from prompt: {prompt}"))
+                            .caption_entities([MessageEntity::bold(16, prompt.len())]),
+                    )
+                }),
             )
-        }),
-    )
-    .reply_to_message_id(message.id)
-    .send()
-    .await?;
-    bot.delete_message(message.chat.id, info_msg.id)
-        .send()
-        .await?;
+            .reply_to_message_id(message.id)
+            .send()
+            .await?;
+            bot.delete_message(message.chat.id, info_msg.id)
+                .send()
+                .await?;
+        }
+        Err(_) => {
+            bot.send_message(message.chat.id, ERROR_TEXT).send().await?;
+        }
+    };
 
     Ok(())
 }
