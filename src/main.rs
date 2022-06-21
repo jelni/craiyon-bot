@@ -22,7 +22,21 @@ async fn main() {
         .unwrap();
 
     let bot = Bot::new(env::var("TELEGRAM_TOKEN").unwrap());
-    teloxide::commands_repl(bot, answer, Command::ty()).await;
+
+    Dispatcher::builder(
+        bot,
+        dptree::entry().branch(
+            Update::filter_message()
+                .filter_command::<Command>()
+                .endpoint(answer),
+        ),
+    )
+    .default_handler(|_| async {})
+    .distribution_function::<()>(|_| None)
+    .build()
+    .setup_ctrlc_handler()
+    .dispatch()
+    .await;
 }
 
 #[derive(BotCommands, Clone)]
@@ -69,21 +83,22 @@ async fn generate(
                     InputMedia::Photo(
                         InputMediaPhoto::new(InputFile::memory(image))
                             .caption(format!("Generated from prompt: {prompt}"))
-                            .caption_entities([MessageEntity::bold(16, prompt.len())]),
+                            .caption_entities([MessageEntity::bold(23, prompt.len())]),
                     )
                 }),
             )
             .reply_to_message_id(message.id)
             .send()
             .await?;
-            bot.delete_message(message.chat.id, info_msg.id)
-                .send()
-                .await?;
         }
         Err(_) => {
             bot.send_message(message.chat.id, ERROR_TEXT).send().await?;
         }
     };
+
+    bot.delete_message(message.chat.id, info_msg.id)
+        .send()
+        .await?;
 
     Ok(())
 }
