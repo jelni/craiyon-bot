@@ -95,7 +95,10 @@ async fn generate(
             .await?;
         }
         Err(_) => {
-            bot.send_message(message.chat.id, ERROR_TEXT).send().await?;
+            bot.send_message(message.chat.id, ERROR_TEXT)
+                .reply_to_message_id(message.id)
+                .send()
+                .await?;
         }
     };
 
