@@ -14,11 +14,14 @@ use log::LevelFilter;
 use reqwest::StatusCode;
 use simple_logger::SimpleLogger;
 use teloxide::prelude::*;
-use teloxide::types::{InputFile, MessageEntity};
+use teloxide::types::{InputFile, MessageEntity, ParseMode};
 use teloxide::utils::command::BotCommands;
 use utils::CollageOptions;
 
-#[tokio::main]
+const HELP_TEXT: &str = "Use the /generate command to generate images.
+**Example:** `/generate crayons in a box`";
+
+#[tokio::main(flavor = "current_thread")]
 async fn main() {
     dotenv::dotenv().unwrap();
     SimpleLogger::new()
@@ -61,7 +64,10 @@ async fn answer(
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     match command {
         Command::Start => {
-            bot.send_message(message.chat.id, "siema").send().await?;
+            bot.send_message(message.chat.id, HELP_TEXT)
+                .parse_mode(ParseMode::MarkdownV2)
+                .send()
+                .await?;
         }
         Command::Generate { prompt } => {
             generate(bot, message, prompt).await?;
@@ -76,11 +82,31 @@ async fn generate(
     message: Message,
     prompt: String,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let info_msg = bot
-        .send_message(message.chat.id, "Generating…")
+    if prompt.chars().count() > 1024 {
+        bot.send_message(message.chat.id, "This prompt is too long.")
+            .reply_to_message_id(message.id)
+            .send()
+            .await
+            .ok();
+        return Ok(());
+    };
+
+    let info_msg = match bot
+        .send_message(message.chat.id, format!("Generating {prompt}…"))
         .reply_to_message_id(message.id)
         .send()
-        .await?;
+        .await
+    {
+        Ok(message) => message,
+        Err(_) => return Ok(()), // this usually means that the original message was deleted
+    };
+
+    log::info!(
+        "Generating image \"{prompt}\" for {} in {}",
+        message.sender_chat().map(|c| c.id.0).unwrap_or_default(),
+        message.chat.id.0
+    );
+
     let start = Instant::now();
     match craiyon::generate(prompt.clone()).await {
         Ok(images) => {
@@ -114,6 +140,7 @@ async fn generate(
                 .caption(caption)
                 .caption_entities(entities)
                 .reply_to_message_id(message.id)
+                .allow_sending_without_reply(true)
                 .send()
                 .await?;
         }
@@ -126,6 +153,7 @@ async fn generate(
                 ),
             )
             .reply_to_message_id(message.id)
+            .allow_sending_without_reply(true)
             .send()
             .await?;
         }
