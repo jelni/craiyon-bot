@@ -14,11 +14,11 @@ use log::LevelFilter;
 use reqwest::StatusCode;
 use simple_logger::SimpleLogger;
 use teloxide::prelude::*;
-use teloxide::types::{InputFile, MessageEntity, ParseMode};
+use teloxide::types::{InputFile, MessageEntity, ParseMode, User};
 use teloxide::utils::command::BotCommands;
 use utils::CollageOptions;
 
-const HELP_TEXT: &str = "Use the /generate command to generate images.
+const HELP_TEXT: &str = "Use the /generate command to generate images\\.
 **Example:** `/generate crayons in a box`";
 
 #[tokio::main(flavor = "current_thread")]
@@ -102,9 +102,13 @@ async fn generate(
     };
 
     log::info!(
-        "Generating image \"{prompt}\" for {} in {}",
-        message.sender_chat().map(|c| c.id.0).unwrap_or_default(),
-        message.chat.id.0
+        "Generating \"{prompt}\" for {user_name} ({user_id}) in {chat_name} ({chat_id})",
+        user_name = message
+            .from()
+            .map_or_else(|| "-".to_string(), User::full_name),
+        user_id = message.from().map(|u| u.id.0).unwrap_or_default(),
+        chat_name = message.chat.title().unwrap_or("-"),
+        chat_id = message.chat.id
     );
 
     let start = Instant::now();
