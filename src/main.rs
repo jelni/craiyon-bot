@@ -39,7 +39,7 @@ async fn main() {
         ),
     )
     .default_handler(|_| async {})
-    .worker_queue_size(8)
+    .worker_queue_size(16)
     .distribution_function(|update| update.user().map(|u| u.id))
     .build()
     .setup_ctrlc_handler()
