@@ -31,20 +31,16 @@ pub fn image_collage<I: IntoIterator<Item = DynamicImage>>(
 }
 
 pub fn format_duration(duration: Duration) -> String {
-    let mut parts = Vec::with_capacity(3);
-
     let duration = duration.as_secs();
     let hours = (duration / 3600) % 60;
     let minutes = (duration / 60) % 60;
-    let seconds = (duration) % 60;
+    let seconds = duration % 60;
 
     if hours > 0 {
-        parts.push(format!("{hours}h"));
+        format!("{hours}h {minutes}m {seconds}s")
+    } else if minutes > 0 {
+        format!("{minutes}m {seconds}s")
+    } else {
+        format!("{seconds}s")
     }
-    if hours > 0 || minutes > 0 {
-        parts.push(format!("{minutes}m"));
-    }
-    parts.push(format!("{seconds}s"));
-
-    parts.join(" ")
 }
