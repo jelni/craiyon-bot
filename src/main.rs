@@ -5,7 +5,6 @@ mod utils;
 
 use std::env;
 use std::error::Error;
-use std::fmt::Write;
 use std::io::Cursor;
 use std::time::Instant;
 
@@ -82,6 +81,15 @@ async fn generate(
     message: Message,
     prompt: String,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    if prompt.is_empty() {
+        bot.send_message(message.chat.id, "Missing prompt.")
+            .reply_to_message_id(message.id)
+            .send()
+            .await
+            .ok();
+        return Ok(());
+    }
+
     if prompt.chars().count() > 1024 {
         bot.send_message(message.chat.id, "This prompt is too long.")
             .reply_to_message_id(message.id)
@@ -102,7 +110,7 @@ async fn generate(
     };
 
     log::info!(
-        "Generating \"{prompt}\" for {user_name} ({user_id}) in {chat_name} ({chat_id})",
+        "Generating {prompt:?} for {user_name} ({user_id}) in {chat_name} ({chat_id})",
         user_name = message
             .from()
             .map_or_else(|| "-".to_string(), User::full_name),
@@ -127,22 +135,15 @@ async fn generate(
                 },
             );
 
-            let (mut caption, entities) = if prompt.is_empty() {
-                ("Generated without a prompt".to_string(), Vec::new())
-            } else {
-                (
-                    format!("Generated from prompt: {prompt}"),
-                    Vec::from([MessageEntity::bold(23, prompt.chars().count())]),
-                )
-            };
-            write!(caption, " in {}.", utils::format_duration(duration)).unwrap();
-
             let mut buffer = Cursor::new(Vec::new());
             image.write_to(&mut buffer, ImageOutputFormat::Png).unwrap();
 
             bot.send_photo(message.chat.id, InputFile::memory(buffer.into_inner()))
-                .caption(caption)
-                .caption_entities(entities)
+                .caption(format!(
+                    "Generated from prompt: {prompt} in {}.",
+                    utils::format_duration(duration)
+                ))
+                .caption_entities([MessageEntity::bold(23, prompt.chars().count())])
                 .reply_to_message_id(message.id)
                 .allow_sending_without_reply(true)
                 .send()
