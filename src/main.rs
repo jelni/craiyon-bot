@@ -13,12 +13,13 @@ use log::LevelFilter;
 use reqwest::StatusCode;
 use simple_logger::SimpleLogger;
 use teloxide::prelude::*;
-use teloxide::types::{InputFile, MessageEntity, ParseMode, User};
+use teloxide::types::{InputFile, ParseMode, User};
 use teloxide::utils::command::BotCommands;
+use teloxide::utils::markdown;
 use utils::CollageOptions;
 
 const HELP_TEXT: &str = "Use the /generate command to generate images\\.
-**Example:** `/generate crayons in a box`";
+*Example:* `/generate crayons in a box`";
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
@@ -140,10 +141,11 @@ async fn generate(
 
             bot.send_photo(message.chat.id, InputFile::memory(buffer.into_inner()))
                 .caption(format!(
-                    "Generated from prompt: {prompt} in {}.",
+                    "Generated from prompt: *{}* in {}\\.",
+                    markdown::escape(&prompt),
                     utils::format_duration(duration)
                 ))
-                .caption_entities([MessageEntity::bold(23, prompt.chars().count())])
+                .parse_mode(ParseMode::MarkdownV2)
                 .reply_to_message_id(message.id)
                 .allow_sending_without_reply(true)
                 .send()
