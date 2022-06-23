@@ -69,7 +69,19 @@ async fn answer(
                 .send()
                 .await?;
         }
-        Command::Generate { prompt } => {
+        Command::Generate { mut prompt } => {
+            if prompt.is_empty() {
+                if let Some(text) = message.reply_to_message().and_then(Message::text) {
+                    prompt = text.to_string();
+                } else {
+                    bot.send_message(message.chat.id, "Missing prompt.")
+                        .reply_to_message_id(message.id)
+                        .send()
+                        .await
+                        .ok();
+                    return Ok(());
+                }
+            }
             generate(bot, message, prompt).await?;
         }
     };
@@ -82,15 +94,6 @@ async fn generate(
     message: Message,
     prompt: String,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    if prompt.is_empty() {
-        bot.send_message(message.chat.id, "Missing prompt.")
-            .reply_to_message_id(message.id)
-            .send()
-            .await
-            .ok();
-        return Ok(());
-    }
-
     if prompt.chars().count() > 1024 {
         bot.send_message(message.chat.id, "This prompt is too long.")
             .reply_to_message_id(message.id)
