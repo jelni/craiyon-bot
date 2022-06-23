@@ -26,8 +26,8 @@ pub async fn generate<S: Into<String>>(prompt: S) -> reqwest::Result<Vec<Vec<u8>
         Err(err) => {
             if let Some(status) = err.status() {
                 log::warn!("HTTP error: {status}");
-            }
-            return Err(err);
+            };
+            do yeet err;
         }
     };
     let images = response

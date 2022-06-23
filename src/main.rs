@@ -1,4 +1,5 @@
 #![warn(clippy::pedantic)]
+#![feature(yeet_expr)] // yes
 
 mod craiyon;
 mod utils;
