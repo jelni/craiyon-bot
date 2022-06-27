@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 
@@ -13,16 +13,23 @@ struct Payload {
 struct Response {
     images: Vec<String>,
 }
+
+pub struct GeneratedResult {
+    pub images: Vec<Vec<u8>>,
+    pub duration: Duration,
+}
+
 pub async fn generate<S: Into<String>>(
     http_client: reqwest::Client,
     prompt: S,
-) -> reqwest::Result<Vec<Vec<u8>>> {
+) -> reqwest::Result<GeneratedResult> {
     let body = Payload {
         prompt: prompt.into(),
     };
     let mut retry = 0;
-    let response = loop {
+    let (response, duration) = loop {
         retry += 1;
+        let start = Instant::now();
         match http_client
             .post("https://backend.craiyon.com/generate")
             .json(&body)
@@ -30,7 +37,12 @@ pub async fn generate<S: Into<String>>(
             .await?
             .error_for_status()
         {
-            Ok(response) => break response.json::<Response>().await?,
+            Ok(response) => {
+                break {
+                    let duration = start.elapsed();
+                    (response.json::<Response>().await?, duration)
+                }
+            }
             Err(err) => {
                 if let Some(status) = err.status() {
                     log::warn!("HTTP error: {status}");
@@ -52,5 +64,5 @@ pub async fn generate<S: Into<String>>(
         .map(|data| base64::decode(data.replace('\n', "")).unwrap())
         .collect();
 
-    Ok(images)
+    Ok(GeneratedResult { images, duration })
 }
