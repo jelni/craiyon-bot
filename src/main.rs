@@ -172,7 +172,8 @@ async fn generate(
 
     bot.delete_message(message.chat.id, info_msg.id)
         .send()
-        .await?;
+        .await
+        .ok();
 
     Ok(())
 }
