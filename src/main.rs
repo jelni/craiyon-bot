@@ -1,9 +1,7 @@
 #![warn(clippy::pedantic)]
-#![feature(yeet_expr)] // yes
 
 mod craiyon;
 mod utils;
-
 use std::env;
 use std::error::Error;
 use std::io::Cursor;
@@ -13,6 +11,7 @@ use image::{ImageFormat, ImageOutputFormat};
 use log::LevelFilter;
 use reqwest::StatusCode;
 use simple_logger::SimpleLogger;
+use teloxide::dptree;
 use teloxide::prelude::*;
 use teloxide::types::{InputFile, ParseMode, User};
 use teloxide::utils::command::BotCommands;
@@ -34,13 +33,12 @@ async fn main() {
 
     Dispatcher::builder(
         bot,
-        dptree::entry().branch(
-            Update::filter_message()
-                .filter_command::<Command>()
-                .endpoint(answer),
-        ),
+        Update::filter_message()
+            .filter_command::<Command>()
+            .endpoint(answer),
     )
     .default_handler(|_| async {})
+    .dependencies(dptree::deps![reqwest::Client::new()])
     .worker_queue_size(16)
     .distribution_function(|update| update.user().map(|u| u.id))
     .build()
@@ -62,6 +60,7 @@ async fn answer(
     bot: Bot,
     message: Message,
     command: Command,
+    http_client: reqwest::Client,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     match command {
         Command::Start => {
@@ -83,7 +82,7 @@ async fn answer(
                     return Ok(());
                 }
             }
-            generate(bot, message, prompt).await?;
+            generate(bot, message, prompt, http_client).await?;
         }
     };
 
@@ -94,6 +93,7 @@ async fn generate(
     bot: Bot,
     message: Message,
     prompt: String,
+    http_client: reqwest::Client,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     if prompt.chars().count() > 1024 {
         bot.send_message(message.chat.id, "This prompt is too long.")
@@ -125,7 +125,7 @@ async fn generate(
     );
 
     let start = Instant::now();
-    match craiyon::generate(prompt.clone()).await {
+    match craiyon::generate(http_client, prompt.clone()).await {
         Ok(images) => {
             let duration = start.elapsed();
 
