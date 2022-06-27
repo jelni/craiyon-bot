@@ -5,7 +5,6 @@ mod utils;
 use std::env;
 use std::error::Error;
 use std::io::Cursor;
-use std::time::Instant;
 
 use image::{ImageFormat, ImageOutputFormat};
 use log::LevelFilter;
@@ -124,13 +123,10 @@ async fn generate(
         chat_id = message.chat.id
     );
 
-    let start = Instant::now();
     match craiyon::generate(http_client, prompt.clone()).await {
-        Ok(images) => {
-            let duration = start.elapsed();
-
+        Ok(result) => {
             let image = utils::image_collage(
-                images.iter().map(|image| {
+                result.images.iter().map(|image| {
                     image::load_from_memory_with_format(image, ImageFormat::Jpeg).unwrap()
                 }),
                 CollageOptions {
@@ -147,7 +143,7 @@ async fn generate(
                 .caption(format!(
                     "Generated from prompt: *{}* in {}\\.",
                     markdown::escape(&prompt),
-                    utils::format_duration(duration)
+                    utils::format_duration(result.duration)
                 ))
                 .parse_mode(ParseMode::MarkdownV2)
                 .reply_to_message_id(message.id)
