@@ -37,8 +37,10 @@ pub async fn generate<S: Into<String>>(
                 };
                 if retry <= RETRY_COUNT {
                     tokio::time::sleep(Duration::from_secs(2)).await;
+                    log::info!("Retrying ({retry})…");
                     continue;
                 }
+                log::warn!("Failed after {retry} retries");
                 return Err(err);
             }
         };
