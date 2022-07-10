@@ -31,6 +31,7 @@ async fn main() {
     Dispatcher::builder(
         bot,
         Update::filter_message()
+            .chain(dptree::filter(|m: Message| m.forward().is_none()))
             .filter_command::<Command>()
             .endpoint(answer),
     )
