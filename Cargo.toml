@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 tokio = { version = "1", features = ["macros", "rt"] }
-teloxide = { version = "0.9", features = ["macros", "auto-send"] }
+teloxide = { version = "0.9", features = ["nightly", "macros"] }
 reqwest = "0.11"
 serde = "1"
 image = "0.24"
