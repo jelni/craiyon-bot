@@ -37,7 +37,7 @@ async fn main() {
     .default_handler(|_| async {})
     .dependencies(dptree::deps![reqwest::Client::new()])
     .worker_queue_size(16)
-    .distribution_function(|update| update.user().map(|u| u.id))
+    .distribution_function::<()>(|_| None)
     .build()
     .setup_ctrlc_handler()
     .dispatch()
