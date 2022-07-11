@@ -1,7 +1,8 @@
 use std::time::{Duration, Instant};
 
 use super::models::{GeneratedResult, Payload, Response};
-use crate::craiyon::models::RETRY_COUNT;
+
+const RETRY_COUNT: usize = 3;
 
 pub async fn generate<S: Into<String>>(
     http_client: reqwest::Client,
