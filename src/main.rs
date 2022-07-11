@@ -3,6 +3,7 @@
 
 mod commands;
 mod craiyon;
+mod openai;
 mod utils;
 
 use std::env;
@@ -46,12 +47,14 @@ async fn main() {
 }
 
 #[derive(BotCommands, Clone)]
-#[command(rename = "lowercase")]
+#[command(rename = "snake_case")]
 enum Command {
     #[command()]
     Start,
     #[command()]
     Generate(String),
+    #[command()]
+    Gpt3Code(String),
 }
 
 async fn answer(
@@ -81,6 +84,21 @@ async fn answer(
                 }
             }
             commands::generate(bot, message, prompt, http_client).await?;
+        }
+        Command::Gpt3Code(mut prompt) => {
+            if prompt.is_empty() {
+                if let Some(text) = message.reply_to_message().and_then(Message::text) {
+                    prompt = text.to_string();
+                } else {
+                    bot.send_message(message.chat.id, "Missing prompt.")
+                        .reply_to_message_id(message.id)
+                        .send()
+                        .await
+                        .ok();
+                    return Ok(());
+                }
+            }
+            commands::gpt3_code(bot, message, prompt, http_client).await?;
         }
     };
 

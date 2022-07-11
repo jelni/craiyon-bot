@@ -4,11 +4,11 @@ use std::io::Cursor;
 use image::{ImageFormat, ImageOutputFormat};
 use reqwest::StatusCode;
 use teloxide::prelude::*;
-use teloxide::types::{InputFile, ParseMode, User};
+use teloxide::types::{InputFile, MessageEntity, ParseMode, User};
 use teloxide::utils::markdown;
 
 use crate::utils::CollageOptions;
-use crate::{craiyon, utils};
+use crate::{craiyon, openai, utils};
 
 pub async fn generate(
     bot: Bot,
@@ -99,6 +99,39 @@ pub async fn generate(
         .send()
         .await
         .ok();
+
+    Ok(())
+}
+
+pub async fn gpt3_code(
+    bot: Bot,
+    message: Message,
+    prompt: String,
+    http_client: reqwest::Client,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let (text, entities) = match openai::complete_code(
+        http_client,
+        openai::Config {
+            prompt,
+            max_tokens: 256,
+            temperature: Some(1.),
+            stop: None,
+        },
+    )
+    .await
+    {
+        Ok(text) => {
+            let len = text.chars().count();
+            (text, Vec::from([MessageEntity::pre(None, 0, len)]))
+        }
+        Err(_) => ("zjebalo sie".to_string(), Vec::new()),
+    };
+    bot.send_message(message.chat.id, text)
+        .entities(entities)
+        .reply_to_message_id(message.id)
+        .allow_sending_without_reply(true)
+        .send()
+        .await?;
 
     Ok(())
 }
