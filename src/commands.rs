@@ -8,7 +8,7 @@ use teloxide::types::{InputFile, MessageEntity, ParseMode, User};
 use teloxide::utils::markdown;
 
 use crate::utils::CollageOptions;
-use crate::{craiyon, openai, utils};
+use crate::{craiyon, openai, passwordpurgatory, utils};
 
 pub async fn generate(
     bot: Bot,
@@ -132,6 +132,22 @@ pub async fn gpt3_code(
         .allow_sending_without_reply(true)
         .send()
         .await?;
+
+    Ok(())
+}
+
+pub async fn password(
+    bot: Bot,
+    message: Message,
+    password: String,
+    http_client: reqwest::Client,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let text = passwordpurgatory::make_hell(http_client, password).await?;
+    bot.send_message(message.chat.id, text)
+        .reply_to_message_id(message.id)
+        .send()
+        .await
+        .ok();
 
     Ok(())
 }
