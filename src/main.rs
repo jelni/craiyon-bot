@@ -4,6 +4,7 @@
 mod commands;
 mod craiyon;
 mod openai;
+mod passwordpurgatory;
 mod utils;
 
 use std::env;
@@ -55,6 +56,8 @@ enum Command {
     Generate(String),
     #[command()]
     Gpt3Code(String),
+    #[command()]
+    Password(String),
 }
 
 async fn answer(
@@ -99,6 +102,17 @@ async fn answer(
                 }
             }
             commands::gpt3_code(bot, message, prompt, http_client).await?;
+        }
+        Command::Password(password) => {
+            if password.is_empty() {
+                bot.send_message(message.chat.id, "Missing password.")
+                    .reply_to_message_id(message.id)
+                    .send()
+                    .await
+                    .ok();
+                return Ok(());
+            }
+            commands::password(bot, message, password, http_client).await?;
         }
     };
 
