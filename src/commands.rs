@@ -114,7 +114,7 @@ pub async fn gpt3_code(
         openai::Config {
             prompt,
             max_tokens: 256,
-            temperature: Some(1.),
+            temperature: Some(0.),
             stop: None,
         },
     )
