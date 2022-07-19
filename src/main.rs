@@ -4,13 +4,14 @@
 mod commands;
 mod craiyon;
 mod openai;
-mod passwordpurgatory;
+mod urbandictionary;
 mod utils;
 
 use std::env;
 use std::error::Error;
 
 use log::LevelFilter;
+use reqwest::redirect;
 use simple_logger::SimpleLogger;
 use teloxide::dptree;
 use teloxide::prelude::*;
@@ -30,6 +31,11 @@ async fn main() {
 
     let bot = Bot::new(env::var("TELEGRAM_TOKEN").unwrap());
 
+    let http_client = reqwest::Client::builder()
+        .redirect(redirect::Policy::none())
+        .build()
+        .unwrap();
+
     Dispatcher::builder(
         bot,
         Update::filter_message()
@@ -38,7 +44,7 @@ async fn main() {
             .endpoint(answer),
     )
     .default_handler(|_| async {})
-    .dependencies(dptree::deps![reqwest::Client::new()])
+    .dependencies(dptree::deps![http_client])
     .worker_queue_size(16)
     .distribution_function::<()>(|_| None)
     .build()
@@ -57,7 +63,7 @@ enum Command {
     #[command()]
     Gpt3Code(String),
     #[command()]
-    Password(String),
+    UrbanDictionary(String),
 }
 
 async fn answer(
@@ -88,6 +94,17 @@ async fn answer(
             }
             commands::generate(bot, message, prompt, http_client).await?;
         }
+        Command::UrbanDictionary(term) => {
+            if term.is_empty() {
+                bot.send_message(message.chat.id, "Missing word to define.")
+                    .reply_to_message_id(message.id)
+                    .send()
+                    .await
+                    .ok();
+                return Ok(());
+            }
+            commands::urbandictionary(bot, message, term, http_client).await?;
+        }
         Command::Gpt3Code(mut prompt) => {
             if prompt.is_empty() {
                 if let Some(text) = message.reply_to_message().and_then(Message::text) {
@@ -102,17 +119,6 @@ async fn answer(
                 }
             }
             commands::gpt3_code(bot, message, prompt, http_client).await?;
-        }
-        Command::Password(password) => {
-            if password.is_empty() {
-                bot.send_message(message.chat.id, "Missing password.")
-                    .reply_to_message_id(message.id)
-                    .send()
-                    .await
-                    .ok();
-                return Ok(());
-            }
-            commands::password(bot, message, password, http_client).await?;
         }
     };
 
