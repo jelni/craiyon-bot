@@ -15,9 +15,11 @@ use reqwest::redirect;
 use simple_logger::SimpleLogger;
 use teloxide::dptree;
 use teloxide::prelude::*;
-use teloxide::types::ParseMode;
+use teloxide::types::{ForwardedFrom, ParseMode};
 use teloxide::utils::command::BotCommands;
 
+#[allow(clippy::unreadable_literal)]
+const RABBIT_JE: i64 = -1001722954366;
 const HELP_TEXT: &str = "Use the /generate command to generate images\\.
 *Example:* `/generate crayons in a box`";
 
@@ -39,9 +41,12 @@ async fn main() {
     Dispatcher::builder(
         bot,
         Update::filter_message()
-            .chain(dptree::filter(|m: Message| m.forward().is_none()))
-            .filter_command::<Command>()
-            .endpoint(answer),
+            .branch(
+                dptree::filter(|m: Message| m.forward().is_none())
+                    .filter_command::<Command>()
+                    .endpoint(answer),
+            )
+            .branch(dptree::endpoint(rabbit_nie_je)),
     )
     .default_handler(|_| async {})
     .dependencies(dptree::deps![http_client])
@@ -121,6 +126,29 @@ async fn answer(
             commands::gpt3_code(bot, message, prompt, http_client).await?;
         }
     };
+
+    Ok(())
+}
+
+async fn rabbit_nie_je(bot: Bot, message: Message) -> Result<(), Box<dyn Error + Send + Sync>> {
+    if let Some(forward) = message.forward() {
+        if let ForwardedFrom::Chat(chat) = &forward.from {
+            {
+                if chat.id.0 == RABBIT_JE {
+                    let result = match bot.delete_message(message.chat.id, message.id).send().await
+                    {
+                        Ok(_) => "Deleted",
+                        Err(_) => "Couldn't delete",
+                    };
+                    log::warn!(
+                        "{result} a message from {:?} in {:?}",
+                        chat.title().unwrap_or_default(),
+                        message.chat.title().unwrap_or_default()
+                    );
+                }
+            }
+        }
+    }
 
     Ok(())
 }
