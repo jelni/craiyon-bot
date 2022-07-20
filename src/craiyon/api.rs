@@ -1,5 +1,7 @@
 use std::time::{Duration, Instant};
 
+use reqwest::StatusCode;
+
 use super::models::{GeneratedResult, Payload, Response};
 
 const RETRY_COUNT: usize = 3;
@@ -29,11 +31,17 @@ pub async fn generate<S: Into<String>>(
                 }
             }
             Err(err) => {
-                if let Some(status) = err.status() {
+                let status = err.status();
+                if let Some(status) = status {
                     log::warn!("HTTP error: {status}");
                 };
-                if retry <= RETRY_COUNT {
-                    tokio::time::sleep(Duration::from_secs(2)).await;
+                if retry < RETRY_COUNT {
+                    let duration = if status == Some(StatusCode::TOO_MANY_REQUESTS) {
+                        10
+                    } else {
+                        2
+                    };
+                    tokio::time::sleep(Duration::from_secs((retry * duration) as _)).await;
                     log::info!("Retrying ({retry})…");
                     continue;
                 }
