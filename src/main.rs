@@ -1,4 +1,4 @@
-#![feature(drain_filter)]
+#![feature(iter_intersperse)]
 #![warn(clippy::pedantic)]
 
 mod commands;
@@ -52,8 +52,8 @@ async fn main() {
     .dependencies(dptree::deps![http_client])
     .worker_queue_size(16)
     .distribution_function::<()>(|_| None)
+    .enable_ctrlc_handler()
     .build()
-    .setup_ctrlc_handler()
     .dispatch()
     .await;
 }
@@ -69,6 +69,8 @@ enum Command {
     Gpt3Code(String),
     #[command()]
     UrbanDictionary(String),
+    #[command()]
+    Charinfo(String),
 }
 
 async fn answer(
@@ -124,6 +126,21 @@ async fn answer(
                 }
             }
             commands::gpt3_code(bot, message, prompt, http_client).await?;
+        }
+        Command::Charinfo(mut chars) => {
+            if chars.is_empty() {
+                if let Some(text) = message.reply_to_message().and_then(Message::text) {
+                    chars = text.to_string();
+                } else {
+                    bot.send_message(message.chat.id, "Missing characters.")
+                        .reply_to_message_id(message.id)
+                        .send()
+                        .await
+                        .ok();
+                    return Ok(());
+                }
+            }
+            commands::charinfo(bot, message, chars).await?;
         }
     };
 
