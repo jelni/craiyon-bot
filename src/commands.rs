@@ -158,3 +158,36 @@ pub async fn gpt3_code(
 
     Ok(())
 }
+
+pub async fn charinfo(
+    bot: Bot,
+    message: Message,
+    chars: String,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let mut lines = chars
+        .chars()
+        .into_iter()
+        .map(|c| {
+            if c.is_ascii_whitespace() {
+                String::new()
+            } else {
+                format!(
+                    "`{}` `U\\+{:04X}`",
+                    markdown::escape(&c.to_string()),
+                    c as u32
+                )
+            }
+        })
+        .collect::<Vec<_>>();
+
+    if lines.len() > 10 {
+        lines.truncate(10);
+        lines.push(String::from('…'));
+    }
+
+    bot.send_message(message.chat.id, lines.join("\n"))
+        .parse_mode(ParseMode::MarkdownV2)
+        .send()
+        .await?;
+    Ok(())
+}
