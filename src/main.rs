@@ -3,6 +3,7 @@
 
 mod commands;
 mod craiyon;
+mod mathjs;
 mod openai;
 mod urbandictionary;
 mod utils;
@@ -15,7 +16,10 @@ use reqwest::redirect;
 use simple_logger::SimpleLogger;
 use teloxide::dptree;
 use teloxide::prelude::*;
-use teloxide::types::{ForwardedFrom, ParseMode};
+use teloxide::types::{
+    ForwardedFrom, InlineQueryResult, InlineQueryResultArticle, InputMessageContent,
+    InputMessageContentText, ParseMode,
+};
 use teloxide::utils::command::BotCommands;
 
 #[allow(clippy::unreadable_literal)]
@@ -40,13 +44,17 @@ async fn main() {
 
     Dispatcher::builder(
         bot,
-        Update::filter_message()
+        dptree::entry()
             .branch(
-                dptree::filter(|m: Message| m.forward().is_none())
-                    .filter_command::<Command>()
-                    .endpoint(answer),
+                Update::filter_message()
+                    .branch(
+                        dptree::filter(|m: Message| m.forward().is_none())
+                            .filter_command::<Command>()
+                            .endpoint(answer),
+                    )
+                    .branch(dptree::endpoint(rabbit_nie_je)),
             )
-            .branch(dptree::endpoint(rabbit_nie_je)),
+            .branch(Update::filter_inline_query().endpoint(calculate)),
     )
     .default_handler(|_| async {})
     .dependencies(dptree::deps![http_client])
@@ -147,22 +155,52 @@ async fn answer(
     Ok(())
 }
 
+async fn calculate(
+    bot: Bot,
+    query: InlineQuery,
+    http_client: reqwest::Client,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    if query.query.is_empty() {
+        bot.answer_inline_query(query.id.clone(), []).send().await?;
+        return Ok(());
+    }
+
+    let (title, message_text) = if query.query.split_whitespace().collect::<String>() == "2+2" {
+        ("5".to_string(), format!("{} = 5", query.query))
+    } else {
+        match mathjs::evaluate(http_client, query.query.clone()).await? {
+            Ok(result) => (result.clone(), format!("{} = {}", query.query, result)),
+            Err(err) => (err.clone(), err),
+        }
+    };
+
+    bot.answer_inline_query(
+        query.id,
+        [InlineQueryResult::Article(InlineQueryResultArticle::new(
+            "0",
+            title,
+            InputMessageContent::Text(InputMessageContentText::new(message_text)),
+        ))],
+    )
+    .send()
+    .await?;
+
+    Ok(())
+}
+
 async fn rabbit_nie_je(bot: Bot, message: Message) -> Result<(), Box<dyn Error + Send + Sync>> {
     if let Some(forward) = message.forward() {
         if let ForwardedFrom::Chat(chat) = &forward.from {
-            {
-                if chat.id.0 == RABBIT_JE {
-                    let result = match bot.delete_message(message.chat.id, message.id).send().await
-                    {
-                        Ok(_) => "Deleted",
-                        Err(_) => "Couldn't delete",
-                    };
-                    log::warn!(
-                        "{result} a message from {:?} in {:?}",
-                        chat.title().unwrap_or_default(),
-                        message.chat.title().unwrap_or_default()
-                    );
-                }
+            if chat.id.0 == RABBIT_JE {
+                let result = match bot.delete_message(message.chat.id, message.id).send().await {
+                    Ok(_) => "Deleted",
+                    Err(_) => "Couldn't delete",
+                };
+                log::warn!(
+                    "{result} a message from {:?} in {:?}",
+                    chat.title().unwrap_or_default(),
+                    message.chat.title().unwrap_or_default()
+                );
             }
         }
     }
