@@ -44,7 +44,7 @@ impl fmt::Display for Definition {
             "by [{}]({}), {}",
             markdown::escape(&self.author),
             Url::parse_with_params(
-                "https://www.urbandictionary.com/author.php",
+                "https://urbandictionary.com/author.php",
                 [("author", &self.author)]
             )
             .unwrap(),

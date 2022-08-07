@@ -112,9 +112,11 @@ pub async fn urbandictionary(
     let response = if let Ok(Some(definition)) = urbandictionary::define(http_client, term).await {
         definition.to_string()
     } else {
-        "There are no definitions for this word\\. \
-            Be the first to [define it](https://www.urbandictionary.com/add.php)\\!"
-            .to_string()
+        concat!(
+            "There are no definitions for this word\\.\n",
+            "Be the first to [define it](https://urbandictionary.com/add.php)\\!"
+        )
+        .to_string()
     };
 
     bot.send_message(message.chat.id, response)

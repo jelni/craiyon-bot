@@ -4,7 +4,7 @@ use super::models::{Definition, Response};
 
 async fn search<S: AsRef<str>>(http_client: reqwest::Client, term: S) -> reqwest::Result<String> {
     let response = http_client
-        .head(
+        .get(
             Url::parse_with_params(
                 "https://www.urbandictionary.com/define.php",
                 [("term", term.as_ref())],
@@ -15,21 +15,18 @@ async fn search<S: AsRef<str>>(http_client: reqwest::Client, term: S) -> reqwest
         .await?
         .error_for_status()?;
 
-    if response.status() == StatusCode::FOUND {
-        let location = Url::parse("https://www.urbandictionary.com/")
-            .unwrap()
-            .join(response.headers()["Location"].to_str().unwrap())
-            .unwrap();
-        let term = location
-            .query_pairs()
-            .find(|(k, _)| k == "term")
-            .unwrap()
-            .1
-            .into_owned();
+    match response.status() {
+        StatusCode::FOUND => {
+            let (_, term) = response.headers()["Location"]
+                .to_str()
+                .unwrap()
+                .split_once("?term=")
+                .unwrap();
 
-        Ok(term)
-    } else {
-        Ok(term.as_ref().to_string())
+            Ok(term.to_string())
+        }
+        StatusCode::OK => Ok(term.as_ref().to_string()),
+        _ => unreachable!(),
     }
 }
 
