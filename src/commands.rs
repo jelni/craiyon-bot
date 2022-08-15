@@ -2,13 +2,13 @@ use std::error::Error;
 use std::io::Cursor;
 
 use image::{ImageFormat, ImageOutputFormat};
-use reqwest::StatusCode;
+use reqwest::{StatusCode, Url};
 use teloxide::prelude::*;
-use teloxide::types::{InputFile, MessageEntity, ParseMode, User};
+use teloxide::types::{InputFile, ParseMode, User};
 use teloxide::utils::markdown;
 
 use crate::utils::CollageOptions;
-use crate::{craiyon, openai, urbandictionary, utils};
+use crate::{cobalt, craiyon, urbandictionary, utils};
 
 pub async fn generate(
     bot: Bot,
@@ -129,34 +129,38 @@ pub async fn urbandictionary(
     Ok(())
 }
 
-pub async fn gpt3_code(
+pub async fn cobalt_download(
     bot: Bot,
     message: Message,
-    prompt: String,
+    url: String,
     http_client: reqwest::Client,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let (text, entities) = match openai::complete_code(
-        http_client,
-        openai::Config {
-            prompt,
-            max_tokens: 256,
-            temperature: Some(0.),
-            stop: None,
-        },
-    )
-    .await
-    {
-        Ok(text) => {
-            let len = text.chars().count();
-            (text, Vec::from([MessageEntity::pre(None, 0, len)]))
+    match cobalt::download(http_client, url).await? {
+        Ok(url) => {
+            if bot
+                .send_document(message.chat.id, InputFile::url(Url::parse(&url).unwrap()))
+                .reply_to_message_id(message.id)
+                .send()
+                .await
+                .is_err()
+            {
+                bot.send_message(
+                    message.chat.id,
+                    format!("Sending media failed\\. [Download it here]({url})\\!"),
+                )
+                .parse_mode(ParseMode::MarkdownV2)
+                .reply_to_message_id(message.id)
+                .send()
+                .await?;
+            }
         }
-        Err(_) => ("zjebalo sie".to_string(), Vec::new()),
-    };
-    bot.send_message(message.chat.id, text)
-        .entities(entities)
-        .reply_to_message_id(message.id)
-        .send()
-        .await?;
+        Err(text) => {
+            bot.send_message(message.chat.id, text)
+                .reply_to_message_id(message.id)
+                .send()
+                .await?;
+        }
+    }
 
     Ok(())
 }

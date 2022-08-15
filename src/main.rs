@@ -1,10 +1,10 @@
 #![feature(iter_intersperse)]
 #![warn(clippy::pedantic)]
 
+mod cobalt;
 mod commands;
 mod craiyon;
 mod mathjs;
-mod openai;
 mod urbandictionary;
 mod utils;
 
@@ -74,9 +74,9 @@ enum Command {
     #[command()]
     Generate(String),
     #[command()]
-    Gpt3Code(String),
-    #[command()]
     UrbanDictionary(String),
+    #[command()]
+    CobaltDownload(String),
     #[command()]
     Charinfo(String),
 }
@@ -120,20 +120,16 @@ async fn answer(
             }
             commands::urbandictionary(bot, message, term, http_client).await?;
         }
-        Command::Gpt3Code(mut prompt) => {
-            if prompt.is_empty() {
-                if let Some(text) = message.reply_to_message().and_then(Message::text) {
-                    prompt = text.to_string();
-                } else {
-                    bot.send_message(message.chat.id, "Missing prompt.")
-                        .reply_to_message_id(message.id)
-                        .send()
-                        .await
-                        .ok();
-                    return Ok(());
-                }
+        Command::CobaltDownload(url) => {
+            if url.is_empty() {
+                bot.send_message(message.chat.id, "Missing URL to download.")
+                    .reply_to_message_id(message.id)
+                    .send()
+                    .await
+                    .ok();
+                return Ok(());
             }
-            commands::gpt3_code(bot, message, prompt, http_client).await?;
+            commands::cobalt_download(bot, message, url, http_client).await?;
         }
         Command::Charinfo(mut chars) => {
             if chars.is_empty() {
