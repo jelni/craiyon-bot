@@ -109,7 +109,7 @@ pub async fn translate(
     text: String,
     http_client: reqwest::Client,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    let translation = translate::translate(http_client, text, None, "en").await?;
+    let translation = translate::single(http_client, text, None, "en").await?;
 
     bot.send_message(
         message.chat.id,
@@ -117,6 +117,26 @@ pub async fn translate(
     )
     .send()
     .await?;
+
+    Ok(())
+}
+
+pub async fn badtranslate(
+    bot: Bot,
+    message: Message,
+    text: String,
+    http_client: reqwest::Client,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let translations =
+        translate::multiple(http_client, text.split_ascii_whitespace(), None, "en").await?;
+
+    let text = translations
+        .into_iter()
+        .map(|t| t.text)
+        .collect::<Vec<_>>()
+        .join(" ");
+
+    bot.send_message(message.chat.id, text).send().await?;
 
     Ok(())
 }
