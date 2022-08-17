@@ -17,9 +17,9 @@ pub struct Translation {
     pub source_language: String,
 }
 
-pub async fn translate<S: AsRef<str>>(
+pub async fn single<S: AsRef<str>>(
     http_client: reqwest::Client,
-    text: S,
+    query: S,
     source_language: Option<&str>,
     translation_language: &str,
 ) -> reqwest::Result<Translation> {
@@ -33,7 +33,7 @@ pub async fn translate<S: AsRef<str>>(
                     ("tl", translation_language),
                     ("dt", "t"),
                     ("dj", "1"),
-                    ("q", text.as_ref()),
+                    ("q", query.as_ref()),
                 ],
             )
             .unwrap(),
@@ -48,4 +48,38 @@ pub async fn translate<S: AsRef<str>>(
         text: response.sentences.into_iter().map(|s| s.trans).collect(),
         source_language: response.src,
     })
+}
+
+pub async fn multiple<'a, I: IntoIterator<Item = &'a str>>(
+    http_client: reqwest::Client,
+    queries: I,
+    source_language: Option<&str>,
+    translation_language: &str,
+) -> reqwest::Result<Vec<Translation>> {
+    let mut params = vec![
+        ("client", "dict-chrome-ex"),
+        ("sl", source_language.unwrap_or("auto")),
+        ("tl", translation_language),
+    ];
+    for query in queries {
+        params.push(("q", query));
+    }
+    let response = http_client
+        .get(
+            Url::parse_with_params("https://translate.googleapis.com/translate_a/t", params)
+                .unwrap(),
+        )
+        .send()
+        .await?
+        .error_for_status()?
+        .json::<Vec<(String, String)>>()
+        .await?;
+
+    Ok(response
+        .into_iter()
+        .map(|t| Translation {
+            text: t.0,
+            source_language: t.1,
+        })
+        .collect())
 }
