@@ -5,6 +5,7 @@ mod cobalt;
 mod commands;
 mod craiyon;
 mod mathjs;
+mod translate;
 mod urbandictionary;
 mod utils;
 
@@ -74,6 +75,8 @@ enum Command {
     #[command()]
     Generate(String),
     #[command()]
+    Translate(String),
+    #[command()]
     UrbanDictionary(String),
     #[command()]
     CobaltDownload(String),
@@ -108,6 +111,21 @@ async fn answer(
                 }
             }
             commands::generate(bot, message, prompt, http_client).await?;
+        }
+        Command::Translate(mut input) => {
+            if input.is_empty() {
+                if let Some(text) = message.reply_to_message().and_then(Message::text) {
+                    input = text.to_string();
+                } else {
+                    bot.send_message(message.chat.id, "Missing text to translate.")
+                        .reply_to_message_id(message.id)
+                        .send()
+                        .await
+                        .ok();
+                    return Ok(());
+                }
+            }
+            commands::translate(bot, message, input, http_client).await?;
         }
         Command::UrbanDictionary(term) => {
             if term.is_empty() {

@@ -9,8 +9,8 @@ teloxide = { version = "0.10", features = ["nightly", "macros"] }
 reqwest = "0.11"
 serde = "1"
 image = "0.24"
-time = { version = "0.3", features = ["serde", "serde-well-known"] }
 base64 = "0.20.0-alpha"
+time = { version = "0.3", features = ["serde", "serde-well-known"] }
 dotenv = "0.15"
 log = "0.4"
 simple_logger = "2.1"
