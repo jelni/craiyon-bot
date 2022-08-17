@@ -115,6 +115,7 @@ pub async fn translate(
         message.chat.id,
         format!("{}: {}", translation.source_language, translation.text),
     )
+    .reply_to_message_id(message.id)
     .send()
     .await?;
 
@@ -136,7 +137,10 @@ pub async fn badtranslate(
         .collect::<Vec<_>>()
         .join(" ");
 
-    bot.send_message(message.chat.id, text).send().await?;
+    bot.send_message(message.chat.id, text)
+        .reply_to_message_id(message.id)
+        .send()
+        .await?;
 
     Ok(())
 }
