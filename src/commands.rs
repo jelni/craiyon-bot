@@ -8,7 +8,7 @@ use teloxide::types::{InputFile, ParseMode, User};
 use teloxide::utils::markdown;
 
 use crate::utils::CollageOptions;
-use crate::{cobalt, craiyon, urbandictionary, utils};
+use crate::{cobalt, craiyon, translate, urbandictionary, utils};
 
 pub async fn generate(
     bot: Bot,
@@ -99,6 +99,24 @@ pub async fn generate(
         .send()
         .await
         .ok();
+
+    Ok(())
+}
+
+pub async fn translate(
+    bot: Bot,
+    message: Message,
+    text: String,
+    http_client: reqwest::Client,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let translation = translate::translate(http_client, text, None, "en").await?;
+
+    bot.send_message(
+        message.chat.id,
+        format!("{}: {}", translation.source_language, translation.text),
+    )
+    .send()
+    .await?;
 
     Ok(())
 }
