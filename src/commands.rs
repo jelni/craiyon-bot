@@ -25,15 +25,12 @@ pub async fn generate(
         return Ok(());
     };
 
-    let info_msg = match bot
+    let status_msg = bot
         .send_message(message.chat.id, format!("Generating {prompt}…"))
         .reply_to_message_id(message.id)
         .send()
-        .await
-    {
-        Ok(message) => message,
-        Err(_) => return Ok(()), // this usually means that the original message was deleted
-    };
+        .await?
+        .id;
 
     log::info!(
         "Generating {prompt:?} for {user_name} ({user_id}) in {chat_name} ({chat_id})",
@@ -95,7 +92,7 @@ pub async fn generate(
         }
     };
 
-    bot.delete_message(message.chat.id, info_msg.id)
+    bot.delete_message(message.chat.id, status_msg)
         .send()
         .await
         .ok();
@@ -174,27 +171,57 @@ pub async fn urbandictionary(
 pub async fn cobalt_download(
     bot: Bot,
     message: Message,
-    url: String,
+    media_url: String,
     http_client: reqwest::Client,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    match cobalt::download(http_client, url).await? {
+    match cobalt::query(http_client.clone(), &media_url).await? {
         Ok(url) => {
-            if bot
-                .send_document(message.chat.id, InputFile::url(Url::parse(&url).unwrap()))
+            let status_msg = bot
+                .send_message(message.chat.id, "Downloading…")
                 .reply_to_message_id(message.id)
                 .send()
-                .await
-                .is_err()
-            {
-                bot.send_message(
-                    message.chat.id,
-                    format!("Sending media failed\\. [Download it here]({url})\\!"),
-                )
-                .parse_mode(ParseMode::MarkdownV2)
-                .reply_to_message_id(message.id)
+                .await?
+                .id;
+
+            match cobalt::download(http_client, url).await {
+                Ok(download) => {
+                    if bot
+                        .send_document(
+                            message.chat.id,
+                            InputFile::memory(download.media).file_name(download.filename),
+                        )
+                        .reply_to_message_id(message.id)
+                        .send()
+                        .await
+                        .is_err()
+                    {
+                        let text =
+                            "Could not upload media to Telegram\\. You can [download it here]";
+                        let url =
+                            Url::parse_with_params("co.wukko.me", [("u", &media_url)]).unwrap();
+                        bot.send_message(message.chat.id, format!("{text}({url})\\."))
+                            .parse_mode(ParseMode::MarkdownV2)
+                            .reply_to_message_id(message.id)
+                            .send()
+                            .await?;
+                    }
+                }
+                Err(err) => {
+                    bot.send_message(
+                        message.chat.id,
+                        err.status()
+                            .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
+                            .to_string(),
+                    )
+                    .reply_to_message_id(message.id)
+                    .send()
+                    .await?;
+                }
+            }
+
+            bot.delete_message(message.chat.id, status_msg)
                 .send()
                 .await?;
-            }
         }
         Err(text) => {
             bot.send_message(message.chat.id, text)
