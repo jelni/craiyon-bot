@@ -198,7 +198,7 @@ pub async fn cobalt_download(
                         let text =
                             "Could not upload media to Telegram\\. You can [download it here]";
                         let url =
-                            Url::parse_with_params("co.wukko.me", [("u", &media_url)]).unwrap();
+                            Url::parse_with_params("https://co.wukko.me/", [("u", media_url)]).unwrap();
                         bot.send_message(message.chat.id, format!("{text}({url})\\."))
                             .parse_mode(ParseMode::MarkdownV2)
                             .reply_to_message_id(message.id)
