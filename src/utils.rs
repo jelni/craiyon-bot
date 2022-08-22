@@ -1,6 +1,8 @@
 use std::time::Duration;
 
 use image::{imageops, DynamicImage};
+use reqwest::Url;
+use teloxide::types::{InlineKeyboardButton, InlineKeyboardButtonKind, InlineKeyboardMarkup};
 
 #[derive(Clone, Copy)]
 pub struct CollageOptions {
@@ -43,4 +45,11 @@ pub fn format_duration(duration: Duration) -> String {
     } else {
         format!("{seconds}s")
     }
+}
+
+pub fn donate_markup<S: AsRef<str>>(name: S, url: S) -> InlineKeyboardMarkup {
+    InlineKeyboardMarkup::new([[InlineKeyboardButton::new(
+        format!("Donate to {}", name.as_ref()),
+        InlineKeyboardButtonKind::Url(Url::parse(url.as_ref()).unwrap()),
+    )]])
 }
