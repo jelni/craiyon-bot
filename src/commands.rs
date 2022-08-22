@@ -7,7 +7,7 @@ use teloxide::prelude::*;
 use teloxide::types::{InputFile, ParseMode, User};
 use teloxide::utils::markdown;
 
-use crate::utils::CollageOptions;
+use crate::utils::{donate_markup, CollageOptions};
 use crate::{cobalt, craiyon, translate, urbandictionary, utils};
 
 pub async fn generate(
@@ -74,6 +74,7 @@ pub async fn generate(
                 .parse_mode(ParseMode::MarkdownV2)
                 .reply_to_message_id(message.id)
                 .allow_sending_without_reply(true)
+                .reply_markup(donate_markup("🖍️ Craiyon", "https://www.craiyon.com/donate"))
                 .send()
                 .await?;
         }
@@ -184,6 +185,15 @@ pub async fn cobalt_download(
                 .id;
 
             match cobalt::download(http_client, url).await {
+                Ok(download) if download.media.is_empty() => {
+                    bot.send_message(
+                        message.chat.id,
+                        "≫ cobalt failed to download media. Try again later.",
+                    )
+                    .reply_to_message_id(message.id)
+                    .send()
+                    .await?;
+                }
                 Ok(download) => {
                     if bot
                         .send_document(
@@ -191,6 +201,8 @@ pub async fn cobalt_download(
                             InputFile::memory(download.media).file_name(download.filename),
                         )
                         .reply_to_message_id(message.id)
+                        .allow_sending_without_reply(true)
+                        .reply_markup(donate_markup("≫ cobalt", "https://boosty.to/wukko"))
                         .send()
                         .await
                         .is_err()
@@ -198,7 +210,8 @@ pub async fn cobalt_download(
                         let text =
                             "Could not upload media to Telegram\\. You can [download it here]";
                         let url =
-                            Url::parse_with_params("https://co.wukko.me/", [("u", media_url)]).unwrap();
+                            Url::parse_with_params("https://co.wukko.me/", [("u", media_url)])
+                                .unwrap();
                         bot.send_message(message.chat.id, format!("{text}({url})\\."))
                             .parse_mode(ParseMode::MarkdownV2)
                             .reply_to_message_id(message.id)
