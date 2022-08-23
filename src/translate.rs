@@ -55,7 +55,7 @@ pub async fn multiple<'a, I: IntoIterator<Item = &'a str>>(
     queries: I,
     source_language: Option<&str>,
     translation_language: &str,
-) -> reqwest::Result<Vec<Translation>> {
+) -> reqwest::Result<Vec<String>> {
     let mut params = vec![
         ("client", "dict-chrome-ex"),
         ("sl", source_language.unwrap_or("auto")),
@@ -71,15 +71,17 @@ pub async fn multiple<'a, I: IntoIterator<Item = &'a str>>(
         )
         .send()
         .await?
-        .error_for_status()?
-        .json::<Vec<(String, String)>>()
-        .await?;
+        .error_for_status()?;
 
-    Ok(response
-        .into_iter()
-        .map(|t| Translation {
-            text: t.0,
-            source_language: t.1,
-        })
-        .collect())
+    let translations = match source_language {
+        Some(_) => response.json::<Vec<String>>().await?,
+        None => response
+            .json::<Vec<(String, String)>>()
+            .await?
+            .into_iter()
+            .map(|t| t.0)
+            .collect(),
+    };
+
+    Ok(translations)
 }
