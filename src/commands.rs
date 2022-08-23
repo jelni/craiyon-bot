@@ -8,7 +8,7 @@ use teloxide::types::{InputFile, ParseMode, User};
 use teloxide::utils::markdown;
 
 use crate::utils::{donate_markup, CollageOptions};
-use crate::{cobalt, craiyon, translate, urbandictionary, utils};
+use crate::{cobalt, craiyon, poligon, translate, urbandictionary, utils};
 
 pub async fn generate(
     bot: Bot,
@@ -129,11 +129,7 @@ pub async fn badtranslate(
     let translations =
         translate::multiple(http_client, text.split_ascii_whitespace(), None, "en").await?;
 
-    let text = translations
-        .into_iter()
-        .map(|t| t.text)
-        .collect::<Vec<_>>()
-        .join(" ");
+    let text = translations.join(" ");
 
     bot.send_message(message.chat.id, text)
         .reply_to_message_id(message.id)
@@ -277,5 +273,39 @@ pub async fn charinfo(
         .parse_mode(ParseMode::MarkdownV2)
         .send()
         .await?;
+    Ok(())
+}
+
+pub async fn startit_joke(
+    bot: Bot,
+    message: Message,
+    http_client: reqwest::Client,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let joke = poligon::startit_joke(http_client).await?;
+    bot.send_message(message.chat.id, joke)
+        .reply_to_message_id(message.id)
+        .send()
+        .await?;
+
+    Ok(())
+}
+
+pub async fn bad_startit_joke(
+    bot: Bot,
+    message: Message,
+    http_client: reqwest::Client,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let joke = poligon::startit_joke(http_client.clone()).await?;
+
+    let translated_joke =
+        translate::multiple(http_client, joke.split_ascii_whitespace(), Some("pl"), "en")
+            .await?
+            .join(" ");
+
+    bot.send_message(message.chat.id, translated_joke)
+        .reply_to_message_id(message.id)
+        .send()
+        .await?;
+
     Ok(())
 }

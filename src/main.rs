@@ -5,6 +5,7 @@ mod cobalt;
 mod commands;
 mod craiyon;
 mod mathjs;
+mod poligon;
 mod translate;
 mod urbandictionary;
 mod utils;
@@ -84,6 +85,10 @@ enum Command {
     CobaltDownload(String),
     #[command()]
     Charinfo(String),
+    #[command()]
+    StartitJoke,
+    #[command()]
+    BadStartitJoke,
 }
 
 async fn answer(
@@ -181,6 +186,12 @@ async fn answer(
             }
             commands::charinfo(bot, message, chars).await?;
         }
+        Command::StartitJoke => {
+            commands::startit_joke(bot, message, http_client).await?;
+        }
+        Command::BadStartitJoke => {
+            commands::bad_startit_joke(bot, message, http_client).await?;
+        }
     };
 
     Ok(())
@@ -196,7 +207,8 @@ async fn calculate(
         return Ok(());
     }
 
-    let (title, message_text) = if query.query.split_whitespace().collect::<String>() == "2+2" {
+    let (title, message_text) = if query.query.split_ascii_whitespace().collect::<String>() == "2+2"
+    {
         ("5".to_string(), format!("{} = 5", query.query))
     } else {
         match mathjs::evaluate(http_client, query.query.clone()).await? {
