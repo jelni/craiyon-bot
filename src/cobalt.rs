@@ -35,7 +35,7 @@ pub async fn query<S: AsRef<str>>(
 
     match response.status.as_str() {
         "stream" | "redirect" => Ok(Ok(response.url.unwrap())),
-        "success" | "error" => Ok(Err(response.text.unwrap())),
+        "success" | "error" | "rate-limit" => Ok(Err(response.text.unwrap())),
         _ => Ok(Err(format!("unknown status: {:?}", response.status))),
     }
 }
