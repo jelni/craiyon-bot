@@ -1,8 +1,122 @@
+use std::error::Error;
+use std::fmt::Display;
+use std::sync::Arc;
 use std::time::Duration;
 
 use image::{imageops, DynamicImage};
-use reqwest::Url;
-use teloxide::types::{InlineKeyboardButton, InlineKeyboardButtonKind, InlineKeyboardMarkup};
+use tgbotapi::requests::{DeleteMessage, ReplyMarkup, SendMessage};
+use tgbotapi::{
+    InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageEntityType, Telegram, User,
+};
+
+const MARKDOWN_CHARS: [char; 18] =
+    ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+
+#[allow(clippy::unreadable_literal)]
+const RABBIT_JE: i64 = -1001722954366;
+
+#[derive(Debug)]
+pub struct ParsedCommand {
+    pub name: String,
+    pub bot_username: Option<String>,
+    pub arguments: Option<String>,
+}
+
+impl ParsedCommand {
+    pub fn parse(message: &Message) -> Option<ParsedCommand> {
+        message.entities.clone().and_then(|entities| {
+            entities
+                .into_iter()
+                .find(|e| e.entity_type == MessageEntityType::BotCommand && e.offset == 0)
+                .map(|e| {
+                    let command = message
+                        .text
+                        .clone()
+                        .unwrap()
+                        .chars()
+                        .skip(e.offset as usize + 1)
+                        .take(e.length as usize - 1)
+                        .collect::<String>();
+                    let (command_name, username) = match command.split_once('@') {
+                        Some(parts) => (parts.0.to_string(), Some(parts.1)),
+                        None => (command, None),
+                    };
+                    let arguments = message
+                        .text
+                        .clone()
+                        .unwrap()
+                        .chars()
+                        .skip(e.length as usize)
+                        .collect::<String>()
+                        .trim()
+                        .to_string();
+
+                    let arguments = match arguments.is_empty() {
+                        true => None,
+                        false => Some(arguments),
+                    };
+
+                    ParsedCommand {
+                        name: command_name,
+                        bot_username: username.map(str::to_string),
+                        arguments,
+                    }
+                })
+        })
+    }
+
+    pub fn normalised_name(&self) -> String {
+        self.name.to_lowercase()
+    }
+}
+
+impl Display for ParsedCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "/{}", self.normalised_name())?;
+        if let Some(arguments) = &self.arguments {
+            write!(f, " {arguments:?}")?;
+        }
+
+        Ok(())
+    }
+}
+
+pub struct Context {
+    pub api: Arc<Telegram>,
+    pub message: Message,
+    pub arguments: Option<String>,
+    pub http_client: reqwest::Client,
+}
+
+impl Context {
+    pub async fn missing_argument<S: AsRef<str>>(&self, argument: S) {
+        self.api
+            .make_request(&SendMessage {
+                chat_id: self.message.chat.id.into(),
+                text: format!("Missing {}.", argument.as_ref()),
+                reply_to_message_id: Some(self.message.message_id),
+                ..Default::default()
+            })
+            .await
+            .ok();
+    }
+}
+
+pub trait DisplayUser {
+    fn format_name(&self) -> String;
+}
+
+impl DisplayUser for User {
+    fn format_name(&self) -> String {
+        match &self.username {
+            Some(username) => format!("@{username}"),
+            None => match &self.last_name {
+                Some(last_name) => format!("{} {last_name}", self.first_name),
+                None => self.first_name.clone(),
+            },
+        }
+    }
+}
 
 #[derive(Clone, Copy)]
 pub struct CollageOptions {
@@ -47,9 +161,48 @@ pub fn format_duration(duration: Duration) -> String {
     }
 }
 
-pub fn donate_markup<S: AsRef<str>>(name: S, url: S) -> InlineKeyboardMarkup {
-    InlineKeyboardMarkup::new([[InlineKeyboardButton::new(
-        format!("Donate to {}", name.as_ref()),
-        InlineKeyboardButtonKind::Url(Url::parse(url.as_ref()).unwrap()),
-    )]])
+pub fn escape_markdown<S: AsRef<str>>(text: S) -> String {
+    let text = text.as_ref();
+    let mut escaped = String::with_capacity(text.len());
+    for ch in text.chars() {
+        if MARKDOWN_CHARS.contains(&ch) {
+            escaped.push('\\');
+        }
+        escaped.push(ch);
+    }
+    escaped
+}
+
+pub fn donate_markup<S: Into<String>>(name: S, url: S) -> ReplyMarkup {
+    ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
+        inline_keyboard: vec![vec![InlineKeyboardButton {
+            text: name.into(),
+            url: Some(url.into()),
+            ..Default::default()
+        }]],
+    })
+}
+
+pub async fn rabbit_nie_je(ctx: Context) -> Result<(), Result<(), Box<dyn Error>>> {
+    if let Some(chat) = &ctx.message.forward_from_chat {
+        if chat.id == RABBIT_JE {
+            let result = match ctx
+                .api
+                .make_request(&DeleteMessage {
+                    chat_id: ctx.message.chat_id(),
+                    message_id: ctx.message.message_id,
+                })
+                .await
+            {
+                Ok(_) => "Deleted",
+                Err(_) => "Couldn't delete",
+            };
+            log::warn!(
+                "{result} a message from in {:?}",
+                chat.title.as_deref().unwrap_or_default()
+            );
+        }
+    }
+
+    Ok(())
 }
