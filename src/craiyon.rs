@@ -24,9 +24,7 @@ pub async fn generate<S: Into<String>>(
     http_client: reqwest::Client,
     prompt: S,
 ) -> reqwest::Result<GeneratedResult> {
-    let body = Payload {
-        prompt: prompt.into(),
-    };
+    let body = Payload { prompt: prompt.into() };
     let mut retry = 0;
     let (response, duration) = loop {
         retry += 1;
@@ -50,11 +48,8 @@ pub async fn generate<S: Into<String>>(
                     log::warn!("HTTP error: {status}");
                 };
                 if retry < RETRY_COUNT {
-                    let duration = if status == Some(StatusCode::TOO_MANY_REQUESTS) {
-                        10
-                    } else {
-                        2
-                    };
+                    let duration =
+                        if status == Some(StatusCode::TOO_MANY_REQUESTS) { 10 } else { 2 };
                     tokio::time::sleep(Duration::from_secs((retry * duration) as _)).await;
                     log::info!("Retrying ({retry})…");
                     continue;

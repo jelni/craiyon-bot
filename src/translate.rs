@@ -75,12 +75,7 @@ pub async fn multiple<'a, I: IntoIterator<Item = &'a str>>(
 
     let translations = match source_language {
         Some(_) => response.json::<Vec<String>>().await?,
-        None => response
-            .json::<Vec<(String, String)>>()
-            .await?
-            .into_iter()
-            .map(|t| t.0)
-            .collect(),
+        None => response.json::<Vec<(String, String)>>().await?.into_iter().map(|t| t.0).collect(),
     };
 
     Ok(translations)

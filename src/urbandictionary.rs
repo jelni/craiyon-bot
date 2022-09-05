@@ -1,11 +1,12 @@
-use std::fmt;
+use std::fmt::Write;
 
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
-use teloxide::utils::markdown;
 use time::format_description::FormatItem;
 use time::macros::format_description;
 use time::OffsetDateTime;
+
+use crate::utils::escape_markdown;
 
 const DATETIME_FORMAT: &[FormatItem] = format_description!("[year]-[month]-[day]");
 
@@ -42,11 +43,8 @@ async fn search<S: AsRef<str>>(http_client: reqwest::Client, term: S) -> reqwest
 
     match response.status() {
         StatusCode::FOUND => {
-            let (_, term) = response.headers()["Location"]
-                .to_str()
-                .unwrap()
-                .split_once("?term=")
-                .unwrap();
+            let (_, term) =
+                response.headers()["Location"].to_str().unwrap().split_once("?term=").unwrap();
 
             Ok(term.to_string())
         }
@@ -62,11 +60,8 @@ pub async fn define<S: AsRef<str>>(
     let term = search(http_client.clone(), term).await?;
     let mut definitions = http_client
         .get(
-            Url::parse_with_params(
-                "https://api.urbandictionary.com/v0/define",
-                [("term", term)],
-            )
-            .unwrap(),
+            Url::parse_with_params("https://api.urbandictionary.com/v0/define", [("term", term)])
+                .unwrap(),
         )
         .send()
         .await?
@@ -82,36 +77,29 @@ pub async fn define<S: AsRef<str>>(
     }
 }
 
-impl fmt::Display for Definition {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(
-            f,
-            "[*{}*]({})",
-            markdown::escape(&self.word),
-            self.permalink
-        )?;
+impl Definition {
+    pub fn as_markdown(&self) -> String {
+        let mut result = String::new();
+        writeln!(result, "[*{}*]({})", escape_markdown(&self.word), self.permalink,).unwrap();
         let definition = remove_brackets(self.definition.clone());
-        writeln!(f, "{}\n", markdown::escape(&definition))?;
+        writeln!(result, "{}\n", escape_markdown(definition)).unwrap();
         let example = remove_brackets(self.example.clone());
-        writeln!(f, "_{}_\n", markdown::escape(&example))?;
+        writeln!(result, "_{}_\n", escape_markdown(example)).unwrap();
         writeln!(
-            f,
+            result,
             "by [{}]({}), {}",
-            markdown::escape(&self.author),
+            escape_markdown(&self.author),
             Url::parse_with_params(
                 "https://urbandictionary.com/author.php",
                 [("author", &self.author)]
             )
             .unwrap(),
-            markdown::escape(&self.written_on.format(DATETIME_FORMAT).unwrap())
-        )?;
-        write!(
-            f,
-            "\u{1F44D} {} \u{1F44E} {}",
-            self.thumbs_up, self.thumbs_down
-        )?;
+            escape_markdown(self.written_on.format(DATETIME_FORMAT).unwrap())
+        )
+        .unwrap();
+        write!(result, "\u{1F44D} {} \u{1F44E} {}", self.thumbs_up, self.thumbs_down).unwrap();
 
-        Ok(())
+        result
     }
 }
 
