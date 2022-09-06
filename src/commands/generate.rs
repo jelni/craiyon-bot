@@ -11,6 +11,11 @@ use super::Command;
 use crate::utils::{donate_markup, CollageOptions, Context};
 use crate::{craiyon, utils};
 
+const DISALLOWED_WORDS: [&str; 15] = [
+    "18+", "abuse", "anus", "boob", "boobs", "breast", "breasts", "butt", "butts", "loli",
+    "lolicon", "naked", "nude", "penis", "sex",
+];
+
 pub struct Generate;
 
 #[async_trait]
@@ -29,19 +34,34 @@ impl Command for Generate {
                 .make_request(&SendMessage {
                     chat_id: ctx.message.chat_id(),
                     text: "This prompt is too long.".to_string(),
+                    reply_to_message_id: Some(ctx.message.message_id),
                     ..Default::default()
                 })
-                .await
-                .ok();
+                .await?;
 
             return Ok(());
         };
+
+        if is_prompt_suspicious(&prompt) {
+            log::warn!("Suspicious prompt rejected");
+            ctx.api
+                .make_request(&SendMessage {
+                    chat_id: ctx.message.chat_id(),
+                    text: "This prompt is sus.".to_string(),
+                    reply_to_message_id: Some(ctx.message.message_id),
+                    ..Default::default()
+                })
+                .await?;
+
+            return Ok(());
+        }
 
         let status_msg = ctx
             .api
             .make_request(&SendMessage {
                 chat_id: ctx.message.chat_id(),
                 text: format!("Generating {prompt}…"),
+                reply_to_message_id: Some(ctx.message.message_id),
                 ..Default::default()
             })
             .await?
@@ -112,4 +132,18 @@ impl Command for Generate {
 
         Ok(())
     }
+}
+
+fn is_prompt_suspicious<S: AsRef<str>>(text: S) -> bool {
+    text.as_ref()
+        .split_whitespace()
+        .map(|w| {
+            w.chars()
+                .filter_map(|c| match c.is_ascii_alphabetic() {
+                    true => Some(c.to_ascii_lowercase()),
+                    false => None,
+                })
+                .collect::<String>()
+        })
+        .any(|w| DISALLOWED_WORDS.contains(&w.as_str()))
 }
