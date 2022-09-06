@@ -7,38 +7,46 @@ use std::time::Duration;
 
 use reqwest::{redirect, Client};
 use tgbotapi::requests::{
-    AnswerInlineQuery, GetUpdates, InlineQueryResult, InlineQueryResultArticle, InlineQueryType,
-    InputMessageText, InputMessageType,
+    AnswerInlineQuery, GetMe, GetUpdates, InlineQueryResult, InlineQueryResultArticle,
+    InlineQueryType, InputMessageText, InputMessageType,
 };
-use tgbotapi::{InlineQuery, Message, Telegram};
+use tgbotapi::{InlineQuery, Message, Telegram, User};
 use tokio::task::JoinHandle;
 
 use crate::commands::Command;
+use crate::ratelimit::RateLimiter;
 use crate::utils::{Context, DisplayUser, ParsedCommand};
 use crate::{mathjs, utils};
 
 type CommandRef = Arc<dyn Command + Send + Sync>;
 
 pub struct Bot {
-    pub api: Arc<Telegram>,
-    pub running: Arc<AtomicBool>,
-    pub http_client: reqwest::Client,
-    pub commands: HashMap<String, CommandRef>,
-    pub tasks: Vec<JoinHandle<()>>,
+    api: Arc<Telegram>,
+    running: Arc<AtomicBool>,
+    http_client: reqwest::Client,
+    me: User,
+    commands: HashMap<String, CommandRef>,
+    tasks: Vec<JoinHandle<()>>,
+    ratelimiter: RateLimiter<(i64, String)>,
 }
 
 impl Bot {
-    pub fn new() -> Self {
+    pub async fn new() -> Self {
+        let api = Arc::new(Telegram::new(env::var("TELEGRAM_TOKEN").unwrap()));
+        let me = api.make_request(&GetMe).await.unwrap();
+        log::info!("Logged in as {}", me.format_name());
         Self {
-            api: Arc::new(Telegram::new(env::var("TELEGRAM_TOKEN").unwrap())),
+            api,
             running: Arc::new(AtomicBool::new(false)),
             http_client: Client::builder()
                 .redirect(redirect::Policy::none())
                 .timeout(Duration::from_secs(120))
                 .build()
                 .unwrap(),
+            me,
             commands: [].into(),
             tasks: Vec::new(),
+            ratelimiter: RateLimiter::new(4, 20),
         }
     }
 
@@ -96,21 +104,7 @@ impl Bot {
     }
 
     async fn on_message(&mut self, message: Message) -> Result<(), Box<dyn Error>> {
-        if let Some(user) = &message.from {
-            if !user.is_bot && message.forward_from.is_none() {
-                if let Some(parsed_command) = ParsedCommand::parse(&message) {
-                    if let Some(command) = self.commands.get(&parsed_command.normalised_name()) {
-                        let arguments = parsed_command
-                            .arguments
-                            .clone()
-                            .or_else(|| message.reply_to_message.clone().and_then(|r| r.text));
-                        let context = self.get_message_context(message.clone(), arguments);
-                        self.run_command(command.clone(), context, parsed_command);
-                    }
-                }
-            }
-        }
-
+        self.dispatch_command(message.clone());
         utils::rabbit_nie_je(self.get_message_context(message, None)).await.ok();
 
         Ok(())
@@ -164,6 +158,52 @@ impl Bot {
 
     fn get_message_context(&self, message: Message, arguments: Option<String>) -> Context {
         Context { api: self.api.clone(), message, arguments, http_client: self.http_client.clone() }
+    }
+
+    fn dispatch_command(&mut self, message: Message) {
+        let user = match &message.from {
+            Some(user) => user,
+            None => return,
+        };
+
+        if user.is_bot || message.forward_from.is_some() {
+            return;
+        }
+
+        let parsed_command = match ParsedCommand::parse(&message) {
+            Some(parsed_command) => parsed_command,
+            None => return,
+        };
+
+        if let Some(bot_username) = &parsed_command.bot_username {
+            if Some(bot_username.to_lowercase())
+                != self.me.username.as_ref().map(|u| u.to_lowercase())
+            {
+                return;
+            }
+        }
+
+        let normalised_name = parsed_command.normalised_name();
+
+        let command = match self.commands.get(&normalised_name) {
+            Some(command) => command,
+            None => return,
+        };
+
+        if let Some(cooldown) =
+            self.ratelimiter.update_rate_limit((user.id, normalised_name), message.date)
+        {
+            log::warn!("Rate limit exceeded by {cooldown}s by {}", user.format_name());
+            return;
+        }
+
+        let arguments = parsed_command
+            .arguments
+            .clone()
+            .or_else(|| message.reply_to_message.as_ref().and_then(|r| r.text.clone()));
+
+        let context = self.get_message_context(message, arguments);
+        self.run_command(command.clone(), context, parsed_command);
     }
 
     fn run_command(

@@ -12,6 +12,7 @@ mod commands;
 mod craiyon;
 mod mathjs;
 mod poligon;
+mod ratelimit;
 mod translate;
 mod urbandictionary;
 mod utils;
@@ -25,7 +26,8 @@ async fn main() {
         .init()
         .unwrap();
 
-    let mut bot = Bot::new();
+    let mut bot = Bot::new().await;
+
     bot.add_command("start", Arc::new(commands::start::Start));
     bot.add_command("generate", Arc::new(commands::generate::Generate));
     bot.add_command("translate", Arc::new(commands::translate::Translate));
