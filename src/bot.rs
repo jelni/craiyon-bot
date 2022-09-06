@@ -78,6 +78,8 @@ impl Bot {
                 }
             };
 
+            self.cleanup_tasks();
+
             if !self.running.load(Ordering::Relaxed) {
                 break;
             }
@@ -97,9 +99,11 @@ impl Bot {
             }
         }
 
-        log::info!("Waiting for tasks to finish…");
-        for task in self.tasks.drain(..) {
-            task.await.ok();
+        if !self.tasks.is_empty() {
+            log::info!("Waiting for {} tasks to finish…", self.tasks.len());
+            for task in self.tasks.drain(..) {
+                task.await.ok();
+            }
         }
     }
 
@@ -216,7 +220,6 @@ impl Bot {
             "Running {parsed_command} for {}",
             context.message.from.as_ref().unwrap().format_name()
         );
-        self.tasks.retain(|t| !t.is_finished());
         self.tasks.push(tokio::spawn(async move {
             if let Err(err) = command.execute(context).await {
                 let error_text = format!(
@@ -230,5 +233,9 @@ impl Bot {
 
     pub fn add_command<S: Into<String>>(&mut self, name: S, command: CommandRef) {
         self.commands.insert(name.into(), command);
+    }
+
+    fn cleanup_tasks(&mut self) {
+        self.tasks.retain(|t| !t.is_finished());
     }
 }
