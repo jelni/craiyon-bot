@@ -11,9 +11,12 @@ use super::Command;
 use crate::utils::{donate_markup, CollageOptions, Context};
 use crate::{craiyon, utils};
 
-const DISALLOWED_WORDS: [&str; 18] = [
+// yes, people generated all of these
+#[rustfmt::skip]
+const DISALLOWED_WORDS: [&str; 27] = [
     "18+", "abuse", "anus", "ass", "boob", "boobs", "breast", "breasts", "butt", "butts", "erotic",
-    "loli", "lolicon", "naked", "nude", "penis", "sex", "sexy",
+    "hentai", "incest", "loli", "lolicon", "lolis", "naked", "nude", "penis", "porn", "porno",
+    "rape", "sex", "sexy", "shota", "shotacon", "suggestive",
 ];
 
 pub struct Generate;
