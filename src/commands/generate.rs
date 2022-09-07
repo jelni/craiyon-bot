@@ -11,9 +11,9 @@ use super::Command;
 use crate::utils::{donate_markup, CollageOptions, Context};
 use crate::{craiyon, utils};
 
-const DISALLOWED_WORDS: [&str; 15] = [
-    "18+", "abuse", "anus", "boob", "boobs", "breast", "breasts", "butt", "butts", "loli",
-    "lolicon", "naked", "nude", "penis", "sex",
+const DISALLOWED_WORDS: [&str; 18] = [
+    "18+", "abuse", "anus", "ass", "boob", "boobs", "breast", "breasts", "butt", "butts", "erotic",
+    "loli", "lolicon", "naked", "nude", "penis", "sex", "sexy",
 ];
 
 pub struct Generate;
@@ -136,14 +136,7 @@ impl Command for Generate {
 
 fn is_prompt_suspicious<S: AsRef<str>>(text: S) -> bool {
     text.as_ref()
-        .split_whitespace()
-        .map(|w| {
-            w.chars()
-                .filter_map(|c| match c.is_ascii_alphabetic() {
-                    true => Some(c.to_ascii_lowercase()),
-                    false => None,
-                })
-                .collect::<String>()
-        })
-        .any(|w| DISALLOWED_WORDS.contains(&w.as_str()))
+        .to_lowercase()
+        .split(|c: char| !c.is_alphabetic())
+        .any(|w| DISALLOWED_WORDS.contains(&w))
 }

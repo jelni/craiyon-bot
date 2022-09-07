@@ -173,10 +173,10 @@ pub fn escape_markdown<S: AsRef<str>>(text: S) -> String {
     escaped
 }
 
-pub fn donate_markup<S: Into<String>>(name: S, url: S) -> ReplyMarkup {
+pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMarkup {
     ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
         inline_keyboard: vec![vec![InlineKeyboardButton {
-            text: name.into(),
+            text: format!("Donate to {}", name.as_ref()),
             url: Some(url.into()),
             ..Default::default()
         }]],
