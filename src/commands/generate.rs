@@ -4,7 +4,7 @@ use std::io::Cursor;
 use async_trait::async_trait;
 use image::{ImageFormat, ImageOutputFormat};
 use reqwest::StatusCode;
-use tgbotapi::requests::{DeleteMessage, SendMessage, SendPhoto};
+use tgbotapi::requests::{DeleteMessage, SendPhoto};
 use tgbotapi::FileType;
 
 use super::Command;
@@ -23,8 +23,8 @@ pub struct Generate;
 
 #[async_trait]
 impl Command for Generate {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error>> {
-        let prompt = match ctx.arguments {
+    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let prompt = match &ctx.arguments {
             Some(arguments) => arguments,
             None => {
                 ctx.missing_argument("prompt to generate").await;
@@ -33,44 +33,21 @@ impl Command for Generate {
         };
 
         if prompt.chars().count() > 1024 {
-            ctx.api
-                .make_request(&SendMessage {
-                    chat_id: ctx.message.chat_id(),
-                    text: "This prompt is too long.".to_string(),
-                    reply_to_message_id: Some(ctx.message.message_id),
-                    ..Default::default()
-                })
-                .await?;
+            ctx.reply("This prompt is too long.").await?;
 
             return Ok(());
         };
 
-        if is_prompt_suspicious(&prompt) {
+        if is_prompt_suspicious(prompt) {
             log::warn!("Suspicious prompt rejected");
-            ctx.api
-                .make_request(&SendMessage {
-                    chat_id: ctx.message.chat_id(),
-                    text: "This prompt is sus.".to_string(),
-                    reply_to_message_id: Some(ctx.message.message_id),
-                    ..Default::default()
-                })
-                .await?;
+            ctx.reply("This prompt is sus.").await?;
 
             return Ok(());
         }
 
-        let status_msg = ctx
-            .api
-            .make_request(&SendMessage {
-                chat_id: ctx.message.chat_id(),
-                text: format!("Generating {prompt}…"),
-                reply_to_message_id: Some(ctx.message.message_id),
-                ..Default::default()
-            })
-            .await?
-            .message_id;
+        let status_msg = ctx.reply(format!("Generating {prompt}…")).await?.message_id;
 
-        match craiyon::generate(ctx.http_client, prompt.clone()).await {
+        match craiyon::generate(ctx.http_client.clone(), prompt.clone()).await {
             Ok(result) => {
                 let images = result
                     .images
@@ -113,18 +90,11 @@ impl Command for Generate {
                     .await?;
             }
             Err(err) => {
-                ctx.api
-                    .make_request(&SendMessage {
-                        chat_id: ctx.message.chat_id(),
-                        text: format!(
-                            "zjebalo sie: {}",
-                            err.status().unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
-                        ),
-                        reply_to_message_id: Some(ctx.message.message_id),
-                        allow_sending_without_reply: Some(true),
-                        ..Default::default()
-                    })
-                    .await?;
+                ctx.reply(format!(
+                    "zjebalo sie: {}",
+                    err.status().unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
+                ))
+                .await?;
             }
         };
 

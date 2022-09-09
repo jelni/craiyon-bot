@@ -15,5 +15,5 @@ pub mod urbandictionary;
 
 #[async_trait]
 pub trait Command {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error>>;
+    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>>;
 }

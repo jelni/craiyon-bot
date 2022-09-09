@@ -1,7 +1,6 @@
 use std::error::Error;
 
 use async_trait::async_trait;
-use tgbotapi::requests::{ParseMode, SendMessage};
 
 use super::Command;
 use crate::utils::{escape_markdown, Context};
@@ -10,8 +9,8 @@ pub struct CharInfo;
 
 #[async_trait]
 impl Command for CharInfo {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error>> {
-        let chars = match ctx.arguments {
+    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let chars = match &ctx.arguments {
             Some(arguments) => arguments,
             None => {
                 ctx.missing_argument("characters").await;
@@ -36,14 +35,7 @@ impl Command for CharInfo {
             lines.push(String::from('…'));
         }
 
-        ctx.api
-            .make_request(&SendMessage {
-                chat_id: ctx.message.chat_id(),
-                text: lines.join("\n"),
-                parse_mode: Some(ParseMode::MarkdownV2),
-                ..Default::default()
-            })
-            .await?;
+        ctx.reply_markdown(lines.join("\n")).await?;
 
         Ok(())
     }

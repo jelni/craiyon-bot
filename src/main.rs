@@ -1,4 +1,4 @@
-#![feature(box_into_inner)]
+#![warn(clippy::pedantic)]
 
 use std::sync::Arc;
 

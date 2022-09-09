@@ -56,7 +56,7 @@ impl Bot {
         tokio::spawn(async move {
             tokio::signal::ctrl_c().await.unwrap();
             running_clone.store(false, Ordering::Relaxed);
-            log::warn!("Stopping…")
+            log::warn!("Stopping…");
         });
 
         let mut offset = 0;
@@ -221,12 +221,12 @@ impl Bot {
             context.message.from.as_ref().unwrap().format_name()
         );
         self.tasks.push(tokio::spawn(async move {
-            if let Err(err) = command.execute(context).await {
-                let error_text = format!(
+            if let Err(err) = command.execute(context.clone()).await {
+                log::error!(
                     "An error occurred while executing the {:?} command: {err}",
                     parsed_command.normalised_name()
                 );
-                log::error!("{error_text}");
+                context.reply("An error occurred while executing the command 😩").await.ok();
             }
         }));
     }
