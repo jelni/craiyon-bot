@@ -2,7 +2,7 @@ use std::error::Error;
 
 use async_trait::async_trait;
 use reqwest::{StatusCode, Url};
-use tgbotapi::requests::{DeleteMessage, ParseMode, SendDocument, SendMessage};
+use tgbotapi::requests::{DeleteMessage, SendDocument};
 use tgbotapi::FileType;
 
 use super::Command;
@@ -13,8 +13,8 @@ pub struct CobaltDownload;
 
 #[async_trait]
 impl Command for CobaltDownload {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error>> {
-        let media_url = match ctx.arguments {
+    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let media_url = match &ctx.arguments {
             Some(arguments) => arguments,
             None => {
                 ctx.missing_argument("URL to download").await;
@@ -24,27 +24,11 @@ impl Command for CobaltDownload {
 
         match cobalt::query(ctx.http_client.clone(), &media_url).await? {
             Ok(url) => {
-                let status_msg = ctx
-                    .api
-                    .make_request(&SendMessage {
-                        chat_id: ctx.message.chat_id(),
-                        text: "Downloading…".to_string(),
-                        reply_to_message_id: Some(ctx.message.message_id),
-                        ..Default::default()
-                    })
-                    .await?
-                    .message_id;
+                let status_msg = ctx.reply("Downloading…").await?.message_id;
 
-                match cobalt::download(ctx.http_client, url).await {
+                match cobalt::download(ctx.http_client.clone(), url).await {
                     Ok(download) if download.media.is_empty() => {
-                        ctx.api
-                            .make_request(&SendMessage {
-                                chat_id: ctx.message.chat_id(),
-                                text: "≫ cobalt failed to download media. Try again later."
-                                    .to_string(),
-                                ..Default::default()
-                            })
-                            .await?;
+                        ctx.reply("≫ cobalt failed to download media. Try again later.").await?;
                     }
                     Ok(download) => {
                         if ctx
@@ -68,29 +52,14 @@ impl Command for CobaltDownload {
                             let url =
                                 Url::parse_with_params("https://co.wukko.me/", [("u", media_url)])
                                     .unwrap();
-                            ctx.api
-                                .make_request(&SendMessage {
-                                    chat_id: ctx.message.chat_id(),
-                                    text: format!("{text}({url})\\."),
-                                    parse_mode: Some(ParseMode::MarkdownV2),
-                                    reply_to_message_id: Some(ctx.message.message_id),
-                                    ..Default::default()
-                                })
-                                .await?;
+                            ctx.reply_markdown(format!("{text}({url})\\.")).await?;
                         }
                     }
                     Err(err) => {
-                        ctx.api
-                            .make_request(&SendMessage {
-                                chat_id: ctx.message.chat_id(),
-                                text: err
-                                    .status()
-                                    .unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
-                                    .to_string(),
-                                reply_to_message_id: Some(ctx.message.message_id),
-                                ..Default::default()
-                            })
-                            .await?;
+                        ctx.reply(
+                            err.status().unwrap_or(StatusCode::INTERNAL_SERVER_ERROR).to_string(),
+                        )
+                        .await?;
                     }
                 }
 
@@ -102,14 +71,7 @@ impl Command for CobaltDownload {
                     .await?;
             }
             Err(text) => {
-                ctx.api
-                    .make_request(&SendMessage {
-                        chat_id: ctx.message.chat_id(),
-                        text,
-                        reply_to_message_id: Some(ctx.message.message_id),
-                        ..Default::default()
-                    })
-                    .await?;
+                ctx.reply(text).await?;
             }
         }
 

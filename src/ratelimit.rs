@@ -13,29 +13,26 @@ impl<K: Eq + Hash> RateLimiter<K> {
     }
 
     pub fn update_rate_limit(&mut self, key: K, time: i64) -> Option<i64> {
-        match self.history.get_mut(&key) {
-            Some(value) => {
-                let cooldown = match value.len() >= self.limit {
-                    true => {
-                        value.truncate(self.limit);
-                        let last_time = *value.last().unwrap();
-                        match time - last_time < self.duration {
-                            true => Some(self.duration - (time - last_time)),
-                            false => None,
-                        }
-                    }
-                    false => None,
-                };
-
-                if cooldown.is_none() {
-                    value.insert(0, time);
+        if let Some(value) = self.history.get_mut(&key) {
+            let cooldown = if value.len() >= self.limit {
+                value.truncate(self.limit);
+                let last_time = *value.last().unwrap();
+                if time - last_time < self.duration {
+                    Some(self.duration - (time - last_time))
+                } else {
+                    None
                 }
-                cooldown
-            }
-            None => {
-                self.history.insert(key, vec![time]);
+            } else {
                 None
+            };
+
+            if cooldown.is_none() {
+                value.insert(0, time);
             }
+            cooldown
+        } else {
+            self.history.insert(key, vec![time]);
+            None
         }
     }
 }

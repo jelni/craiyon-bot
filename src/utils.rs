@@ -1,10 +1,11 @@
+use std::convert::TryInto;
 use std::error::Error;
-use std::fmt::Display;
+use std::fmt;
 use std::sync::Arc;
 use std::time::Duration;
 
 use image::{imageops, DynamicImage};
-use tgbotapi::requests::{DeleteMessage, ReplyMarkup, SendMessage};
+use tgbotapi::requests::{DeleteMessage, ParseMode, ReplyMarkup, SendMessage};
 use tgbotapi::{
     InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageEntityType, Telegram, User,
 };
@@ -34,8 +35,8 @@ impl ParsedCommand {
                         .clone()
                         .unwrap()
                         .chars()
-                        .skip(e.offset as usize + 1)
-                        .take(e.length as usize - 1)
+                        .skip((e.offset + 1).try_into().unwrap_or_default())
+                        .take((e.length - 1).try_into().unwrap_or_default())
                         .collect::<String>();
                     let (command_name, username) = match command.split_once('@') {
                         Some(parts) => (parts.0.to_string(), Some(parts.1)),
@@ -46,15 +47,12 @@ impl ParsedCommand {
                         .clone()
                         .unwrap()
                         .chars()
-                        .skip(e.length as usize)
+                        .skip(e.length.try_into().unwrap_or_default())
                         .collect::<String>()
-                        .trim()
+                        .trim_start()
                         .to_string();
 
-                    let arguments = match arguments.is_empty() {
-                        true => None,
-                        false => Some(arguments),
-                    };
+                    let arguments = if arguments.is_empty() { None } else { Some(arguments) };
 
                     ParsedCommand {
                         name: command_name,
@@ -70,8 +68,8 @@ impl ParsedCommand {
     }
 }
 
-impl Display for ParsedCommand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for ParsedCommand {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "/{}", self.normalised_name())?;
         if let Some(arguments) = &self.arguments {
             write!(f, " {arguments:?}")?;
@@ -81,6 +79,7 @@ impl Display for ParsedCommand {
     }
 }
 
+#[derive(Clone)]
 pub struct Context {
     pub api: Arc<Telegram>,
     pub message: Message,
@@ -90,15 +89,35 @@ pub struct Context {
 
 impl Context {
     pub async fn missing_argument<S: AsRef<str>>(&self, argument: S) {
+        self.reply(format!("Missing {}.", argument.as_ref())).await.ok();
+    }
+
+    pub async fn reply<S: Into<String>>(&self, text: S) -> Result<Message, tgbotapi::Error> {
+        self._reply(text, None).await
+    }
+
+    pub async fn reply_markdown<S: Into<String>>(
+        &self,
+        text: S,
+    ) -> Result<Message, tgbotapi::Error> {
+        self._reply(text, Some(ParseMode::MarkdownV2)).await
+    }
+
+    async fn _reply<S: Into<String>>(
+        &self,
+        text: S,
+        parse_mode: Option<ParseMode>,
+    ) -> Result<Message, tgbotapi::Error> {
         self.api
             .make_request(&SendMessage {
-                chat_id: self.message.chat.id.into(),
-                text: format!("Missing {}.", argument.as_ref()),
+                chat_id: self.message.chat_id(),
+                text: text.into(),
+                parse_mode,
+                disable_web_page_preview: Some(true),
                 reply_to_message_id: Some(self.message.message_id),
                 ..Default::default()
             })
             .await
-            .ok();
     }
 }
 
