@@ -6,6 +6,7 @@ use bot::Bot;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
 
+mod api_methods;
 mod bot;
 mod cobalt;
 mod commands;
@@ -36,6 +37,7 @@ async fn main() {
     bot.add_command("cobalt_download", Arc::new(commands::cobalt_download::CobaltDownload));
     bot.add_command("charinfo", Arc::new(commands::charinfo::CharInfo));
     bot.add_command("startit_joke", Arc::new(commands::startit_joke::StartItJoke));
+    bot.add_command("sex", Arc::new(commands::sex::Sex));
 
     bot.run().await;
 }
