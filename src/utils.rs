@@ -119,6 +119,15 @@ impl Context {
             })
             .await
     }
+
+    pub async fn delete_message(&self, message: &Message) -> Result<bool, tgbotapi::Error> {
+        self.api
+            .make_request(&DeleteMessage {
+                chat_id: message.chat_id(),
+                message_id: message.message_id,
+            })
+            .await
+    }
 }
 
 pub trait DisplayUser {
@@ -205,14 +214,7 @@ pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMa
 pub async fn rabbit_nie_je(ctx: Context) -> Result<(), Result<(), Box<dyn Error>>> {
     if let Some(chat) = &ctx.message.forward_from_chat {
         if chat.id == RABBIT_JE {
-            let result = match ctx
-                .api
-                .make_request(&DeleteMessage {
-                    chat_id: ctx.message.chat_id(),
-                    message_id: ctx.message.message_id,
-                })
-                .await
-            {
+            let result = match ctx.delete_message(&ctx.message).await {
                 Ok(_) => "Deleted",
                 Err(_) => "Couldn't delete",
             };
