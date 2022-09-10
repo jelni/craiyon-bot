@@ -4,7 +4,7 @@ use std::io::Cursor;
 use async_trait::async_trait;
 use image::{ImageFormat, ImageOutputFormat};
 use reqwest::StatusCode;
-use tgbotapi::requests::{DeleteMessage, SendPhoto};
+use tgbotapi::requests::SendPhoto;
 use tgbotapi::FileType;
 
 use super::Command;
@@ -12,11 +12,11 @@ use crate::utils::{donate_markup, CollageOptions, Context};
 use crate::{craiyon, utils};
 
 // yes, people generated all of these
-#[rustfmt::skip]
-const DISALLOWED_WORDS: [&str; 27] = [
-    "18+", "abuse", "anus", "ass", "boob", "boobs", "breast", "breasts", "butt", "butts", "erotic",
-    "hentai", "incest", "loli", "lolicon", "lolis", "naked", "nude", "penis", "porn", "porno",
-    "rape", "sex", "sexy", "shota", "shotacon", "suggestive",
+const DISALLOWED_WORDS: [&str; 34] = [
+    "18+", "abuse", "anus", "ass", "bikini", "boob", "booba", "boobs", "braless", "breast",
+    "breasts", "butt", "butts", "cum", "doujin", "erotic", "hentai", "incest", "loli", "lolicon",
+    "lolis", "naked", "nhentai", "nude", "penis", "porn", "porno", "rape", "sex", "sexy", "shota",
+    "shotacon", "slut", "underage",
 ];
 
 pub struct Generate;
@@ -45,7 +45,7 @@ impl Command for Generate {
             return Ok(());
         }
 
-        let status_msg = ctx.reply(format!("Generating {prompt}…")).await?.message_id;
+        let status_msg = ctx.reply(format!("Generating {prompt}…")).await?;
 
         match craiyon::generate(ctx.http_client.clone(), prompt.clone()).await {
             Ok(result) => {
@@ -98,16 +98,13 @@ impl Command for Generate {
             }
         };
 
-        ctx.api
-            .make_request(&DeleteMessage { chat_id: ctx.message.chat_id(), message_id: status_msg })
-            .await
-            .ok();
+        ctx.delete_message(&status_msg).await?;
 
         Ok(())
     }
 }
 
-fn is_prompt_suspicious<S: AsRef<str>>(text: S) -> bool {
+pub(super) fn is_prompt_suspicious<S: AsRef<str>>(text: S) -> bool {
     text.as_ref()
         .to_lowercase()
         .split(|c: char| !c.is_alphabetic())

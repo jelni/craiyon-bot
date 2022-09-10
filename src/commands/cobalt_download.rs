@@ -2,7 +2,7 @@ use std::error::Error;
 
 use async_trait::async_trait;
 use reqwest::{StatusCode, Url};
-use tgbotapi::requests::{DeleteMessage, SendDocument};
+use tgbotapi::requests::SendDocument;
 use tgbotapi::FileType;
 
 use super::Command;
@@ -24,7 +24,7 @@ impl Command for CobaltDownload {
 
         match cobalt::query(ctx.http_client.clone(), &media_url).await? {
             Ok(url) => {
-                let status_msg = ctx.reply("Downloading…").await?.message_id;
+                let status_msg = ctx.reply("Downloading…").await?;
 
                 match cobalt::download(ctx.http_client.clone(), url).await {
                     Ok(download) if download.media.is_empty() => {
@@ -63,12 +63,7 @@ impl Command for CobaltDownload {
                     }
                 }
 
-                ctx.api
-                    .make_request(&DeleteMessage {
-                        chat_id: ctx.message.chat_id(),
-                        message_id: status_msg,
-                    })
-                    .await?;
+                ctx.delete_message(&status_msg).await?;
             }
             Err(text) => {
                 ctx.reply(text).await?;
