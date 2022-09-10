@@ -7,8 +7,11 @@ use std::time::Duration;
 use image::{imageops, DynamicImage};
 use tgbotapi::requests::{DeleteMessage, ParseMode, ReplyMarkup, SendMessage};
 use tgbotapi::{
-    InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageEntityType, Telegram, User,
+    FileType, InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageEntityType, Telegram,
+    User,
 };
+
+use crate::api_methods::SendSticker;
 
 const MARKDOWN_CHARS: [char; 18] =
     ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
@@ -125,6 +128,16 @@ impl Context {
             .make_request(&DeleteMessage {
                 chat_id: message.chat_id(),
                 message_id: message.message_id,
+            })
+            .await
+    }
+
+    pub async fn send_sticker(&self, sticker: FileType) -> Result<Message, tgbotapi::Error> {
+        self.api
+            .make_request(&SendSticker {
+                chat_id: self.message.chat_id(),
+                sticker,
+                reply_to_message_id: Some(self.message.message_id),
             })
             .await
     }
