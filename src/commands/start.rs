@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 
@@ -9,7 +10,15 @@ pub struct Start;
 
 #[async_trait]
 impl Command for Start {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>> {
+    fn name(&self) -> &str {
+        "start"
+    }
+
+    async fn execute(
+        &self,
+        ctx: Arc<Context>,
+        _: Option<String>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         ctx.reply_markdown(concat!(
             "Use the /generate command to generate images\\.\n",
             "*Example:* `/generate crayons in a box`"

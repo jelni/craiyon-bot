@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use tgbotapi::FileType;
@@ -15,8 +16,16 @@ pub struct Sex;
 
 #[async_trait]
 impl Command for Sex {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let question_mark = ctx.arguments.as_ref().map_or(false, |a| a.starts_with('?'));
+    fn name(&self) -> &str {
+        "sex"
+    }
+
+    async fn execute(
+        &self,
+        ctx: Arc<Context>,
+        arguments: Option<String>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let question_mark = arguments.map_or(false, |a| a.starts_with('?'));
         ctx.send_sticker(FileType::FileID(SEX[usize::from(question_mark)].to_string())).await?;
 
         Ok(())

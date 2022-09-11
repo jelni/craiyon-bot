@@ -1,20 +1,35 @@
 use std::error::Error;
+use std::sync::Arc;
 
 use async_trait::async_trait;
+pub use badtranslate::BadTranslate;
+pub use charinfo::CharInfo;
+pub use cobalt_download::CobaltDownload;
+pub use generate::Generate;
+pub use sex::Sex;
+pub use start::Start;
+pub use startit_joke::StartItJoke;
+pub use translate::Translate;
+pub use urbandictionary::UrbanDictionary;
 
 use crate::utils::Context;
 
-pub mod badtranslate;
-pub mod charinfo;
-pub mod cobalt_download;
-pub mod generate;
-pub mod sex;
-pub mod start;
-pub mod startit_joke;
-pub mod translate;
-pub mod urbandictionary;
+mod badtranslate;
+mod charinfo;
+mod cobalt_download;
+mod generate;
+mod sex;
+mod start;
+mod startit_joke;
+mod translate;
+mod urbandictionary;
 
 #[async_trait]
 pub trait Command {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>>;
+    fn name(&self) -> &str;
+    async fn execute(
+        &self,
+        ctx: Arc<Context>,
+        arguments: Option<String>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>>;
 }

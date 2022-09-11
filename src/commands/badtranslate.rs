@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 
@@ -10,13 +11,20 @@ pub struct BadTranslate;
 
 #[async_trait]
 impl Command for BadTranslate {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let text = match &ctx.arguments {
-            Some(arguments) => arguments,
-            None => {
-                ctx.missing_argument("text to translate").await;
-                return Ok(());
-            }
+    fn name(&self) -> &str {
+        "badtranslate"
+    }
+
+    async fn execute(
+        &self,
+        ctx: Arc<Context>,
+        arguments: Option<String>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let text = if let Some(arguments) = arguments {
+            arguments
+        } else {
+            ctx.missing_argument("text to translate").await;
+            return Ok(());
         };
 
         let translations =
