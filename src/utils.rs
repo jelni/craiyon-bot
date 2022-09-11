@@ -7,8 +7,8 @@ use std::time::Duration;
 use image::{imageops, DynamicImage};
 use tgbotapi::requests::{DeleteMessage, ParseMode, ReplyMarkup, SendMessage};
 use tgbotapi::{
-    FileType, InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageEntityType, Telegram,
-    User,
+    ChatMemberStatus, ChatMemberUpdated, ChatType, FileType, InlineKeyboardButton,
+    InlineKeyboardMarkup, Message, MessageEntityType, Telegram, User,
 };
 
 use crate::api_methods::SendSticker;
@@ -222,6 +222,27 @@ pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMa
             ..Default::default()
         }]],
     })
+}
+
+pub fn log_status_update(update: ChatMemberUpdated) {
+    if update.chat.chat_type == ChatType::Private {
+        return;
+    }
+
+    let old_status = update.old_chat_member.status;
+    let new_status = update.new_chat_member.status;
+
+    if old_status == new_status {
+        return;
+    }
+
+    let status = match new_status {
+        ChatMemberStatus::Member => "Joined",
+        ChatMemberStatus::Left | ChatMemberStatus::Kicked => "Left",
+        _ => return,
+    };
+
+    log::info!("{} {:?}", status, update.chat.title.unwrap_or_default());
 }
 
 pub async fn rabbit_nie_je(ctx: Context) -> Result<(), Result<(), Box<dyn Error>>> {
