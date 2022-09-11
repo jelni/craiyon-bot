@@ -15,7 +15,7 @@ use tokio::task::JoinHandle;
 
 use crate::commands::Command;
 use crate::ratelimit::RateLimiter;
-use crate::utils::{Context, DisplayUser, ParsedCommand};
+use crate::utils::{log_status_update, Context, DisplayUser, ParsedCommand};
 use crate::{mathjs, utils};
 
 type CommandRef = Arc<dyn Command + Send + Sync>;
@@ -66,6 +66,11 @@ impl Bot {
                 .make_request(&GetUpdates {
                     offset: Some(offset + 1),
                     timeout: Some(120),
+                    allowed_updates: Some(vec![
+                        "message".to_string(),
+                        "inline_query".to_string(),
+                        "my_chat_member".to_string(),
+                    ]),
                     ..Default::default()
                 })
                 .await
@@ -78,7 +83,7 @@ impl Bot {
                 }
             };
 
-            self.cleanup_tasks();
+            self.tasks.retain(|t| !t.is_finished());
 
             if !self.running.load(Ordering::Relaxed) {
                 break;
@@ -93,6 +98,8 @@ impl Bot {
                     if let Err(err) = self.on_inline_query(inline_query).await {
                         log::error!("Error in on_inline_query: {err}");
                     }
+                } else if let Some(my_chat_member) = update.my_chat_member {
+                    log_status_update(my_chat_member);
                 }
 
                 offset = update.update_id;
@@ -100,7 +107,7 @@ impl Bot {
         }
 
         if !self.tasks.is_empty() {
-            log::info!("Waiting for {} tasks to finish…", self.tasks.len());
+            log::info!("Waiting for {} task(s) to finish…", self.tasks.len());
             for task in self.tasks.drain(..) {
                 task.await.ok();
             }
@@ -233,9 +240,5 @@ impl Bot {
 
     pub fn add_command<S: Into<String>>(&mut self, name: S, command: CommandRef) {
         self.commands.insert(name.into(), command);
-    }
-
-    fn cleanup_tasks(&mut self) {
-        self.tasks.retain(|t| !t.is_finished());
     }
 }
