@@ -112,30 +112,26 @@ impl Bot {
     }
 
     fn on_message(&mut self, message: Message) {
-        if let Some(user) = message.forward_from.clone() {
-            self.spawn_task(not_commands::rabbit_nie_je(self.get_message_context(message, user)));
-        } else {
-            let user = match message.from.clone() {
-                Some(user) => user,
-                None => return,
-            };
+        let user = match message.from.clone() {
+            Some(user) => user,
+            None => return,
+        };
 
-            if user.is_bot || message.forward_from.is_some() {
+        if user.is_bot || message.forward_from.is_some() {
+            return;
+        }
+
+        let context = Arc::new(self.get_message_context(message, user));
+
+        if let Some(parsed_command) = ParsedCommand::parse(&context.message) {
+            if let Some(command) = self.get_command(&parsed_command) {
+                self.dispatch_command(context.clone(), parsed_command, command);
                 return;
             }
+        };
 
-            let parsed_command = ParsedCommand::parse(&message);
-            let context = self.get_message_context(message, user);
-
-            if let Some(parsed_command) = parsed_command {
-                if let Some(command) = self.get_command(&parsed_command) {
-                    self.dispatch_command(context, parsed_command, command);
-                    return;
-                }
-            };
-
-            self.spawn_task(not_commands::auto_reply(context));
-        }
+        self.spawn_task(not_commands::auto_reply(context.clone()));
+        self.spawn_task(not_commands::rabbit_nie_je(context));
     }
 
     fn on_inline_query(&mut self, inline_query: InlineQuery) {
@@ -170,7 +166,7 @@ impl Bot {
 
     fn dispatch_command(
         &mut self,
-        context: Context,
+        context: Arc<Context>,
         parsed_command: ParsedCommand,
         command: CommandRef,
     ) {
@@ -188,7 +184,6 @@ impl Bot {
 
         log::info!("Running {} for {}", parsed_command, context.user.format_name());
 
-        let context = Arc::new(context);
         let arguments = parsed_command
             .arguments
             .or_else(|| context.message.reply_to_message.as_ref().and_then(|r| r.text.clone()));

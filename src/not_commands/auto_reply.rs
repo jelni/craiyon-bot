@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use crate::utils::{Context, DisplayUser};
 
-pub async fn auto_reply(ctx: Context) {
+pub async fn auto_reply(ctx: Arc<Context>) {
     let text = match &ctx.message.text {
         Some(text) => text.to_lowercase(),
         None => return,
