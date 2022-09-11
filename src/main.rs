@@ -12,6 +12,7 @@ mod cobalt;
 mod commands;
 mod craiyon;
 mod mathjs;
+mod not_commands;
 mod poligon;
 mod ratelimit;
 mod translate;
@@ -29,15 +30,15 @@ async fn main() {
 
     let mut bot = Bot::new().await;
 
-    bot.add_command("start", Arc::new(commands::start::Start));
-    bot.add_command("generate", Arc::new(commands::generate::Generate));
-    bot.add_command("translate", Arc::new(commands::translate::Translate));
-    bot.add_command("badtranslate", Arc::new(commands::badtranslate::BadTranslate));
-    bot.add_command("urbandictionary", Arc::new(commands::urbandictionary::UrbanDictionary));
-    bot.add_command("cobalt_download", Arc::new(commands::cobalt_download::CobaltDownload));
-    bot.add_command("charinfo", Arc::new(commands::charinfo::CharInfo));
-    bot.add_command("startit_joke", Arc::new(commands::startit_joke::StartItJoke));
-    bot.add_command("sex", Arc::new(commands::sex::Sex));
+    bot.add_command(Arc::new(commands::Start));
+    bot.add_command(Arc::new(commands::Generate));
+    bot.add_command(Arc::new(commands::Translate));
+    bot.add_command(Arc::new(commands::BadTranslate));
+    bot.add_command(Arc::new(commands::UrbanDictionary));
+    bot.add_command(Arc::new(commands::CobaltDownload));
+    bot.add_command(Arc::new(commands::CharInfo));
+    bot.add_command(Arc::new(commands::StartItJoke));
+    bot.add_command(Arc::new(commands::Sex));
 
     bot.run().await;
 }

@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 
@@ -10,13 +11,20 @@ pub struct UrbanDictionary;
 
 #[async_trait]
 impl Command for UrbanDictionary {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let word = match &ctx.arguments {
-            Some(arguments) => arguments,
-            None => {
-                ctx.missing_argument("word to define").await;
-                return Ok(());
-            }
+    fn name(&self) -> &str {
+        "urbandictionary"
+    }
+
+    async fn execute(
+        &self,
+        ctx: Arc<Context>,
+        arguments: Option<String>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let word = if let Some(arguments) = arguments {
+            arguments
+        } else {
+            ctx.missing_argument("word to define").await;
+            return Ok(());
         };
 
         let response = if let Ok(Some(definition)) =

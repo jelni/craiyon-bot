@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::io::Cursor;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use image::{ImageFormat, ImageOutputFormat};
@@ -12,24 +13,31 @@ use crate::utils::{donate_markup, CollageOptions, Context};
 use crate::{craiyon, utils};
 
 // yes, people generated all of these
-const DISALLOWED_WORDS: [&str; 34] = [
-    "18+", "abuse", "anus", "ass", "bikini", "boob", "booba", "boobs", "braless", "breast",
-    "breasts", "butt", "butts", "cum", "doujin", "erotic", "hentai", "incest", "loli", "lolicon",
-    "lolis", "naked", "nhentai", "nude", "penis", "porn", "porno", "rape", "sex", "sexy", "shota",
-    "shotacon", "slut", "underage",
+const DISALLOWED_WORDS: [&str; 37] = [
+    "abuse", "anus", "ass", "bikini", "boob", "booba", "boobs", "braless", "breast", "breasts",
+    "butt", "butts", "cum", "dick", "doujin", "erotic", "hentai", "incest", "lingerie", "loli",
+    "lolicon", "lolis", "naked", "nhentai", "nude", "penis", "porn", "porno", "rape", "sex",
+    "sexy", "shota", "shotacon", "slut", "tits", "underage", "xxx",
 ];
 
 pub struct Generate;
 
 #[async_trait]
 impl Command for Generate {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let prompt = match &ctx.arguments {
-            Some(arguments) => arguments,
-            None => {
-                ctx.missing_argument("prompt to generate").await;
-                return Ok(());
-            }
+    fn name(&self) -> &str {
+        "generate"
+    }
+
+    async fn execute(
+        &self,
+        ctx: Arc<Context>,
+        arguments: Option<String>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let prompt = if let Some(arguments) = arguments {
+            arguments
+        } else {
+            ctx.missing_argument("prompt to generate").await;
+            return Ok(());
         };
 
         if prompt.chars().count() > 1024 {
@@ -38,7 +46,7 @@ impl Command for Generate {
             return Ok(());
         };
 
-        if is_prompt_suspicious(prompt) {
+        if is_prompt_suspicious(&prompt) {
             log::warn!("Suspicious prompt rejected");
             ctx.reply("This prompt is sus.").await?;
 

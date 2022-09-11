@@ -1,24 +1,18 @@
 use std::collections::HashMap;
 use std::env;
-use std::error::Error;
+use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use reqwest::{redirect, Client};
-use tgbotapi::requests::{
-    AnswerInlineQuery, GetMe, GetUpdates, InlineQueryResult, InlineQueryResultArticle,
-    InlineQueryType, InputMessageText, InputMessageType,
-};
+use tgbotapi::requests::{GetMe, GetUpdates};
 use tgbotapi::{InlineQuery, Message, Telegram, User};
 use tokio::task::JoinHandle;
 
-use crate::commands::Command;
+use crate::not_commands;
 use crate::ratelimit::RateLimiter;
-use crate::utils::{log_status_update, Context, DisplayUser, ParsedCommand};
-use crate::{mathjs, utils};
-
-type CommandRef = Arc<dyn Command + Send + Sync>;
+use crate::utils::{log_status_update, CommandRef, Context, DisplayUser, ParsedCommand};
 
 pub struct Bot {
     api: Arc<Telegram>,
@@ -27,7 +21,7 @@ pub struct Bot {
     me: User,
     commands: HashMap<String, CommandRef>,
     tasks: Vec<JoinHandle<()>>,
-    ratelimiter: RateLimiter<(i64, String)>,
+    ratelimiter: Arc<RwLock<RateLimiter<(i64, String)>>>,
 }
 
 impl Bot {
@@ -46,7 +40,7 @@ impl Bot {
             me,
             commands: [].into(),
             tasks: Vec::new(),
-            ratelimiter: RateLimiter::new(4, 20),
+            ratelimiter: Arc::new(RwLock::new(RateLimiter::new(4, 20))),
         }
     }
 
@@ -91,13 +85,9 @@ impl Bot {
 
             for update in updates {
                 if let Some(message) = update.message {
-                    if let Err(err) = self.on_message(message).await {
-                        log::error!("Error in on_message: {err}");
-                    }
+                    self.on_message(message);
                 } else if let Some(inline_query) = update.inline_query {
-                    if let Err(err) = self.on_inline_query(inline_query).await {
-                        log::error!("Error in on_inline_query: {err}");
-                    }
+                    self.on_inline_query(inline_query);
                 } else if let Some(my_chat_member) = update.my_chat_member {
                     log_status_update(my_chat_member);
                 }
@@ -114,131 +104,107 @@ impl Bot {
         }
     }
 
-    async fn on_message(&mut self, message: Message) -> Result<(), Box<dyn Error>> {
-        self.dispatch_command(message.clone());
-        utils::rabbit_nie_je(self.get_message_context(message, None)).await.ok();
-
-        Ok(())
+    fn spawn_task<T>(&mut self, future: T)
+    where
+        T: Future<Output = ()> + Send + 'static,
+    {
+        self.tasks.push(tokio::spawn(future));
     }
 
-    async fn on_inline_query(&self, inline_query: InlineQuery) -> Result<(), Box<dyn Error>> {
-        let query = inline_query.query;
-        if query.is_empty() {
-            self.api
-                .make_request(&AnswerInlineQuery {
-                    inline_query_id: inline_query.id,
-                    results: Vec::new(),
-                    ..Default::default()
-                })
-                .await?;
-
-            return Ok(());
-        }
-
-        let (title, message_text) = if query.split_ascii_whitespace().collect::<String>() == "2+2" {
-            ("5".to_string(), format!("{} = 5", query))
+    fn on_message(&mut self, message: Message) {
+        if let Some(user) = message.forward_from.clone() {
+            self.spawn_task(not_commands::rabbit_nie_je(self.get_message_context(message, user)));
         } else {
-            match mathjs::evaluate(self.http_client.clone(), query.clone()).await? {
-                Ok(result) => (result.clone(), format!("{} = {}", query, result)),
-                Err(err) => (err.clone(), err),
+            let user = match message.from.clone() {
+                Some(user) => user,
+                None => return,
+            };
+
+            if user.is_bot || message.forward_from.is_some() {
+                return;
             }
-        };
 
-        self.api
-            .make_request(&AnswerInlineQuery {
-                inline_query_id: inline_query.id,
-                results: vec![InlineQueryResult {
-                    id: "0".to_string(),
-                    result_type: "article".to_string(),
-                    content: InlineQueryType::Article(InlineQueryResultArticle {
-                        title,
-                        input_message_content: InputMessageType::Text(InputMessageText {
-                            message_text,
-                            ..Default::default()
-                        }),
-                        ..Default::default()
-                    }),
-                    reply_markup: None,
-                }],
-                ..Default::default()
-            })
-            .await?;
+            let parsed_command = ParsedCommand::parse(&message);
+            let context = self.get_message_context(message, user);
 
-        Ok(())
-    }
+            if let Some(parsed_command) = parsed_command {
+                if let Some(command) = self.get_command(&parsed_command) {
+                    self.dispatch_command(context, parsed_command, command);
+                    return;
+                }
+            };
 
-    fn get_message_context(&self, message: Message, arguments: Option<String>) -> Context {
-        Context { api: self.api.clone(), message, arguments, http_client: self.http_client.clone() }
-    }
-
-    fn dispatch_command(&mut self, message: Message) {
-        let user = match &message.from {
-            Some(user) => user,
-            None => return,
-        };
-
-        if user.is_bot || message.forward_from.is_some() {
-            return;
+            self.spawn_task(not_commands::auto_reply(context));
         }
+    }
 
-        let parsed_command = match ParsedCommand::parse(&message) {
-            Some(parsed_command) => parsed_command,
-            None => return,
-        };
+    fn on_inline_query(&mut self, inline_query: InlineQuery) {
+        self.spawn_task(not_commands::calculate_inline(
+            self.api.clone(),
+            self.http_client.clone(),
+            inline_query,
+        ));
+    }
 
+    fn get_message_context(&self, message: Message, user: User) -> Context {
+        Context {
+            api: self.api.clone(),
+            message,
+            user,
+            http_client: self.http_client.clone(),
+            ratelimiter: self.ratelimiter.clone(),
+        }
+    }
+
+    fn get_command(&self, parsed_command: &ParsedCommand) -> Option<CommandRef> {
         if let Some(bot_username) = &parsed_command.bot_username {
             if Some(bot_username.to_lowercase())
                 != self.me.username.as_ref().map(|u| u.to_lowercase())
             {
-                return;
+                return None;
             }
         }
 
+        self.commands.get(&parsed_command.normalised_name()).map(Arc::clone)
+    }
+
+    fn dispatch_command(
+        &mut self,
+        context: Context,
+        parsed_command: ParsedCommand,
+        command: CommandRef,
+    ) {
         let normalised_name = parsed_command.normalised_name();
 
-        let command = match self.commands.get(&normalised_name) {
-            Some(command) => command,
-            None => return,
-        };
-
-        if let Some(cooldown) =
-            self.ratelimiter.update_rate_limit((user.id, normalised_name), message.date)
+        if let Some(cooldown) = self
+            .ratelimiter
+            .write()
+            .unwrap()
+            .update_rate_limit((context.user.id, normalised_name.clone()), context.message.date)
         {
-            log::warn!("Rate limit exceeded by {cooldown}s by {}", user.format_name());
+            log::warn!("Rate limit exceeded by {cooldown}s by {}", context.user.format_name());
             return;
         }
 
+        log::info!("Running {} for {}", parsed_command, context.user.format_name());
+
+        let context = Arc::new(context);
         let arguments = parsed_command
             .arguments
-            .clone()
-            .or_else(|| message.reply_to_message.as_ref().and_then(|r| r.text.clone()));
+            .or_else(|| context.message.reply_to_message.as_ref().and_then(|r| r.text.clone()));
 
-        let context = self.get_message_context(message, arguments);
-        self.run_command(command.clone(), context, parsed_command);
-    }
-
-    fn run_command(
-        &mut self,
-        command: CommandRef,
-        context: Context,
-        parsed_command: ParsedCommand,
-    ) {
-        log::info!(
-            "Running {parsed_command} for {}",
-            context.message.from.as_ref().unwrap().format_name()
-        );
-        self.tasks.push(tokio::spawn(async move {
-            if let Err(err) = command.execute(context.clone()).await {
+        self.spawn_task(async move {
+            if let Err(err) = command.execute(context.clone(), arguments).await {
                 log::error!(
                     "An error occurred while executing the {:?} command: {err}",
-                    parsed_command.normalised_name()
+                    normalised_name
                 );
                 context.reply("An error occurred while executing the command 😩").await.ok();
             }
-        }));
+        });
     }
 
-    pub fn add_command<S: Into<String>>(&mut self, name: S, command: CommandRef) {
-        self.commands.insert(name.into(), command);
+    pub fn add_command(&mut self, command: CommandRef) {
+        self.commands.insert(command.name().to_string(), command);
     }
 }

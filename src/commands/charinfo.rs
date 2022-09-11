@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 
@@ -9,13 +10,20 @@ pub struct CharInfo;
 
 #[async_trait]
 impl Command for CharInfo {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let chars = match &ctx.arguments {
-            Some(arguments) => arguments,
-            None => {
-                ctx.missing_argument("characters").await;
-                return Ok(());
-            }
+    fn name(&self) -> &str {
+        "charinfo"
+    }
+
+    async fn execute(
+        &self,
+        ctx: Arc<Context>,
+        arguments: Option<String>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let chars = if let Some(arguments) = arguments {
+            arguments
+        } else {
+            ctx.missing_argument("characters").await;
+            return Ok(());
         };
 
         let mut lines = chars

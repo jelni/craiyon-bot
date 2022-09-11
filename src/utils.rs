@@ -1,7 +1,6 @@
 use std::convert::TryInto;
-use std::error::Error;
 use std::fmt;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use image::{imageops, DynamicImage};
@@ -12,14 +11,15 @@ use tgbotapi::{
 };
 
 use crate::api_methods::SendSticker;
+use crate::commands::Command;
+use crate::ratelimit::RateLimiter;
 
 const MARKDOWN_CHARS: [char; 18] =
     ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
 
-#[allow(clippy::unreadable_literal)]
-const RABBIT_JE: i64 = -1001722954366;
+pub type CommandRef = Arc<dyn Command + Send + Sync>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParsedCommand {
     pub name: String,
     pub bot_username: Option<String>,
@@ -82,12 +82,12 @@ impl fmt::Display for ParsedCommand {
     }
 }
 
-#[derive(Clone)]
 pub struct Context {
     pub api: Arc<Telegram>,
     pub message: Message,
-    pub arguments: Option<String>,
+    pub user: User,
     pub http_client: reqwest::Client,
+    pub ratelimiter: Arc<RwLock<RateLimiter<(i64, String)>>>,
 }
 
 impl Context {
@@ -243,21 +243,4 @@ pub fn log_status_update(update: ChatMemberUpdated) {
     };
 
     log::info!("{} {:?}", status, update.chat.title.unwrap_or_default());
-}
-
-pub async fn rabbit_nie_je(ctx: Context) -> Result<(), Result<(), Box<dyn Error>>> {
-    if let Some(chat) = &ctx.message.forward_from_chat {
-        if chat.id == RABBIT_JE {
-            let result = match ctx.delete_message(&ctx.message).await {
-                Ok(_) => "Deleted",
-                Err(_) => "Couldn't delete",
-            };
-            log::warn!(
-                "{result} a message from in {:?}",
-                chat.title.as_deref().unwrap_or_default()
-            );
-        }
-    }
-
-    Ok(())
 }

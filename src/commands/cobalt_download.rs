@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use reqwest::{StatusCode, Url};
@@ -13,13 +14,20 @@ pub struct CobaltDownload;
 
 #[async_trait]
 impl Command for CobaltDownload {
-    async fn execute(&self, ctx: Context) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let media_url = match &ctx.arguments {
-            Some(arguments) => arguments,
-            None => {
-                ctx.missing_argument("URL to download").await;
-                return Ok(());
-            }
+    fn name(&self) -> &str {
+        "cobalt_download"
+    }
+
+    async fn execute(
+        &self,
+        ctx: Arc<Context>,
+        arguments: Option<String>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let media_url = if let Some(arguments) = arguments {
+            arguments
+        } else {
+            ctx.missing_argument("URL to download").await;
+            return Ok(());
         };
 
         match cobalt::query(ctx.http_client.clone(), &media_url).await? {
