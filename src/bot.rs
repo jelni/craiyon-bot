@@ -123,6 +123,11 @@ impl Bot {
 
         let context = Arc::new(self.get_message_context(message, user));
 
+        if context.message.forward_from_chat.is_some() {
+            self.spawn_task(not_commands::rabbit_nie_je(context));
+            return;
+        }
+
         if let Some(parsed_command) = ParsedCommand::parse(&context.message) {
             if let Some(command) = self.get_command(&parsed_command) {
                 self.dispatch_command(context.clone(), parsed_command, command);
@@ -130,8 +135,7 @@ impl Bot {
             }
         };
 
-        self.spawn_task(not_commands::auto_reply(context.clone()));
-        self.spawn_task(not_commands::rabbit_nie_je(context));
+        self.spawn_task(not_commands::auto_reply(context));
     }
 
     fn on_inline_query(&mut self, inline_query: InlineQuery) {
@@ -191,8 +195,7 @@ impl Bot {
         self.spawn_task(async move {
             if let Err(err) = command.execute(context.clone(), arguments).await {
                 log::error!(
-                    "An error occurred while executing the {:?} command: {err}",
-                    normalised_name
+                    "An error occurred while executing the {normalised_name:?} command: {err}"
                 );
                 context.reply("An error occurred while executing the command 😩").await.ok();
             }
