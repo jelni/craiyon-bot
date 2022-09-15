@@ -4,7 +4,9 @@ use std::sync::{Arc, RwLock};
 use std::time::Duration;
 
 use image::{imageops, DynamicImage};
-use tgbotapi::requests::{DeleteMessage, ParseMode, ReplyMarkup, SendMessage};
+use tgbotapi::requests::{
+    DeleteMessage, EditMessageText, MessageOrBool, ParseMode, ReplyMarkup, SendMessage,
+};
 use tgbotapi::{
     ChatMemberStatus, ChatMemberUpdated, ChatType, FileType, InlineKeyboardButton,
     InlineKeyboardMarkup, Message, MessageEntityType, Telegram, User,
@@ -118,6 +120,22 @@ impl Context {
                 parse_mode,
                 disable_web_page_preview: Some(true),
                 reply_to_message_id: Some(self.message.message_id),
+                ..Default::default()
+            })
+            .await
+    }
+
+    pub async fn edit_message<S: Into<String>>(
+        &self,
+        message: &Message,
+        text: S,
+    ) -> Result<MessageOrBool, tgbotapi::Error> {
+        self.api
+            .make_request(&EditMessageText {
+                chat_id: message.chat_id(),
+                message_id: Some(message.message_id),
+                text: text.into(),
+                disable_web_page_preview: Some(true),
                 ..Default::default()
             })
             .await

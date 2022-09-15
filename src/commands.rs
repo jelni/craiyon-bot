@@ -2,15 +2,16 @@ use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-pub use badtranslate::BadTranslate;
-pub use charinfo::CharInfo;
-pub use cobalt_download::CobaltDownload;
-pub use generate::Generate;
-pub use sex::Sex;
-pub use start::Start;
-pub use startit_joke::StartItJoke;
-pub use translate::Translate;
-pub use urbandictionary::UrbanDictionary;
+pub use badtranslate::*;
+pub use charinfo::*;
+pub use cobalt_download::*;
+pub use generate::*;
+pub use ping::*;
+pub use sex::*;
+pub use start::*;
+pub use startit_joke::*;
+pub use translate::*;
+pub use urbandictionary::*;
 
 use crate::utils::Context;
 
@@ -18,6 +19,7 @@ mod badtranslate;
 mod charinfo;
 mod cobalt_download;
 mod generate;
+mod ping;
 mod sex;
 mod start;
 mod startit_joke;
