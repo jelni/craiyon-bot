@@ -9,8 +9,9 @@ use tgbotapi::requests::SendPhoto;
 use tgbotapi::FileType;
 
 use super::Command;
+use crate::apis::craiyon;
+use crate::utils;
 use crate::utils::{donate_markup, CollageOptions, Context};
-use crate::{craiyon, utils};
 
 // yes, people generated all of these
 const DISALLOWED_WORDS: [&str; 37] = [

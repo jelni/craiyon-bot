@@ -6,7 +6,7 @@ use tgbotapi::requests::{
 };
 use tgbotapi::{InlineQuery, Telegram};
 
-use crate::mathjs;
+use crate::apis::mathjs;
 
 pub async fn calculate_inline(
     api: Arc<Telegram>,

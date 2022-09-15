@@ -7,7 +7,7 @@ use tgbotapi::requests::SendDocument;
 use tgbotapi::FileType;
 
 use super::Command;
-use crate::cobalt;
+use crate::apis::cobalt;
 use crate::utils::{donate_markup, Context};
 
 pub struct CobaltDownload;
