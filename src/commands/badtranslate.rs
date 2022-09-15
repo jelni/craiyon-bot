@@ -4,7 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use super::Command;
-use crate::translate;
+use crate::apis::translate;
 use crate::utils::Context;
 
 pub struct BadTranslate;

@@ -7,16 +7,11 @@ use log::LevelFilter;
 use simple_logger::SimpleLogger;
 
 mod api_methods;
+mod apis;
 mod bot;
-mod cobalt;
 mod commands;
-mod craiyon;
-mod mathjs;
 mod not_commands;
-mod poligon;
 mod ratelimit;
-mod translate;
-mod urbandictionary;
 mod utils;
 
 #[tokio::main(flavor = "current_thread")]
