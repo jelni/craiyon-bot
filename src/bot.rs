@@ -34,7 +34,7 @@ impl Bot {
             running: Arc::new(AtomicBool::new(false)),
             http_client: Client::builder()
                 .redirect(redirect::Policy::none())
-                .timeout(Duration::from_secs(120))
+                .timeout(Duration::from_secs(600))
                 .build()
                 .unwrap(),
             me,

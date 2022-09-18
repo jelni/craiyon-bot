@@ -28,6 +28,7 @@ async fn main() {
     bot.add_command(Arc::new(commands::Start));
     bot.add_command(Arc::new(commands::Ping));
     bot.add_command(Arc::new(commands::Generate));
+    bot.add_command(Arc::new(commands::StableDiffusion));
     bot.add_command(Arc::new(commands::Translate));
     bot.add_command(Arc::new(commands::BadTranslate));
     bot.add_command(Arc::new(commands::UrbanDictionary));
