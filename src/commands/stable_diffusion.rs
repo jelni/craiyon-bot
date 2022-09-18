@@ -4,29 +4,20 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use image::{ImageFormat, ImageOutputFormat};
-use reqwest::StatusCode;
-use tgbotapi::requests::ParseMode;
-use tgbotapi::FileType;
+use tgbotapi::requests::{ParseMode, ReplyMarkup};
+use tgbotapi::{FileType, InlineKeyboardButton, InlineKeyboardMarkup};
 
-use super::Command;
+use super::{check_prompt, Command};
 use crate::api_methods::SendPhoto;
-use crate::apis::craiyon;
-use crate::utils::{donate_markup, escape_markdown, format_duration, image_collage, Context};
+use crate::apis::stablehorde;
+use crate::utils::{escape_markdown, format_duration, image_collage, Context};
 
-// yes, people generated all of these
-const DISALLOWED_WORDS: [&str; 37] = [
-    "abuse", "anus", "ass", "bikini", "boob", "booba", "boobs", "braless", "breast", "breasts",
-    "butt", "butts", "cum", "dick", "doujin", "erotic", "hentai", "incest", "lingerie", "loli",
-    "lolicon", "lolis", "naked", "nhentai", "nude", "penis", "porn", "porno", "rape", "sex",
-    "sexy", "shota", "shotacon", "slut", "tits", "underage", "xxx",
-];
-
-pub struct Generate;
+pub struct StableDiffusion;
 
 #[async_trait]
-impl Command for Generate {
+impl Command for StableDiffusion {
     fn name(&self) -> &str {
-        "generate"
+        "stable_diffusion"
     }
 
     async fn execute(
@@ -49,16 +40,16 @@ impl Command for Generate {
 
         let status_msg = ctx.reply(format!("Generating {prompt}…")).await?;
 
-        match craiyon::generate(ctx.http_client.clone(), &prompt).await {
+        match stablehorde::generate(ctx.http_client.clone(), &prompt).await? {
             Ok(result) => {
                 let images = result
                     .images
                     .into_iter()
                     .flat_map(|image| {
-                        image::load_from_memory_with_format(&image, ImageFormat::Jpeg)
+                        image::load_from_memory_with_format(&image, ImageFormat::WebP)
                     })
                     .collect::<Vec<_>>();
-                let image = image_collage(images, 3, 8);
+                let image = image_collage(images, 2, 8);
                 let mut buffer = Cursor::new(Vec::new());
                 image.write_to(&mut buffer, ImageOutputFormat::Png).unwrap();
 
@@ -74,19 +65,20 @@ impl Command for Generate {
                         parse_mode: Some(ParseMode::MarkdownV2),
                         reply_to_message_id: Some(ctx.message.message_id),
                         allow_sending_without_reply: Some(true),
-                        reply_markup: Some(donate_markup(
-                            "🖍️ Craiyon",
-                            "https://www.craiyon.com/donate",
+                        reply_markup: Some(ReplyMarkup::InlineKeyboardMarkup(
+                            InlineKeyboardMarkup {
+                                inline_keyboard: vec![vec![InlineKeyboardButton {
+                                    text: "Generated thanks to Stable Horde".to_string(),
+                                    url: Some("https://stablehorde.net/".to_string()),
+                                    ..Default::default()
+                                }]],
+                            },
                         )),
                     })
                     .await?;
             }
             Err(err) => {
-                ctx.reply(format!(
-                    "zjebalo sie: {}",
-                    err.status().unwrap_or(StatusCode::INTERNAL_SERVER_ERROR)
-                ))
-                .await?;
+                ctx.reply(format!("zjebalo sie: {err}")).await?;
             }
         };
 
@@ -94,24 +86,4 @@ impl Command for Generate {
 
         Ok(())
     }
-}
-
-pub(super) fn check_prompt<S: AsRef<str>>(prompt: S) -> Option<&'static str> {
-    let prompt = prompt.as_ref();
-    if prompt.chars().count() > 1024 {
-        Some("This prompt is too long.")
-    } else if prompt.lines().count() > 5 {
-        Some("This prompt has too many lines.")
-    } else if is_prompt_suspicious(prompt) {
-        Some("This prompt is sus.")
-    } else {
-        None
-    }
-}
-
-fn is_prompt_suspicious<S: AsRef<str>>(text: S) -> bool {
-    text.as_ref()
-        .to_lowercase()
-        .split(|c: char| !c.is_alphabetic())
-        .any(|w| DISALLOWED_WORDS.contains(&w))
 }

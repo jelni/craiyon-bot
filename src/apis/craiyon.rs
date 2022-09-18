@@ -15,7 +15,7 @@ struct Response {
     pub images: Vec<String>,
 }
 
-pub struct GeneratedResult {
+pub struct GenerationResult {
     pub images: Vec<Vec<u8>>,
     pub duration: Duration,
 }
@@ -23,7 +23,7 @@ pub struct GeneratedResult {
 pub async fn generate<S: Into<String>>(
     http_client: reqwest::Client,
     prompt: S,
-) -> reqwest::Result<GeneratedResult> {
+) -> reqwest::Result<GenerationResult> {
     let body = Payload { prompt: prompt.into() };
     let mut retry = 0;
     let (response, duration) = loop {
@@ -66,5 +66,5 @@ pub async fn generate<S: Into<String>>(
         .map(|data| base64::decode(data.replace('\n', "")).unwrap())
         .collect();
 
-    Ok(GeneratedResult { images, duration })
+    Ok(GenerationResult { images, duration })
 }

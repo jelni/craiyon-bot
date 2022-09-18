@@ -177,28 +177,23 @@ impl DisplayUser for User {
     }
 }
 
-#[derive(Clone, Copy)]
-pub struct CollageOptions {
-    pub image_count: (u32, u32),
-    pub image_size: (u32, u32),
-    pub gap: u32,
-}
-
-pub fn image_collage<I: IntoIterator<Item = DynamicImage>>(
-    images: I,
-    options: CollageOptions,
-) -> DynamicImage {
-    let size = (
-        options.image_count.0 * options.image_size.0 + (options.image_count.0 - 1) * options.gap,
-        options.image_count.1 * options.image_size.1 + (options.image_count.1 - 1) * options.gap,
+pub fn image_collage(images: Vec<DynamicImage>, image_count_x: u32, gap: u32) -> DynamicImage {
+    let (image_size_x, image_size_y) = {
+        let image = images.first().unwrap();
+        (image.width(), image.height())
+    };
+    #[allow(clippy::pedantic)] // multiple lossy numeric conversions
+    let image_count_y = (images.len() as f32 / image_count_x as f32).ceil() as u32;
+    let mut base = DynamicImage::new_rgb8(
+        image_count_x * image_size_x + (image_count_x - 1) * gap,
+        image_count_y * image_size_y + (image_count_y - 1) * gap,
     );
-    let mut base = DynamicImage::new_rgb8(size.0, size.1);
 
     for (i, image) in images.into_iter().enumerate() {
-        let col = i % options.image_count.0 as usize;
-        let row = i / options.image_count.0 as usize;
-        let x = col * (options.image_size.0 + options.gap) as usize;
-        let y = row * (options.image_size.1 + options.gap) as usize;
+        let col = i % image_count_x as usize;
+        let row = i / image_count_x as usize;
+        let x = col * (image_size_x + gap) as usize;
+        let y = row * (image_size_y + gap) as usize;
         imageops::overlay(&mut base, &image, x as _, y as _);
     }
 

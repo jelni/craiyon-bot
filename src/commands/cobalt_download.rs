@@ -3,10 +3,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use reqwest::{StatusCode, Url};
-use tgbotapi::requests::SendDocument;
 use tgbotapi::FileType;
 
 use super::Command;
+use crate::api_methods::SendDocument;
 use crate::apis::cobalt;
 use crate::utils::{donate_markup, Context};
 
@@ -45,7 +45,7 @@ impl Command for CobaltDownload {
                                 chat_id: ctx.message.chat_id(),
                                 document: FileType::Bytes(download.filename, download.media),
                                 reply_to_message_id: Some(ctx.message.message_id),
-                                // missing `allow_sending_without_reply`!
+                                allow_sending_without_reply: Some(true),
                                 reply_markup: Some(donate_markup(
                                     "≫ cobalt",
                                     "https://boosty.to/wukko",
