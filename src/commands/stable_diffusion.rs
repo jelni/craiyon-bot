@@ -78,7 +78,7 @@ impl Command for StableDiffusion {
                     .await?;
             }
             Err(err) => {
-                ctx.reply(format!("zjebalo sie: {err}")).await?;
+                ctx.reply(err).await?;
             }
         };
 

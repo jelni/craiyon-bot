@@ -36,7 +36,7 @@ pub async fn generate<S: Into<String>>(
         .post("https://stablehorde.net/api/latest/generate/sync")
         .json(&Payload {
             prompt: prompt.into(),
-            params: Params { n: 4, width: 512, height: 512, cfg_scale: 7.5, steps: 100 },
+            params: Params { n: 4, width: 512, height: 512, cfg_scale: 7.5, steps: 35 },
             api_key: env::var("STABLEHORDE_TOKEN").unwrap(),
         })
         .send()
