@@ -38,7 +38,13 @@ impl Command for StableDiffusion {
             return Ok(());
         }
 
-        let status_msg = ctx.reply(format!("Generating {prompt}…")).await?;
+        let queue_length = stablehorde::status(ctx.http_client.clone()).await?.queued_requests;
+        let queue_info = if queue_length > 0 {
+            format!("Queue length: {queue_length}")
+        } else {
+            "The queue is empty".to_string()
+        };
+        let status_msg = ctx.reply(format!("Generating {prompt}. {queue_info}.")).await?;
 
         match stablehorde::generate(ctx.http_client.clone(), &prompt).await? {
             Ok(result) => {

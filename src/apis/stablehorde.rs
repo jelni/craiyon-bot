@@ -27,6 +27,11 @@ struct Image {
     img: String,
 }
 
+#[derive(Deserialize)]
+pub struct Status {
+    pub queued_requests: usize,
+}
+
 pub async fn generate<S: Into<String>>(
     http_client: reqwest::Client,
     prompt: S,
@@ -59,4 +64,13 @@ pub async fn generate<S: Into<String>>(
             Ok(Err(format!("{}: {error}", status.as_u16())))
         }
     }
+}
+
+pub async fn status(http_client: reqwest::Client) -> reqwest::Result<Status> {
+    http_client
+        .get("https://stablehorde.net/api/latest/status/performance")
+        .send()
+        .await?
+        .json::<Status>()
+        .await
 }
