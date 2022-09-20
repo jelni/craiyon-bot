@@ -94,6 +94,8 @@ impl Bot {
 
                 offset = update.update_id;
             }
+
+            tokio::time::sleep(Duration::from_secs(1)).await;
         }
 
         if !self.tasks.is_empty() {
