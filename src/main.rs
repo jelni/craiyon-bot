@@ -35,6 +35,7 @@ async fn main() {
     bot.add_command(Arc::new(commands::CobaltDownload));
     bot.add_command(Arc::new(commands::CharInfo));
     bot.add_command(Arc::new(commands::StartItJoke));
+    bot.add_command(Arc::new(commands::KiwiFarms));
     bot.add_command(Arc::new(commands::Sex));
 
     bot.run().await;
