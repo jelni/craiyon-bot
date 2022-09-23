@@ -2,33 +2,21 @@ use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-pub use badtranslate::*;
-pub use charinfo::*;
-pub use cobalt_download::*;
-pub use generate::*;
-pub use kiwifarms::*;
-pub use ping::*;
-pub use sex::*;
-pub use stable_diffusion::*;
-pub use start::*;
-pub use startit_joke::*;
-pub use translate::*;
-pub use urbandictionary::*;
 
 use crate::utils::Context;
 
-mod badtranslate;
-mod charinfo;
-mod cobalt_download;
-mod generate;
-mod kiwifarms;
-mod ping;
-mod sex;
-mod stable_diffusion;
-mod start;
-mod startit_joke;
-mod translate;
-mod urbandictionary;
+pub mod badtranslate;
+pub mod charinfo;
+pub mod cobalt_download;
+pub mod generate;
+pub mod kiwifarms;
+pub mod ping;
+pub mod sex;
+pub mod stable_diffusion;
+pub mod start;
+pub mod startit_joke;
+pub mod translate;
+pub mod urbandictionary;
 
 #[async_trait]
 pub trait Command {

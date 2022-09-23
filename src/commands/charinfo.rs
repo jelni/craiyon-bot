@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use super::Command;
 use crate::utils::{escape_markdown, Context};
 
+#[derive(Default)]
 pub struct CharInfo;
 
 #[async_trait]

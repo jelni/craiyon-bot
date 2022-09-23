@@ -7,6 +7,7 @@ use super::Command;
 use crate::apis::urbandictionary;
 use crate::utils::Context;
 
+#[derive(Default)]
 pub struct UrbanDictionary;
 
 #[async_trait]

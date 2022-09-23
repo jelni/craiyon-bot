@@ -19,6 +19,14 @@ use crate::ratelimit::RateLimiter;
 const MARKDOWN_CHARS: [char; 18] =
     ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
 
+// yes, people generated all of these
+const DISALLOWED_WORDS: [&str; 37] = [
+    "abuse", "anus", "ass", "bikini", "boob", "booba", "boobs", "braless", "breast", "breasts",
+    "butt", "butts", "cum", "dick", "doujin", "erotic", "hentai", "incest", "lingerie", "loli",
+    "lolicon", "lolis", "naked", "nhentai", "nude", "penis", "porn", "porno", "rape", "sex",
+    "sexy", "shota", "shotacon", "slut", "tits", "underage", "xxx",
+];
+
 pub type CommandRef = Arc<dyn Command + Send + Sync>;
 
 #[derive(Debug, Clone)]
@@ -97,17 +105,6 @@ impl Context {
         self.reply(format!("Missing {}.", argument.as_ref())).await.ok();
     }
 
-    pub async fn reply<S: Into<String>>(&self, text: S) -> Result<Message, tgbotapi::Error> {
-        self._reply(text, None).await
-    }
-
-    pub async fn reply_markdown<S: Into<String>>(
-        &self,
-        text: S,
-    ) -> Result<Message, tgbotapi::Error> {
-        self._reply(text, Some(ParseMode::MarkdownV2)).await
-    }
-
     async fn _reply<S: Into<String>>(
         &self,
         text: S,
@@ -125,20 +122,49 @@ impl Context {
             .await
     }
 
-    pub async fn edit_message<S: Into<String>>(
+    pub async fn reply<S: Into<String>>(&self, text: S) -> Result<Message, tgbotapi::Error> {
+        self._reply(text, None).await
+    }
+
+    pub async fn reply_markdown<S: Into<String>>(
+        &self,
+        text: S,
+    ) -> Result<Message, tgbotapi::Error> {
+        self._reply(text, Some(ParseMode::MarkdownV2)).await
+    }
+
+    async fn _edit_message<S: Into<String>>(
         &self,
         message: &Message,
         text: S,
+        parse_mode: Option<ParseMode>,
     ) -> Result<MessageOrBool, tgbotapi::Error> {
         self.api
             .make_request(&EditMessageText {
                 chat_id: message.chat_id(),
                 message_id: Some(message.message_id),
                 text: text.into(),
+                parse_mode,
                 disable_web_page_preview: Some(true),
                 ..Default::default()
             })
             .await
+    }
+
+    pub async fn edit_message<S: Into<String>>(
+        &self,
+        message: &Message,
+        text: S,
+    ) -> Result<MessageOrBool, tgbotapi::Error> {
+        self._edit_message(message, text, None).await
+    }
+
+    pub async fn edit_message_markdown<S: Into<String>>(
+        &self,
+        message: &Message,
+        text: S,
+    ) -> Result<MessageOrBool, tgbotapi::Error> {
+        self._edit_message(message, text, Some(ParseMode::MarkdownV2)).await
     }
 
     pub async fn delete_message(&self, message: &Message) -> Result<bool, tgbotapi::Error> {
@@ -175,6 +201,26 @@ impl DisplayUser for User {
             },
         }
     }
+}
+
+pub fn check_prompt<S: AsRef<str>>(prompt: S) -> Option<&'static str> {
+    let prompt = prompt.as_ref();
+    if prompt.chars().count() > 1024 {
+        Some("This prompt is too long.")
+    } else if prompt.lines().count() > 5 {
+        Some("This prompt has too many lines.")
+    } else if is_prompt_suspicious(prompt) {
+        Some("This prompt is sus.")
+    } else {
+        None
+    }
+}
+
+fn is_prompt_suspicious<S: AsRef<str>>(text: S) -> bool {
+    text.as_ref()
+        .to_lowercase()
+        .split(|c: char| !c.is_alphabetic())
+        .any(|w| DISALLOWED_WORDS.contains(&w))
 }
 
 pub fn image_collage(images: Vec<DynamicImage>, image_count_x: u32, gap: u32) -> DynamicImage {

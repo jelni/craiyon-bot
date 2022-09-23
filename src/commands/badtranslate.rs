@@ -7,6 +7,7 @@ use super::Command;
 use crate::apis::translate;
 use crate::utils::Context;
 
+#[derive(Default)]
 pub struct BadTranslate;
 
 #[async_trait]
