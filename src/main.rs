@@ -25,18 +25,18 @@ async fn main() {
 
     let mut bot = Bot::new().await;
 
-    bot.add_command(Arc::new(commands::Start));
-    bot.add_command(Arc::new(commands::Ping));
-    bot.add_command(Arc::new(commands::Generate));
-    bot.add_command(Arc::new(commands::StableDiffusion));
-    bot.add_command(Arc::new(commands::Translate));
-    bot.add_command(Arc::new(commands::BadTranslate));
-    bot.add_command(Arc::new(commands::UrbanDictionary));
-    bot.add_command(Arc::new(commands::CobaltDownload));
-    bot.add_command(Arc::new(commands::CharInfo));
-    bot.add_command(Arc::new(commands::StartItJoke));
-    bot.add_command(Arc::new(commands::KiwiFarms));
-    bot.add_command(Arc::new(commands::Sex));
+    bot.add_command(Arc::new(commands::start::Start::default()));
+    bot.add_command(Arc::new(commands::ping::Ping::default()));
+    bot.add_command(Arc::new(commands::generate::Generate::default()));
+    bot.add_command(Arc::new(commands::stable_diffusion::StableDiffusion::default()));
+    bot.add_command(Arc::new(commands::translate::Translate::default()));
+    bot.add_command(Arc::new(commands::badtranslate::BadTranslate::default()));
+    bot.add_command(Arc::new(commands::urbandictionary::UrbanDictionary::default()));
+    bot.add_command(Arc::new(commands::cobalt_download::CobaltDownload::default()));
+    bot.add_command(Arc::new(commands::charinfo::CharInfo::default()));
+    bot.add_command(Arc::new(commands::startit_joke::StartItJoke::default()));
+    bot.add_command(Arc::new(commands::kiwifarms::KiwiFarms::default()));
+    bot.add_command(Arc::new(commands::sex::Sex::default()));
 
     bot.run().await;
 }

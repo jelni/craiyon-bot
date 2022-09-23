@@ -12,6 +12,7 @@ const SEX: [&str; 2] = [
     "CAACAgQAAxkBAAEX9DljHNrRW0S-xydtOOE7n9g4pFEixAACfwsAAhbWcFPn8gyFbHwwoykE",
 ];
 
+#[derive(Default)]
 pub struct Sex;
 
 #[async_trait]

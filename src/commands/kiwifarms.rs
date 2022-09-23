@@ -8,6 +8,7 @@ use super::Command;
 use crate::apis::kiwifarms;
 use crate::utils::Context;
 
+#[derive(Default)]
 pub struct KiwiFarms;
 
 #[async_trait]

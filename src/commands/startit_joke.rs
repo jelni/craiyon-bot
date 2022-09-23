@@ -7,6 +7,7 @@ use super::Command;
 use crate::apis::poligon;
 use crate::utils::Context;
 
+#[derive(Default)]
 pub struct StartItJoke;
 
 #[async_trait]

@@ -10,6 +10,7 @@ use crate::api_methods::SendDocument;
 use crate::apis::cobalt;
 use crate::utils::{donate_markup, Context};
 
+#[derive(Default)]
 pub struct CobaltDownload;
 
 #[async_trait]

@@ -7,6 +7,7 @@ use async_trait::async_trait;
 use super::Command;
 use crate::utils::Context;
 
+#[derive(Default)]
 pub struct Ping;
 
 #[async_trait]
