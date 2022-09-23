@@ -88,7 +88,7 @@ impl Command for StableDiffusion {
             }
 
             if let Some(last_edit) = last_edit {
-                if last_edit.elapsed() < Duration::from_secs(5) {
+                if last_edit.elapsed() < Duration::from_secs(10) {
                     continue;
                 }
             }
