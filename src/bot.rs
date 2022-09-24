@@ -14,14 +14,19 @@ use crate::not_commands;
 use crate::ratelimit::RateLimiter;
 use crate::utils::{log_status_update, CommandRef, Context, DisplayUser, ParsedCommand};
 
+struct Command {
+    ratelimiter: RwLock<RateLimiter<i64>>,
+    command_ref: CommandRef,
+}
+
 pub struct Bot {
     api: Arc<Telegram>,
     running: Arc<AtomicBool>,
     http_client: reqwest::Client,
     me: User,
-    commands: HashMap<String, CommandRef>,
+    commands: HashMap<String, Arc<Command>>,
+    global_ratelimiter: Arc<RwLock<RateLimiter<(i64, &'static str)>>>,
     tasks: Vec<JoinHandle<()>>,
-    ratelimiter: Arc<RwLock<RateLimiter<(i64, String)>>>,
 }
 
 impl Bot {
@@ -38,9 +43,9 @@ impl Bot {
                 .build()
                 .unwrap(),
             me,
-            commands: [].into(),
+            commands: HashMap::new(),
+            global_ratelimiter: Arc::new(RwLock::new(RateLimiter::new(4, 20))),
             tasks: Vec::new(),
-            ratelimiter: Arc::new(RwLock::new(RateLimiter::new(4, 20))),
         }
     }
 
@@ -154,11 +159,11 @@ impl Bot {
             message,
             user,
             http_client: self.http_client.clone(),
-            ratelimiter: self.ratelimiter.clone(),
+            global_ratelimiter: self.global_ratelimiter.clone(),
         }
     }
 
-    fn get_command(&self, parsed_command: &ParsedCommand) -> Option<CommandRef> {
+    fn get_command(&self, parsed_command: &ParsedCommand) -> Option<Arc<Command>> {
         if let Some(bot_username) = &parsed_command.bot_username {
             if Some(bot_username.to_lowercase())
                 != self.me.username.as_ref().map(|u| u.to_lowercase())
@@ -174,17 +179,20 @@ impl Bot {
         &mut self,
         context: Arc<Context>,
         parsed_command: ParsedCommand,
-        command: CommandRef,
+        command: Arc<Command>,
     ) {
         let normalised_name = parsed_command.normalised_name();
 
-        if let Some(cooldown) = self
+        if let Some(cooldown) = command
             .ratelimiter
             .write()
             .unwrap()
-            .update_rate_limit((context.user.id, normalised_name.clone()), context.message.date)
+            .update_rate_limit(context.user.id, context.message.date)
         {
-            log::warn!("Rate limit exceeded by {cooldown}s by {}", context.user.format_name());
+            log::warn!(
+                "/{normalised_name} rate limit exceeded by {cooldown}s by {}",
+                context.user.format_name()
+            );
             return;
         }
 
@@ -195,7 +203,7 @@ impl Bot {
             .or_else(|| context.message.reply_to_message.as_ref().and_then(|r| r.text.clone()));
 
         self.spawn_task(async move {
-            if let Err(err) = command.execute(context.clone(), arguments).await {
+            if let Err(err) = command.command_ref.execute(context.clone(), arguments).await {
                 log::error!(
                     "An error occurred while executing the {normalised_name:?} command: {err}"
                 );
@@ -205,6 +213,12 @@ impl Bot {
     }
 
     pub fn add_command(&mut self, command: CommandRef) {
-        self.commands.insert(command.name().to_string(), command);
+        self.commands.insert(
+            command.name().to_string(),
+            Arc::new(Command {
+                ratelimiter: RwLock::new(command.rate_limit()),
+                command_ref: command,
+            }),
+        );
     }
 }

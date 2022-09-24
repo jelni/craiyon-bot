@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
+use crate::ratelimit::RateLimiter;
 use crate::utils::Context;
 
 pub mod badtranslate;
@@ -21,6 +22,9 @@ pub mod urbandictionary;
 #[async_trait]
 pub trait Command {
     fn name(&self) -> &str;
+    fn rate_limit(&self) -> RateLimiter<i64> {
+        RateLimiter::new(4, 20)
+    }
     async fn execute(
         &self,
         ctx: Arc<Context>,

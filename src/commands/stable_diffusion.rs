@@ -12,6 +12,7 @@ use tgbotapi::{FileType, InlineKeyboardButton, InlineKeyboardMarkup};
 use super::Command;
 use crate::api_methods::SendPhoto;
 use crate::apis::stablehorde;
+use crate::ratelimit::RateLimiter;
 use crate::utils::{check_prompt, escape_markdown, format_duration, image_collage, Context};
 
 const JOIN_STABLE_HORDE: &str = concat!(
@@ -27,6 +28,10 @@ pub struct StableDiffusion;
 impl Command for StableDiffusion {
     fn name(&self) -> &str {
         "stable_diffusion"
+    }
+
+    fn rate_limit(&self) -> RateLimiter<i64> {
+        RateLimiter::new(3, 120)
     }
 
     #[allow(clippy::too_many_lines)]
@@ -65,7 +70,7 @@ impl Command for StableDiffusion {
         loop {
             tokio::time::sleep(Duration::from_secs(2)).await;
 
-            let status = match stablehorde::status(ctx.http_client.clone(), &request_id).await? {
+            let status = match stablehorde::check(ctx.http_client.clone(), &request_id).await? {
                 Ok(status) => status,
                 Err(err) => {
                     ctx.reply(err).await?;
@@ -98,6 +103,7 @@ impl Command for StableDiffusion {
             } else {
                 String::new()
             };
+
             let mut text = format!(
                 "Generating {escaped_prompt}…\n{queue_info}`{}` ETA: {}",
                 progress_bar(status.waiting, status.processing, status.finished),
@@ -122,11 +128,11 @@ impl Command for StableDiffusion {
                 return Ok(());
             }
         };
-        let mut servers = HashSet::new();
+        let mut workers = HashSet::new();
         let images = results
             .into_iter()
             .flat_map(|generation| {
-                servers.insert(generation.server_name);
+                workers.insert(generation.worker_name);
                 base64::decode(generation.img)
             })
             .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
@@ -144,7 +150,7 @@ impl Command for StableDiffusion {
                     "Generated *{}* in {} by {}\\.",
                     escaped_prompt,
                     format_duration(duration),
-                    servers.into_iter().map(escape_markdown).collect::<Vec<_>>().join(", ")
+                    workers.into_iter().map(escape_markdown).collect::<Vec<_>>().join(", ")
                 )),
                 parse_mode: Some(ParseMode::MarkdownV2),
                 reply_to_message_id: Some(ctx.message.message_id),
