@@ -1,7 +1,5 @@
 #![warn(clippy::pedantic)]
 
-use std::sync::Arc;
-
 use bot::Bot;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
@@ -25,18 +23,18 @@ async fn main() {
 
     let mut bot = Bot::new().await;
 
-    bot.add_command(Arc::new(commands::start::Start::default()));
-    bot.add_command(Arc::new(commands::ping::Ping::default()));
-    bot.add_command(Arc::new(commands::generate::Generate::default()));
-    bot.add_command(Arc::new(commands::stable_diffusion::StableDiffusion::default()));
-    bot.add_command(Arc::new(commands::translate::Translate::default()));
-    bot.add_command(Arc::new(commands::badtranslate::BadTranslate::default()));
-    bot.add_command(Arc::new(commands::urbandictionary::UrbanDictionary::default()));
-    bot.add_command(Arc::new(commands::cobalt_download::CobaltDownload::default()));
-    bot.add_command(Arc::new(commands::charinfo::CharInfo::default()));
-    bot.add_command(Arc::new(commands::startit_joke::StartItJoke::default()));
-    bot.add_command(Arc::new(commands::kiwifarms::KiwiFarms::default()));
-    bot.add_command(Arc::new(commands::sex::Sex::default()));
+    bot.add_command(Box::new(commands::start::Start::default()));
+    bot.add_command(Box::new(commands::ping::Ping::default()));
+    bot.add_command(Box::new(commands::generate::Generate::default()));
+    bot.add_command(Box::new(commands::stable_diffusion::StableDiffusion::default()));
+    bot.add_command(Box::new(commands::translate::Translate::default()));
+    bot.add_command(Box::new(commands::badtranslate::BadTranslate::default()));
+    bot.add_command(Box::new(commands::urbandictionary::UrbanDictionary::default()));
+    bot.add_command(Box::new(commands::cobalt_download::CobaltDownload::default()));
+    bot.add_command(Box::new(commands::charinfo::CharInfo::default()));
+    bot.add_command(Box::new(commands::startit_joke::StartItJoke::default()));
+    bot.add_command(Box::new(commands::kiwifarms::KiwiFarms::default()));
+    bot.add_command(Box::new(commands::sex::Sex::default()));
 
     bot.run().await;
 }

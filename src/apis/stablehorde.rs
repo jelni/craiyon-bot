@@ -1,13 +1,13 @@
 use std::env;
 
 use reqwest::StatusCode;
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 struct Payload {
     prompt: String,
     params: Params,
-    api_key: String,
 }
 
 #[derive(Serialize)]
@@ -25,6 +25,11 @@ struct RequestId {
 }
 
 #[derive(Deserialize)]
+struct RequestError {
+    message: String,
+}
+
+#[derive(Deserialize)]
 pub struct Status {
     pub done: bool,
     pub waiting: usize,
@@ -32,7 +37,6 @@ pub struct Status {
     pub finished: usize,
     pub queue_position: usize,
     pub wait_time: usize,
-    pub generations: Option<Vec<Generation>>,
 }
 
 impl PartialEq for Status {
@@ -46,9 +50,14 @@ impl PartialEq for Status {
 }
 
 #[derive(Deserialize)]
+pub struct Generations {
+    pub generations: Vec<Generation>,
+}
+
+#[derive(Deserialize)]
 pub struct Generation {
     pub img: String,
-    pub server_name: String,
+    pub worker_name: String,
 }
 
 pub async fn generate<S: Into<String>>(
@@ -56,58 +65,62 @@ pub async fn generate<S: Into<String>>(
     prompt: S,
 ) -> reqwest::Result<Result<String, String>> {
     let response = http_client
-        .post("https://stablehorde.net/api/v1/generate/async")
+        .post("https://stablehorde.net/api/v2/generate/async")
         .json(&Payload {
             prompt: prompt.into(),
             params: Params { n: 4, width: 512, height: 512, cfg_scale: 7.5, steps: 30 },
-            api_key: env::var("STABLEHORDE_TOKEN").unwrap(),
         })
+        .header("apikey", env::var("STABLEHORDE_TOKEN").unwrap())
         .send()
         .await?;
 
     match response.status() {
-        StatusCode::OK => Ok(Ok(response.json::<RequestId>().await?.id)),
+        StatusCode::ACCEPTED => Ok(Ok(response.json::<RequestId>().await?.id)),
         status => {
-            let error =
-                response.json::<String>().await.unwrap_or_else(|_| "zjebalo sie".to_string());
+            let error = response
+                .json::<RequestError>()
+                .await
+                .map_or_else(|_| "zjebalo sie".to_string(), |e| e.message);
             Ok(Err(format!("{}: {error}", status.as_u16())))
         }
     }
 }
 
-async fn generation_info(
+async fn generation_info<O: DeserializeOwned>(
     http_client: reqwest::Client,
     action: &str,
     request_id: &str,
-) -> reqwest::Result<Result<Status, String>> {
+) -> reqwest::Result<Result<O, String>> {
     let response = http_client
-        .get(format!("https://stablehorde.net/api/v1/generate/{action}/{request_id}"))
+        .get(format!("https://stablehorde.net/api/v2/generate/{action}/{request_id}"))
         .send()
         .await?;
 
     match response.status() {
-        StatusCode::OK => Ok(Ok(response.json::<Status>().await?)),
+        StatusCode::OK => Ok(Ok(response.json::<O>().await?)),
         status => {
-            let error =
-                response.json::<String>().await.unwrap_or_else(|_| "zjebalo sie".to_string());
+            let error = response
+                .json::<RequestError>()
+                .await
+                .map_or_else(|_| "zjebalo sie".to_string(), |e| e.message);
             Ok(Err(format!("{}: {error}", status.as_u16())))
         }
     }
 }
 
-pub async fn status(
+pub async fn check(
     http_client: reqwest::Client,
     request_id: &str,
 ) -> reqwest::Result<Result<Status, String>> {
-    generation_info(http_client, "check", request_id).await
+    generation_info::<Status>(http_client, "check", request_id).await
 }
 
 pub async fn results(
     http_client: reqwest::Client,
     request_id: &str,
 ) -> reqwest::Result<Result<Vec<Generation>, String>> {
-    match generation_info(http_client, "prompt", request_id).await? {
-        Ok(status) => Ok(Ok(status.generations.unwrap())),
+    match generation_info::<Generations>(http_client, "status", request_id).await? {
+        Ok(status) => Ok(Ok(status.generations)),
         Err(err) => Ok(Err(err)),
     }
 }

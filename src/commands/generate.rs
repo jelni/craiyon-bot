@@ -11,6 +11,7 @@ use tgbotapi::FileType;
 use super::Command;
 use crate::api_methods::SendPhoto;
 use crate::apis::craiyon;
+use crate::ratelimit::RateLimiter;
 use crate::utils::{
     check_prompt, donate_markup, escape_markdown, format_duration, image_collage, Context,
 };
@@ -22,6 +23,10 @@ pub struct Generate;
 impl Command for Generate {
     fn name(&self) -> &str {
         "generate"
+    }
+
+    fn rate_limit(&self) -> RateLimiter<i64> {
+        RateLimiter::new(3, 60)
     }
 
     async fn execute(

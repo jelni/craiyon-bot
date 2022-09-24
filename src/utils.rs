@@ -27,7 +27,7 @@ const DISALLOWED_WORDS: [&str; 37] = [
     "sexy", "shota", "shotacon", "slut", "tits", "underage", "xxx",
 ];
 
-pub type CommandRef = Arc<dyn Command + Send + Sync>;
+pub type CommandRef = Box<dyn Command + Send + Sync>;
 
 #[derive(Debug, Clone)]
 pub struct ParsedCommand {
@@ -97,7 +97,7 @@ pub struct Context {
     pub message: Message,
     pub user: User,
     pub http_client: reqwest::Client,
-    pub ratelimiter: Arc<RwLock<RateLimiter<(i64, String)>>>,
+    pub global_ratelimiter: Arc<RwLock<RateLimiter<(i64, &'static str)>>>,
 }
 
 impl Context {
