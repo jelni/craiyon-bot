@@ -1,10 +1,10 @@
-use std::collections::HashSet;
 use std::error::Error;
 use std::io::Cursor;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
+use counter::Counter;
 use image::{ImageFormat, ImageOutputFormat};
 use tgbotapi::requests::{ParseMode, ReplyMarkup};
 use tgbotapi::{FileType, InlineKeyboardButton, InlineKeyboardMarkup};
@@ -128,11 +128,11 @@ impl Command for StableDiffusion {
                 return Ok(());
             }
         };
-        let mut workers = HashSet::new();
+        let mut workers = Counter::new();
         let images = results
             .into_iter()
             .flat_map(|generation| {
-                workers.insert(generation.worker_name);
+                workers.insert(generation.worker_name, 1);
                 base64::decode(generation.img)
             })
             .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
@@ -150,7 +150,18 @@ impl Command for StableDiffusion {
                     "Generated *{}* in {} by {}\\.",
                     escaped_prompt,
                     format_duration(duration),
-                    workers.into_iter().map(escape_markdown).collect::<Vec<_>>().join(", ")
+                    workers
+                        .most_common()
+                        .into_iter()
+                        .map(|(k, v)| {
+                            let mut text = escape_markdown(k);
+                            if v > 1 {
+                                text.push_str(&format!(" ({v})"));
+                            }
+                            text
+                        })
+                        .intersperse(", ".to_string())
+                        .collect::<String>()
                 )),
                 parse_mode: Some(ParseMode::MarkdownV2),
                 reply_to_message_id: Some(ctx.message.message_id),
