@@ -15,3 +15,4 @@ time = { version = "0.3", features = ["serde", "serde-well-known"] }
 dotenv = "0.15"
 log = "0.4"
 simple_logger = "2.1"
+counter = "0.5"
