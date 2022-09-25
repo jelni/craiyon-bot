@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::Command;
+use super::CommandTrait;
 use crate::apis::translate;
 use crate::utils::Context;
 
@@ -11,7 +11,7 @@ use crate::utils::Context;
 pub struct BadTranslate;
 
 #[async_trait]
-impl Command for BadTranslate {
+impl CommandTrait for BadTranslate {
     fn name(&self) -> &str {
         "badtranslate"
     }

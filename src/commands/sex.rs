@@ -4,7 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use tgbotapi::FileType;
 
-use super::Command;
+use super::CommandTrait;
 use crate::utils::Context;
 
 const SEX: [&str; 2] = [
@@ -16,7 +16,7 @@ const SEX: [&str; 2] = [
 pub struct Sex;
 
 #[async_trait]
-impl Command for Sex {
+impl CommandTrait for Sex {
     fn name(&self) -> &str {
         "sex"
     }

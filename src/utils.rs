@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 use std::fmt;
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
 
 use image::{imageops, DynamicImage};
 use tgbotapi::requests::{
@@ -13,7 +12,7 @@ use tgbotapi::{
 };
 
 use crate::api_methods::SendSticker;
-use crate::commands::Command;
+use crate::commands::CommandTrait;
 use crate::ratelimit::RateLimiter;
 
 const MARKDOWN_CHARS: [char; 18] =
@@ -27,7 +26,12 @@ const DISALLOWED_WORDS: [&str; 37] = [
     "sexy", "shota", "shotacon", "slut", "tits", "underage", "xxx",
 ];
 
-pub type CommandRef = Box<dyn Command + Send + Sync>;
+pub type CommandRef = Box<dyn CommandTrait + Send + Sync>;
+
+pub struct Command {
+    pub ratelimiter: RwLock<RateLimiter<i64>>,
+    pub command_ref: CommandRef,
+}
 
 #[derive(Debug, Clone)]
 pub struct ParsedCommand {
@@ -68,22 +72,18 @@ impl ParsedCommand {
                     let arguments = if arguments.is_empty() { None } else { Some(arguments) };
 
                     ParsedCommand {
-                        name: command_name,
+                        name: command_name.to_lowercase(),
                         bot_username: username.map(str::to_string),
                         arguments,
                     }
                 })
         })
     }
-
-    pub fn normalised_name(&self) -> String {
-        self.name.to_lowercase()
-    }
 }
 
 impl fmt::Display for ParsedCommand {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "/{}", self.normalised_name())?;
+        write!(f, "/{}", self.name)?;
         if let Some(arguments) = &self.arguments {
             write!(f, " {arguments:?}")?;
         }
@@ -92,12 +92,17 @@ impl fmt::Display for ParsedCommand {
     }
 }
 
+pub struct RateLimits {
+    pub ratelimit_exceeded: RateLimiter<i64>,
+    pub auto_reply: RateLimiter<i64>,
+}
+
 pub struct Context {
     pub api: Arc<Telegram>,
     pub message: Message,
     pub user: User,
     pub http_client: reqwest::Client,
-    pub global_ratelimiter: Arc<RwLock<RateLimiter<(i64, &'static str)>>>,
+    pub ratelimits: Arc<RwLock<RateLimits>>,
 }
 
 impl Context {
@@ -246,8 +251,7 @@ pub fn image_collage(images: Vec<DynamicImage>, image_count_x: u32, gap: u32) ->
     base
 }
 
-pub fn format_duration(duration: Duration) -> String {
-    let duration = duration.as_secs();
+pub fn format_duration(duration: u64) -> String {
     let hours = (duration / 3600) % 60;
     let minutes = (duration / 60) % 60;
     let seconds = duration % 60;

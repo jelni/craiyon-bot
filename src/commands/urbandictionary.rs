@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::Command;
+use super::CommandTrait;
 use crate::apis::urbandictionary;
 use crate::utils::Context;
 
@@ -11,7 +11,7 @@ use crate::utils::Context;
 pub struct UrbanDictionary;
 
 #[async_trait]
-impl Command for UrbanDictionary {
+impl CommandTrait for UrbanDictionary {
     fn name(&self) -> &str {
         "urbandictionary"
     }

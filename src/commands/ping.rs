@@ -4,14 +4,14 @@ use std::time::Instant;
 
 use async_trait::async_trait;
 
-use super::Command;
+use super::CommandTrait;
 use crate::utils::Context;
 
 #[derive(Default)]
 pub struct Ping;
 
 #[async_trait]
-impl Command for Ping {
+impl CommandTrait for Ping {
     fn name(&self) -> &str {
         "ping"
     }

@@ -12,12 +12,10 @@ use tokio::task::JoinHandle;
 
 use crate::not_commands;
 use crate::ratelimit::RateLimiter;
-use crate::utils::{log_status_update, CommandRef, Context, DisplayUser, ParsedCommand};
-
-struct Command {
-    ratelimiter: RwLock<RateLimiter<i64>>,
-    command_ref: CommandRef,
-}
+use crate::utils::{
+    format_duration, log_status_update, Command, CommandRef, Context, DisplayUser, ParsedCommand,
+    RateLimits,
+};
 
 pub struct Bot {
     api: Arc<Telegram>,
@@ -25,7 +23,7 @@ pub struct Bot {
     http_client: reqwest::Client,
     me: User,
     commands: HashMap<String, Arc<Command>>,
-    global_ratelimiter: Arc<RwLock<RateLimiter<(i64, &'static str)>>>,
+    ratelimits: Arc<RwLock<RateLimits>>,
     tasks: Vec<JoinHandle<()>>,
 }
 
@@ -44,7 +42,10 @@ impl Bot {
                 .unwrap(),
             me,
             commands: HashMap::new(),
-            global_ratelimiter: Arc::new(RwLock::new(RateLimiter::new(4, 20))),
+            ratelimits: Arc::new(RwLock::new(RateLimits {
+                ratelimit_exceeded: RateLimiter::new(1, 20),
+                auto_reply: RateLimiter::new(2, 20),
+            })),
             tasks: Vec::new(),
         }
     }
@@ -159,7 +160,7 @@ impl Bot {
             message,
             user,
             http_client: self.http_client.clone(),
-            global_ratelimiter: self.global_ratelimiter.clone(),
+            ratelimits: self.ratelimits.clone(),
         }
     }
 
@@ -172,7 +173,7 @@ impl Bot {
             }
         }
 
-        self.commands.get(&parsed_command.normalised_name()).map(Arc::clone)
+        self.commands.get(&parsed_command.name).map(Arc::clone)
     }
 
     fn dispatch_command(
@@ -181,18 +182,33 @@ impl Bot {
         parsed_command: ParsedCommand,
         command: Arc<Command>,
     ) {
-        let normalised_name = parsed_command.normalised_name();
-
         if let Some(cooldown) = command
             .ratelimiter
             .write()
             .unwrap()
             .update_rate_limit(context.user.id, context.message.date)
         {
+            let cooldown = format_duration(cooldown.try_into().unwrap());
             log::warn!(
-                "/{normalised_name} rate limit exceeded by {cooldown}s by {}",
+                "/{} ratelimit exceeded by {cooldown} by {}",
+                parsed_command.name,
                 context.user.format_name()
             );
+            if context
+                .ratelimits
+                .write()
+                .unwrap()
+                .ratelimit_exceeded
+                .update_rate_limit(context.user.id, context.message.date)
+                .is_none()
+            {
+                self.spawn_task(async move {
+                    context
+                        .reply(format!("You can use this command again in {cooldown}."))
+                        .await
+                        .ok();
+                });
+            }
             return;
         }
 
@@ -205,7 +221,8 @@ impl Bot {
         self.spawn_task(async move {
             if let Err(err) = command.command_ref.execute(context.clone(), arguments).await {
                 log::error!(
-                    "An error occurred while executing the {normalised_name:?} command: {err}"
+                    "An error occurred while executing the {:?} command: {err}",
+                    parsed_command.name
                 );
                 context.reply("An error occurred while executing the command 😩").await.ok();
             }

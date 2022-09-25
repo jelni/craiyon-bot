@@ -3,14 +3,14 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::Command;
+use super::CommandTrait;
 use crate::utils::Context;
 
 #[derive(Default)]
 pub struct Start;
 
 #[async_trait]
-impl Command for Start {
+impl CommandTrait for Start {
     fn name(&self) -> &str {
         "start"
     }
