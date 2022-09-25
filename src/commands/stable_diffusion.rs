@@ -128,11 +128,11 @@ impl Command for StableDiffusion {
                 return Ok(());
             }
         };
-        let mut workers = Counter::new();
+        let mut workers = Counter::<String>::new();
         let images = results
             .into_iter()
             .flat_map(|generation| {
-                workers.insert(generation.worker_name, 1);
+                workers[&generation.worker_name] += 1;
                 base64::decode(generation.img)
             })
             .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
@@ -153,12 +153,11 @@ impl Command for StableDiffusion {
                     workers
                         .most_common()
                         .into_iter()
-                        .map(|(k, v)| {
-                            let mut text = escape_markdown(k);
+                        .map(|(mut k, v)| {
                             if v > 1 {
-                                text.push_str(&format!(" ({v})"));
+                                k.push_str(&format!(" ({v})"));
                             }
-                            text
+                            escape_markdown(k)
                         })
                         .intersperse(", ".to_string())
                         .collect::<String>()
