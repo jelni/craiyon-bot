@@ -4,7 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use super::CommandTrait;
-use crate::utils::{escape_markdown, Context};
+use crate::utils::{escape_markdown, Context, MARKDOWN_CHARS};
 
 #[derive(Default)]
 pub struct CharInfo;
@@ -29,19 +29,25 @@ impl CommandTrait for CharInfo {
 
         let mut lines = chars
             .chars()
+            .take(11)
             .into_iter()
             .map(|c| {
                 if c.is_ascii_whitespace() {
                     String::new()
                 } else {
-                    format!("`{}` `U\\+{:04X}`", escape_markdown(c.to_string()), c as u32)
+                    let cu32 = c as u32;
+                    format!(
+                        "`{}` `U\\+{:04X}` – `{}`",
+                        if MARKDOWN_CHARS.contains(&c) { format!("\\{c}") } else { c.to_string() },
+                        cu32,
+                        escape_markdown(charname::get_name(cu32))
+                    )
                 }
             })
             .collect::<Vec<_>>();
 
         if lines.len() > 10 {
-            lines.truncate(10);
-            lines.push(String::from('…'));
+            lines.last_mut().unwrap().replace_range(.., "…");
         }
 
         ctx.reply_markdown(lines.join("\n")).await?;

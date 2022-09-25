@@ -15,7 +15,7 @@ use crate::api_methods::SendSticker;
 use crate::commands::CommandTrait;
 use crate::ratelimit::RateLimiter;
 
-const MARKDOWN_CHARS: [char; 18] =
+pub const MARKDOWN_CHARS: [char; 18] =
     ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
 
 // yes, people generated all of these
