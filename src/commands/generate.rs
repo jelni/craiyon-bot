@@ -8,7 +8,7 @@ use reqwest::StatusCode;
 use tgbotapi::requests::ParseMode;
 use tgbotapi::FileType;
 
-use super::Command;
+use super::CommandTrait;
 use crate::api_methods::SendPhoto;
 use crate::apis::craiyon;
 use crate::ratelimit::RateLimiter;
@@ -20,7 +20,7 @@ use crate::utils::{
 pub struct Generate;
 
 #[async_trait]
-impl Command for Generate {
+impl CommandTrait for Generate {
     fn name(&self) -> &str {
         "generate"
     }
@@ -69,7 +69,7 @@ impl Command for Generate {
                         caption: Some(format!(
                             "Generated *{}* in {}\\.",
                             escape_markdown(prompt),
-                            format_duration(result.duration)
+                            format_duration(result.duration.as_secs())
                         )),
                         parse_mode: Some(ParseMode::MarkdownV2),
                         reply_to_message_id: Some(ctx.message.message_id),

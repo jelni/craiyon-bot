@@ -4,7 +4,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use reqwest::StatusCode;
 
-use super::Command;
+use super::CommandTrait;
 use crate::apis::kiwifarms;
 use crate::utils::Context;
 
@@ -12,7 +12,7 @@ use crate::utils::Context;
 pub struct KiwiFarms;
 
 #[async_trait]
-impl Command for KiwiFarms {
+impl CommandTrait for KiwiFarms {
     fn name(&self) -> &str {
         "does_kiwifarms_work"
     }

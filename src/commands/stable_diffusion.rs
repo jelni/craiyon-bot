@@ -9,7 +9,7 @@ use image::{ImageFormat, ImageOutputFormat};
 use tgbotapi::requests::{ParseMode, ReplyMarkup};
 use tgbotapi::{FileType, InlineKeyboardButton, InlineKeyboardMarkup};
 
-use super::Command;
+use super::CommandTrait;
 use crate::api_methods::SendPhoto;
 use crate::apis::stablehorde;
 use crate::ratelimit::RateLimiter;
@@ -25,7 +25,7 @@ const JOIN_STABLE_HORDE: &str = concat!(
 pub struct StableDiffusion;
 
 #[async_trait]
-impl Command for StableDiffusion {
+impl CommandTrait for StableDiffusion {
     fn name(&self) -> &str {
         "stable_diffusion"
     }
@@ -107,7 +107,7 @@ impl Command for StableDiffusion {
             let mut text = format!(
                 "Generating {escaped_prompt}…\n{queue_info}`{}` ETA: {}",
                 progress_bar(status.waiting, status.processing, status.finished),
-                format_duration(Duration::from_secs(status.wait_time.try_into().unwrap()))
+                format_duration(status.wait_time.try_into().unwrap())
             );
 
             if first_wait_time >= 30 {
@@ -149,7 +149,7 @@ impl Command for StableDiffusion {
                 caption: Some(format!(
                     "Generated *{}* in {} by {}\\.",
                     escaped_prompt,
-                    format_duration(duration),
+                    format_duration(duration.as_secs()),
                     workers
                         .most_common()
                         .into_iter()

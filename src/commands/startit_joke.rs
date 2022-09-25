@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::Command;
+use super::CommandTrait;
 use crate::apis::poligon;
 use crate::utils::Context;
 
@@ -11,7 +11,7 @@ use crate::utils::Context;
 pub struct StartItJoke;
 
 #[async_trait]
-impl Command for StartItJoke {
+impl CommandTrait for StartItJoke {
     fn name(&self) -> &str {
         "startit_joke"
     }

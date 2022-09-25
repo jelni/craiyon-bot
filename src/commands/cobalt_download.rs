@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use reqwest::{StatusCode, Url};
 use tgbotapi::FileType;
 
-use super::Command;
+use super::CommandTrait;
 use crate::api_methods::SendDocument;
 use crate::apis::cobalt;
 use crate::utils::{donate_markup, Context};
@@ -14,7 +14,7 @@ use crate::utils::{donate_markup, Context};
 pub struct CobaltDownload;
 
 #[async_trait]
-impl Command for CobaltDownload {
+impl CommandTrait for CobaltDownload {
     fn name(&self) -> &str {
         "cobalt_download"
     }
