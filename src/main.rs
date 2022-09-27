@@ -33,6 +33,7 @@ async fn main() {
     bot.add_command(Box::new(commands::urbandictionary::UrbanDictionary::default()));
     bot.add_command(Box::new(commands::cobalt_download::CobaltDownload::default()));
     bot.add_command(Box::new(commands::charinfo::CharInfo::default()));
+    bot.add_command(Box::new(commands::delete::Delete::default()));
     bot.add_command(Box::new(commands::startit_joke::StartItJoke::default()));
     bot.add_command(Box::new(commands::kiwifarms::KiwiFarms::default()));
     bot.add_command(Box::new(commands::sex::Sex::default()));
