@@ -58,7 +58,7 @@ pub async fn define<S: AsRef<str>>(
     term: S,
 ) -> reqwest::Result<Option<Definition>> {
     let term = search(http_client.clone(), term).await?;
-    let mut definitions = http_client
+    let definitions = http_client
         .get(
             Url::parse_with_params("https://api.urbandictionary.com/v0/define", [("term", term)])
                 .unwrap(),
@@ -70,21 +70,20 @@ pub async fn define<S: AsRef<str>>(
         .await?
         .list;
 
-    if definitions.is_empty() {
-        Ok(None)
-    } else {
-        Ok(Some(definitions.swap_remove(0)))
-    }
+    Ok(definitions.into_iter().next())
 }
 
 impl Definition {
-    pub fn as_markdown(&self) -> String {
+    pub fn into_markdown(mut self) -> String {
+        self.definition.retain(|c| !['[', ']'].contains(&c));
+        self.example.retain(|c| !['[', ']'].contains(&c));
+
         let mut result = String::new();
-        writeln!(result, "[*{}*]({})", escape_markdown(&self.word), self.permalink,).unwrap();
-        let definition = remove_brackets(self.definition.clone());
-        writeln!(result, "{}\n", escape_markdown(definition)).unwrap();
-        let example = remove_brackets(self.example.clone());
-        writeln!(result, "_{}_\n", escape_markdown(example)).unwrap();
+        writeln!(result, "[*{}*]({})", escape_markdown(self.word), self.permalink).unwrap();
+        writeln!(result, "{}\n", escape_markdown(self.definition)).unwrap();
+        if !self.example.is_empty() {
+            writeln!(result, "_{}_\n", escape_markdown(self.example)).unwrap();
+        }
         writeln!(
             result,
             "by [{}]({}), {}",
@@ -97,14 +96,8 @@ impl Definition {
             escape_markdown(self.written_on.format(DATETIME_FORMAT).unwrap())
         )
         .unwrap();
-        write!(result, "\u{1F44D} {} \u{1F44E} {}", self.thumbs_up, self.thumbs_down).unwrap();
+        write!(result, "👍 {} 👎 {}", self.thumbs_up, self.thumbs_down).unwrap();
 
         result
     }
-}
-
-fn remove_brackets<S: Into<String>>(text: S) -> String {
-    let mut text = text.into();
-    text.retain(|c| !"[]".contains(c));
-    text
 }
