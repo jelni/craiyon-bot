@@ -19,11 +19,12 @@ pub const MARKDOWN_CHARS: [char; 18] =
     ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
 
 // yes, people generated all of these
-const DISALLOWED_WORDS: [&str; 37] = [
-    "abuse", "anus", "ass", "bikini", "boob", "booba", "boobs", "braless", "breast", "breasts",
-    "butt", "butts", "cum", "dick", "doujin", "erotic", "hentai", "incest", "lingerie", "loli",
-    "lolicon", "lolis", "naked", "nhentai", "nude", "penis", "porn", "porno", "rape", "sex",
-    "sexy", "shota", "shotacon", "slut", "tits", "underage", "xxx",
+const DISALLOWED_WORDS: [&str; 42] = [
+    "34", "abuse", "anus", "ass", "bikini", "boob", "booba", "boobs", "braless", "breast",
+    "breasts", "butt", "butts", "cum", "dick", "doujin", "erotic", "hentai", "incest", "lingerie",
+    "loli", "lolicon", "lolis", "naked", "nhentai", "nude", "penis", "porn", "porno", "r18",
+    "r18g", "rape", "rule34", "sex", "sexy", "shota", "shotacon", "slut", "tits", "underage",
+    "xxx", "yiff",
 ];
 
 pub type CommandRef = Box<dyn CommandTrait + Send + Sync>;
@@ -224,7 +225,7 @@ pub fn check_prompt<S: AsRef<str>>(prompt: S) -> Option<&'static str> {
 fn is_prompt_suspicious<S: AsRef<str>>(text: S) -> bool {
     text.as_ref()
         .to_lowercase()
-        .split(|c: char| !c.is_alphabetic())
+        .split(|c: char| !c.is_alphanumeric())
         .any(|w| DISALLOWED_WORDS.contains(&w))
 }
 
