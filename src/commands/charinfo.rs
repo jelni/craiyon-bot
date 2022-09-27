@@ -15,6 +15,10 @@ impl CommandTrait for CharInfo {
         "charinfo"
     }
 
+    fn aliases(&self) -> &[&str] {
+        &["ch"]
+    }
+
     async fn execute(
         &self,
         ctx: Arc<Context>,

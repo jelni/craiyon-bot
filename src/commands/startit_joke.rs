@@ -16,6 +16,10 @@ impl CommandTrait for StartItJoke {
         "startit_joke"
     }
 
+    fn aliases(&self) -> &[&str] {
+        &["startit"]
+    }
+
     async fn execute(
         &self,
         ctx: Arc<Context>,

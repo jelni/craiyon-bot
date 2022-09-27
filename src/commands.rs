@@ -22,6 +22,9 @@ pub mod urbandictionary;
 #[async_trait]
 pub trait CommandTrait {
     fn name(&self) -> &str;
+    fn aliases(&self) -> &[&str] {
+        &[]
+    }
     fn rate_limit(&self) -> RateLimiter<i64> {
         RateLimiter::new(4, 20)
     }

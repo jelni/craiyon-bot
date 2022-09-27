@@ -25,6 +25,10 @@ impl CommandTrait for Generate {
         "generate"
     }
 
+    fn aliases(&self) -> &[&str] {
+        &["g", "gen", "craiyon"]
+    }
+
     fn rate_limit(&self) -> RateLimiter<i64> {
         RateLimiter::new(3, 60)
     }

@@ -17,6 +17,10 @@ impl CommandTrait for KiwiFarms {
         "does_kiwifarms_work"
     }
 
+    fn aliases(&self) -> &[&str] {
+        &["kf"]
+    }
+
     async fn execute(
         &self,
         ctx: Arc<Context>,

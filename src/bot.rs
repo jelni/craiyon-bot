@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::env;
 use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -22,7 +21,7 @@ pub struct Bot {
     running: Arc<AtomicBool>,
     http_client: reqwest::Client,
     me: User,
-    commands: HashMap<String, Arc<Command>>,
+    commands: Vec<Arc<Command>>,
     ratelimits: Arc<RwLock<RateLimits>>,
     tasks: Vec<JoinHandle<()>>,
 }
@@ -41,7 +40,7 @@ impl Bot {
                 .build()
                 .unwrap(),
             me,
-            commands: HashMap::new(),
+            commands: Vec::new(),
             ratelimits: Arc::new(RwLock::new(RateLimits {
                 ratelimit_exceeded: RateLimiter::new(1, 20),
                 auto_reply: RateLimiter::new(2, 20),
@@ -166,14 +165,20 @@ impl Bot {
 
     fn get_command(&self, parsed_command: &ParsedCommand) -> Option<Arc<Command>> {
         if let Some(bot_username) = &parsed_command.bot_username {
-            if Some(bot_username.to_lowercase())
-                != self.me.username.as_ref().map(|u| u.to_lowercase())
+            if Some(bot_username.to_ascii_lowercase())
+                != self.me.username.as_ref().map(|u| u.to_ascii_lowercase())
             {
                 return None;
             }
         }
 
-        self.commands.get(&parsed_command.name).map(Arc::clone)
+        self.commands
+            .iter()
+            .find(|c| {
+                c.command_ref.name() == parsed_command.name
+                    || c.command_ref.aliases().contains(&parsed_command.name.as_str())
+            })
+            .cloned()
     }
 
     fn dispatch_command(
@@ -230,12 +235,9 @@ impl Bot {
     }
 
     pub fn add_command(&mut self, command: CommandRef) {
-        self.commands.insert(
-            command.name().to_string(),
-            Arc::new(Command {
-                ratelimiter: RwLock::new(command.rate_limit()),
-                command_ref: command,
-            }),
-        );
+        self.commands.push(Arc::new(Command {
+            ratelimiter: RwLock::new(command.rate_limit()),
+            command_ref: command,
+        }));
     }
 }

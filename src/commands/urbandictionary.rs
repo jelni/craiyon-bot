@@ -16,6 +16,10 @@ impl CommandTrait for UrbanDictionary {
         "urbandictionary"
     }
 
+    fn aliases(&self) -> &[&str] {
+        &["ud", "urban", "dictionary"]
+    }
+
     async fn execute(
         &self,
         ctx: Arc<Context>,
