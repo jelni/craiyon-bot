@@ -31,7 +31,7 @@ impl CommandTrait for UrbanDictionary {
         let response = if let Ok(Some(definition)) =
             urbandictionary::define(ctx.http_client.clone(), word).await
         {
-            definition.as_markdown()
+            definition.into_markdown()
         } else {
             concat!(
                 "There are no definitions for this word\\.\n",
