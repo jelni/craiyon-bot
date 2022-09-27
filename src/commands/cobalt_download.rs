@@ -19,6 +19,10 @@ impl CommandTrait for CobaltDownload {
         "cobalt_download"
     }
 
+    fn aliases(&self) -> &[&str] {
+        &["cobalt", "download"]
+    }
+
     async fn execute(
         &self,
         ctx: Arc<Context>,

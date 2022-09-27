@@ -16,6 +16,10 @@ impl CommandTrait for Translate {
         "translate"
     }
 
+    fn aliases(&self) -> &[&str] {
+        &["tr", "trans"]
+    }
+
     async fn execute(
         &self,
         ctx: Arc<Context>,

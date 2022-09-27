@@ -30,6 +30,10 @@ impl CommandTrait for StableDiffusion {
         "stable_diffusion"
     }
 
+    fn aliases(&self) -> &[&str] {
+        &["sd"]
+    }
+
     fn rate_limit(&self) -> RateLimiter<i64> {
         RateLimiter::new(3, 120)
     }
