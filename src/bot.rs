@@ -2,7 +2,7 @@ use std::env;
 use std::future::Future;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use reqwest::{redirect, Client};
 use tgbotapi::requests::{GetMe, GetUpdates};
@@ -193,9 +193,9 @@ impl Bot {
             .unwrap()
             .update_rate_limit(context.user.id, context.message.date)
         {
-            let cooldown = format_duration(cooldown.try_into().unwrap());
+            let cooldown_str = format_duration(cooldown.try_into().unwrap());
             log::warn!(
-                "/{} ratelimit exceeded by {cooldown} by {}",
+                "/{} ratelimit exceeded by {cooldown_str} by {}",
                 parsed_command.name,
                 context.user.format_name()
             );
@@ -207,11 +207,16 @@ impl Bot {
                 .update_rate_limit(context.user.id, context.message.date)
                 .is_none()
             {
+                let cooldown_end =
+                    Instant::now() + Duration::from_secs(cooldown.max(5).try_into().unwrap());
                 self.spawn_task(async move {
-                    context
-                        .reply(format!("You can use this command again in {cooldown}."))
+                    if let Ok(message) = context
+                        .reply(format!("You can use this command again in {cooldown_str}."))
                         .await
-                        .ok();
+                    {
+                        tokio::time::sleep_until(cooldown_end.into()).await;
+                        context.delete_message(&message).await.ok();
+                    }
                 });
             }
             return;
