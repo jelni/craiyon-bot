@@ -9,6 +9,7 @@ use crate::utils::Context;
 pub mod badtranslate;
 pub mod charinfo;
 pub mod cobalt_download;
+pub mod delete;
 pub mod generate;
 pub mod kiwifarms;
 pub mod ping;
