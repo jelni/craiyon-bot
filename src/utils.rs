@@ -15,8 +15,10 @@ use crate::api_methods::SendSticker;
 use crate::commands::CommandTrait;
 use crate::ratelimit::RateLimiter;
 
-pub const MARKDOWN_CHARS: [char; 18] =
-    ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+pub const MARKDOWN_CHARS: [char; 20] = [
+    '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!', '`',
+    '\\',
+];
 
 // yes, people generated all of these
 const DISALLOWED_WORDS: [&str; 42] = [
