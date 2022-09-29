@@ -28,13 +28,13 @@ impl CommandTrait for KiwiFarms {
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let text = match kiwifarms::status(ctx.http_client.clone()).await {
             Ok(status) => {
-                if status == StatusCode::OK {
+                if status == StatusCode::OK || status == StatusCode::FOUND {
                     "yes 🤬".to_string()
                 } else {
                     format!("{} no", status.as_u16())
                 }
             }
-            Err(err) => err.without_url().to_string(),
+            Err(err) => format!("no ({})", err.without_url()),
         };
         ctx.reply(text).await?;
 
