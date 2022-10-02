@@ -12,6 +12,11 @@ struct Sentence {
     pub trans: String,
 }
 
+#[derive(Deserialize)]
+struct Language {
+    src: String,
+}
+
 pub struct Translation {
     pub text: String,
     pub source_language: String,
@@ -79,4 +84,45 @@ pub async fn multiple<'a, I: IntoIterator<Item = &'a str>>(
     };
 
     Ok(translations)
+}
+
+pub async fn detect_language<S: AsRef<str>>(
+    http_client: reqwest::Client,
+    text: S,
+) -> reqwest::Result<String> {
+    let response = http_client
+        .get(
+            Url::parse_with_params(
+                "https://translate.googleapis.com/translate_a/single",
+                [("client", "gtx"), ("sl", "auto"), ("q", text.as_ref()), ("dj", "1")],
+            )
+            .unwrap(),
+        )
+        .send()
+        .await?
+        .error_for_status()?
+        .json::<Language>()
+        .await?;
+
+    Ok(response.src)
+}
+
+pub async fn tts<S: AsRef<str>>(
+    http_client: reqwest::Client,
+    text: S,
+    language: &str,
+) -> reqwest::Result<Vec<u8>> {
+    let response = http_client
+        .get(
+            Url::parse_with_params(
+                "https://translate.googleapis.com/translate_tts",
+                [("client", "gtx"), ("tl", language), ("q", text.as_ref())],
+            )
+            .unwrap(),
+        )
+        .send()
+        .await?
+        .error_for_status()?;
+
+    Ok(response.bytes().await?.to_vec())
 }
