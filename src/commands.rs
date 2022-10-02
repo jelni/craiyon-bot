@@ -18,6 +18,7 @@ pub mod stable_diffusion;
 pub mod start;
 pub mod startit_joke;
 pub mod translate;
+pub mod tts;
 pub mod urbandictionary;
 
 #[async_trait]

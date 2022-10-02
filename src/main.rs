@@ -30,6 +30,7 @@ async fn main() {
     bot.add_command(Box::new(commands::stable_diffusion::StableDiffusion::default()));
     bot.add_command(Box::new(commands::translate::Translate::default()));
     bot.add_command(Box::new(commands::badtranslate::BadTranslate::default()));
+    bot.add_command(Box::new(commands::tts::Tts::default()));
     bot.add_command(Box::new(commands::urbandictionary::UrbanDictionary::default()));
     bot.add_command(Box::new(commands::cobalt_download::CobaltDownload::default()));
     bot.add_command(Box::new(commands::charinfo::CharInfo::default()));
