@@ -2,25 +2,20 @@
 #![feature(iter_intersperse)]
 
 use bot::Bot;
-use log::LevelFilter;
-use simple_logger::SimpleLogger;
 
 mod api_methods;
 mod apis;
 mod bot;
 mod commands;
+mod logchamp;
 mod not_commands;
 mod ratelimit;
 mod utils;
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
+    logchamp::init();
     dotenv::dotenv().unwrap();
-    SimpleLogger::new()
-        .with_level(LevelFilter::Info)
-        .with_module_level("craiyon_bot", LevelFilter::Debug)
-        .init()
-        .unwrap();
 
     let mut bot = Bot::new().await;
 

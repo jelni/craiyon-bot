@@ -2,13 +2,10 @@ use std::fmt::Write;
 
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
-use time::format_description::FormatItem;
 use time::macros::format_description;
 use time::OffsetDateTime;
 
 use crate::utils::escape_markdown;
-
-const DATETIME_FORMAT: &[FormatItem] = format_description!("[year]-[month]-[day]");
 
 #[derive(Deserialize)]
 struct Response {
@@ -93,7 +90,9 @@ impl Definition {
                 [("author", &self.author)]
             )
             .unwrap(),
-            escape_markdown(self.written_on.format(DATETIME_FORMAT).unwrap())
+            escape_markdown(
+                self.written_on.format(format_description!("[year]-[month]-[day]")).unwrap()
+            )
         )
         .unwrap();
         write!(result, "👍 {} 👎 {}", self.thumbs_up, self.thumbs_down).unwrap();
