@@ -59,7 +59,7 @@ impl Bot {
         });
 
         let mut offset = 0;
-        loop {
+        while self.running.load(Ordering::Relaxed) {
             let updates = match self
                 .api
                 .make_request(&GetUpdates {
