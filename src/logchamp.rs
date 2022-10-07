@@ -42,30 +42,20 @@ impl Log for Logger {
         let timestamp = time::OffsetDateTime::now_utc()
             .format(format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"))
             .unwrap();
-
-        let (color, light_color) = match record.level() {
-            Level::Error => (Color::Red, Color::BrightRed),
-            Level::Warn => (Color::Yellow, Color::BrightYellow),
-            Level::Info => (Color::Cyan, Color::BrightCyan),
-            Level::Debug => (Color::Magenta, Color::BrightMagenta),
-            Level::Trace => (Color::Green, Color::BrightGreen),
-        };
-
         let target = record.target().to_string();
         let level = record.level().as_str();
-        let len: i32 = (target.len() + level.len()).try_into().unwrap();
-        let padding = " ".repeat((48 - len).max(0).try_into().unwrap());
+        let args = record.args();
 
-        println!(
-            "{} {padding}{} {} {}",
-            timestamp.color(Color::BrightBlack),
-            target.color(color),
-            level.color(light_color),
-            record.args()
-        );
+        let color = match record.level() {
+            Level::Error => Color::BrightRed,
+            Level::Warn => Color::BrightYellow,
+            Level::Info => Color::BrightCyan,
+            Level::Debug => Color::BrightMagenta,
+            Level::Trace => Color::BrightGreen,
+        };
 
-        writeln!(self.file.lock().unwrap(), "{timestamp} [{target} {level}] {}", record.args())
-            .unwrap();
+        println!("{} {} {}", timestamp.color(Color::BrightBlack), level.color(color), args);
+        writeln!(self.file.lock().unwrap(), "{timestamp} [{target} {level}] {args}").unwrap();
     }
 
     fn flush(&self) {}
