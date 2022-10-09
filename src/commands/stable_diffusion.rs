@@ -163,8 +163,8 @@ impl CommandTrait for StableDiffusion {
                             }
                             escape_markdown(k)
                         })
-                        .intersperse(", ".to_string())
-                        .collect::<String>()
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 )),
                 parse_mode: Some(ParseMode::MarkdownV2),
                 reply_to_message_id: Some(ctx.message.message_id),

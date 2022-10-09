@@ -29,8 +29,7 @@ pub async fn evaluate<S: Into<String>>(
 
     let result = match response.status() {
         StatusCode::OK => Ok(response.json::<Response>().await?.result),
-        StatusCode::BAD_REQUEST => Err(response.json::<Error>().await?.error),
-        _ => unreachable!(),
+        _ => Err(response.json::<Error>().await?.error),
     };
 
     Ok(result)
