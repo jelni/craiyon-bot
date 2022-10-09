@@ -179,7 +179,7 @@ impl CommandTrait for StableDiffusion {
             })
             .await?;
 
-        ctx.delete_message(&status_msg).await?;
+        ctx.delete_message(&status_msg).await.ok();
 
         Ok(())
     }
