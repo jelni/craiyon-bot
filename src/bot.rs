@@ -130,19 +130,22 @@ impl Bot {
 
         let context = Arc::new(self.get_message_context(message, user));
 
-        if context.message.forward_from_chat.is_some() {
-            self.spawn_task(not_commands::rabbit_nie_je(context));
-            return;
-        }
+        let parsed_command = ParsedCommand::parse(&context.message);
+        let command = parsed_command.as_ref().and_then(|command| self.get_command(command));
 
-        if let Some(parsed_command) = ParsedCommand::parse(&context.message) {
-            if let Some(command) = self.get_command(&parsed_command) {
-                self.dispatch_command(context.clone(), parsed_command, command);
+        self.spawn_task(async move {
+            if context.message.forward_from_chat.is_some() {
+                not_commands::rabbit_nie_je(context).await;
                 return;
             }
-        };
 
-        self.spawn_task(not_commands::auto_reply(context));
+            if let Some(command) = command {
+                Bot::dispatch_command(context.clone(), parsed_command.unwrap(), command).await;
+                return;
+            };
+
+            not_commands::auto_reply(context).await;
+        });
     }
 
     fn on_inline_query(&mut self, inline_query: InlineQuery) {
@@ -181,18 +184,18 @@ impl Bot {
             .cloned()
     }
 
-    fn dispatch_command(
-        &mut self,
+    async fn dispatch_command(
         context: Arc<Context>,
         parsed_command: ParsedCommand,
         command: Arc<Command>,
     ) {
-        if let Some(cooldown) = command
+        let cooldown = command
             .ratelimiter
             .write()
             .unwrap()
-            .update_rate_limit(context.user.id, context.message.date)
-        {
+            .update_rate_limit(context.user.id, context.message.date);
+
+        if let Some(cooldown) = cooldown {
             let cooldown_str = format_duration(cooldown.try_into().unwrap());
             log::warn!(
                 "/{} ratelimit exceeded by {cooldown_str} by {}",
@@ -209,15 +212,13 @@ impl Bot {
             {
                 let cooldown_end =
                     Instant::now() + Duration::from_secs(cooldown.max(5).try_into().unwrap());
-                self.spawn_task(async move {
-                    if let Ok(message) = context
-                        .reply(format!("You can use this command again in {cooldown_str}."))
-                        .await
-                    {
-                        tokio::time::sleep_until(cooldown_end.into()).await;
-                        context.delete_message(&message).await.ok();
-                    }
-                });
+                if let Ok(message) = context
+                    .reply(format!("You can use this command again in {cooldown_str}."))
+                    .await
+                {
+                    tokio::time::sleep_until(cooldown_end.into()).await;
+                    context.delete_message(&message).await.ok();
+                }
             }
             return;
         }
@@ -228,15 +229,13 @@ impl Bot {
             .arguments
             .or_else(|| context.message.reply_to_message.as_ref().and_then(|r| r.text.clone()));
 
-        self.spawn_task(async move {
-            if let Err(err) = command.command_ref.execute(context.clone(), arguments).await {
-                log::error!(
-                    "An error occurred while executing the {:?} command: {err}",
-                    parsed_command.name
-                );
-                context.reply("An error occurred while executing the command 😩").await.ok();
-            }
-        });
+        if let Err(err) = command.command_ref.execute(context.clone(), arguments).await {
+            log::error!(
+                "An error occurred while executing the {:?} command: {err}",
+                parsed_command.name
+            );
+            context.reply("An error occurred while executing the command 😩").await.ok();
+        }
     }
 
     pub fn add_command(&mut self, command: CommandRef) {
