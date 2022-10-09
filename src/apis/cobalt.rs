@@ -5,7 +5,19 @@ use serde::Deserialize;
 struct Response {
     pub status: String,
     pub text: Option<String>,
-    pub url: Option<String>,
+    pub url: Option<Urls>,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum Urls {
+    Single(String),
+    Many(Vec<Media>),
+}
+
+#[derive(Deserialize)]
+struct Media {
+    url: String,
 }
 
 pub struct Download {
@@ -16,7 +28,7 @@ pub struct Download {
 pub async fn query<S: AsRef<str>>(
     http_client: reqwest::Client,
     url: S,
-) -> reqwest::Result<Result<String, String>> {
+) -> reqwest::Result<Result<Vec<String>, String>> {
     let response = http_client
         .get(
             Url::parse_with_params(
@@ -34,7 +46,13 @@ pub async fn query<S: AsRef<str>>(
         .await?;
 
     match response.status.as_str() {
-        "stream" | "redirect" => Ok(Ok(response.url.unwrap())),
+        "stream" | "redirect" | "picker" => {
+            let urls = match response.url.unwrap() {
+                Urls::Single(url) => vec![url],
+                Urls::Many(media) => media.into_iter().map(|m| m.url).collect(),
+            };
+            Ok(Ok(urls))
+        }
         "success" | "error" | "rate-limit" => Ok(Err(response.text.unwrap())),
         _ => Ok(Err(format!("unknown status: {:?}", response.status))),
     }

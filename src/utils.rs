@@ -125,6 +125,7 @@ impl Context {
                 parse_mode,
                 disable_web_page_preview: Some(true),
                 reply_to_message_id: Some(self.message.message_id),
+                allow_sending_without_reply: Some(true),
                 ..Default::default()
             })
             .await

@@ -94,7 +94,7 @@ impl CommandTrait for Generate {
             }
         };
 
-        ctx.delete_message(&status_msg).await?;
+        ctx.delete_message(&status_msg).await.ok();
 
         Ok(())
     }
