@@ -1,5 +1,4 @@
 #![warn(clippy::pedantic)]
-#![feature(iter_intersperse)]
 
 use bot::Bot;
 
