@@ -1,5 +1,6 @@
 pub mod cobalt;
 pub mod craiyon;
+pub mod google;
 pub mod kiwifarms;
 pub mod mathjs;
 pub mod poligon;

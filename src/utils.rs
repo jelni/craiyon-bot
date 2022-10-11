@@ -31,7 +31,7 @@ const DISALLOWED_WORDS: [&str; 42] = [
 
 pub type CommandRef = Box<dyn CommandTrait + Send + Sync>;
 
-pub struct Command {
+pub struct CommandInstance {
     pub ratelimiter: RwLock<RateLimiter<i64>>,
     pub command_ref: CommandRef,
 }
@@ -142,6 +142,10 @@ impl Context {
         self._reply(text, Some(ParseMode::MarkdownV2)).await
     }
 
+    pub async fn reply_html<S: Into<String>>(&self, text: S) -> Result<Message, tgbotapi::Error> {
+        self._reply(text, Some(ParseMode::Html)).await
+    }
+
     async fn _edit_message<S: Into<String>>(
         &self,
         message: &Message,
@@ -212,9 +216,22 @@ impl DisplayUser for User {
     }
 }
 
+pub trait TruncateWithEllipsis {
+    fn truncate_with_ellipsis(&mut self, max_len: usize);
+}
+
+impl TruncateWithEllipsis for String {
+    fn truncate_with_ellipsis(&mut self, max_len: usize) {
+        if self.chars().count() > max_len {
+            self.truncate(max_len - 1);
+            self.push('…');
+        }
+    }
+}
+
 pub fn check_prompt<S: AsRef<str>>(prompt: S) -> Option<&'static str> {
     let prompt = prompt.as_ref();
-    if prompt.chars().count() > 1024 {
+    if prompt.chars().count() > 512 {
         Some("This prompt is too long.")
     } else if prompt.lines().count() > 5 {
         Some("This prompt has too many lines.")
@@ -261,7 +278,7 @@ pub fn format_duration(duration: u64) -> String {
     let seconds = duration % 60;
 
     if hours > 0 {
-        format!("{hours}h {minutes}m {seconds}s")
+        format!("{hours}h {minutes}m")
     } else if minutes > 0 {
         format!("{minutes}m {seconds}s")
     } else {

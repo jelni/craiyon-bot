@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::fmt::Write;
 use std::io::Cursor;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -13,7 +14,9 @@ use super::CommandTrait;
 use crate::api_methods::SendPhoto;
 use crate::apis::stablehorde;
 use crate::ratelimit::RateLimiter;
-use crate::utils::{check_prompt, escape_markdown, format_duration, image_collage, Context};
+use crate::utils::{
+    check_prompt, escape_markdown, format_duration, image_collage, Context, TruncateWithEllipsis,
+};
 
 const JOIN_STABLE_HORDE: &str = concat!(
     "\n\nStable Horde is run by volunteers\\. ",
@@ -158,8 +161,9 @@ impl CommandTrait for StableDiffusion {
                         .most_common()
                         .into_iter()
                         .map(|(mut k, v)| {
+                            k.truncate_with_ellipsis(64);
                             if v > 1 {
-                                k.push_str(&format!(" ({v})"));
+                                write!(k, " ({v})").unwrap();
                             }
                             escape_markdown(k)
                         })
