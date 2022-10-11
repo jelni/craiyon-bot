@@ -12,8 +12,8 @@ use tokio::task::JoinHandle;
 use crate::not_commands;
 use crate::ratelimit::RateLimiter;
 use crate::utils::{
-    format_duration, log_status_update, Command, CommandRef, Context, DisplayUser, ParsedCommand,
-    RateLimits,
+    format_duration, log_status_update, CommandInstance, CommandRef, Context, DisplayUser,
+    ParsedCommand, RateLimits,
 };
 
 pub struct Bot {
@@ -21,7 +21,7 @@ pub struct Bot {
     running: Arc<AtomicBool>,
     http_client: reqwest::Client,
     me: User,
-    commands: Vec<Arc<Command>>,
+    commands: Vec<Arc<CommandInstance>>,
     ratelimits: Arc<RwLock<RateLimits>>,
     tasks: Vec<JoinHandle<()>>,
 }
@@ -166,7 +166,7 @@ impl Bot {
         }
     }
 
-    fn get_command(&self, parsed_command: &ParsedCommand) -> Option<Arc<Command>> {
+    fn get_command(&self, parsed_command: &ParsedCommand) -> Option<Arc<CommandInstance>> {
         if let Some(bot_username) = &parsed_command.bot_username {
             if Some(bot_username.to_ascii_lowercase())
                 != self.me.username.as_ref().map(|u| u.to_ascii_lowercase())
@@ -187,7 +187,7 @@ impl Bot {
     async fn dispatch_command(
         context: Arc<Context>,
         parsed_command: ParsedCommand,
-        command: Arc<Command>,
+        command: Arc<CommandInstance>,
     ) {
         let cooldown = command
             .ratelimiter
@@ -239,7 +239,7 @@ impl Bot {
     }
 
     pub fn add_command(&mut self, command: CommandRef) {
-        self.commands.push(Arc::new(Command {
+        self.commands.push(Arc::new(CommandInstance {
             ratelimiter: RwLock::new(command.rate_limit()),
             command_ref: command,
         }));

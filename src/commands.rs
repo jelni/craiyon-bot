@@ -6,6 +6,7 @@ use async_trait::async_trait;
 use crate::ratelimit::RateLimiter;
 use crate::utils::Context;
 
+pub mod autocomplete;
 pub mod badtranslate;
 pub mod charinfo;
 pub mod cobalt_download;
