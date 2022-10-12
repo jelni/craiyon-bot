@@ -32,9 +32,13 @@ impl CommandTrait for Autocomplete {
             return Ok(());
         };
 
-        let completions = google::complete(ctx.http_client.clone(), query).await?;
+        let completions = google::complete(ctx.http_client.clone(), &query).await?;
+        let query_lowercase = query.to_lowercase();
         ctx.reply_html(
-            completions.into_iter().next().unwrap_or_else(|| "no autocompletions".to_string()),
+            completions
+                .into_iter()
+                .find(|c| *c != query_lowercase)
+                .unwrap_or_else(|| "no autocompletions".to_string()),
         )
         .await?;
 
