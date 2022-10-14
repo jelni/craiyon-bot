@@ -7,7 +7,7 @@ struct Response {
 
 pub async fn startit_joke(http_client: reqwest::Client) -> reqwest::Result<String> {
     let response = http_client
-        .get("https://poligon.lgbt/api/startit")
+        .get("https://astolfo.poligon.lgbt/api/startit")
         .send()
         .await?
         .json::<Response>()
