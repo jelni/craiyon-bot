@@ -1,5 +1,4 @@
 use std::convert::TryInto;
-use std::fmt;
 use std::sync::{Arc, RwLock};
 
 use image::{imageops, DynamicImage};
@@ -32,6 +31,7 @@ const DISALLOWED_WORDS: [&str; 42] = [
 pub type CommandRef = Box<dyn CommandTrait + Send + Sync>;
 
 pub struct CommandInstance {
+    pub name: &'static str,
     pub ratelimiter: RwLock<RateLimiter<i64>>,
     pub command_ref: CommandRef,
 }
@@ -81,17 +81,6 @@ impl ParsedCommand {
                     }
                 })
         })
-    }
-}
-
-impl fmt::Display for ParsedCommand {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "/{}", self.name)?;
-        if let Some(arguments) = &self.arguments {
-            write!(f, " {arguments:?}")?;
-        }
-
-        Ok(())
     }
 }
 

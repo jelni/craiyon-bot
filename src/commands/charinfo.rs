@@ -11,7 +11,7 @@ pub struct CharInfo;
 
 #[async_trait]
 impl CommandTrait for CharInfo {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "charinfo"
     }
 

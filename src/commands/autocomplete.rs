@@ -12,7 +12,7 @@ pub struct Autocomplete;
 
 #[async_trait]
 impl CommandTrait for Autocomplete {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "autocomplete"
     }
 

@@ -14,7 +14,7 @@ pub struct Delete;
 
 #[async_trait]
 impl CommandTrait for Delete {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "delete"
     }
 

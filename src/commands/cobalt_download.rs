@@ -15,7 +15,7 @@ pub struct CobaltDownload;
 
 #[async_trait]
 impl CommandTrait for CobaltDownload {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "cobalt_download"
     }
 

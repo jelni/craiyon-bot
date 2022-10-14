@@ -24,7 +24,7 @@ pub mod urbandictionary;
 
 #[async_trait]
 pub trait CommandTrait {
-    fn name(&self) -> &str;
+    fn name(&self) -> &'static str;
     fn aliases(&self) -> &[&str] {
         &[]
     }

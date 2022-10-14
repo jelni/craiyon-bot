@@ -12,7 +12,7 @@ pub struct StartItJoke;
 
 #[async_trait]
 impl CommandTrait for StartItJoke {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "startit_joke"
     }
 

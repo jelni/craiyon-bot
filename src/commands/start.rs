@@ -11,7 +11,7 @@ pub struct Start;
 
 #[async_trait]
 impl CommandTrait for Start {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "start"
     }
 

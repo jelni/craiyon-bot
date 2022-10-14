@@ -12,7 +12,7 @@ pub struct Translate;
 
 #[async_trait]
 impl CommandTrait for Translate {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "translate"
     }
 

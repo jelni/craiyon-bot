@@ -12,7 +12,7 @@ pub struct Ping;
 
 #[async_trait]
 impl CommandTrait for Ping {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "ping"
     }
 

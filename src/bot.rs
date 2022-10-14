@@ -178,7 +178,7 @@ impl Bot {
         self.commands
             .iter()
             .find(|c| {
-                c.command_ref.name() == parsed_command.name
+                c.name == parsed_command.name
                     || c.command_ref.aliases().contains(&parsed_command.name.as_str())
             })
             .cloned()
@@ -199,7 +199,7 @@ impl Bot {
             let cooldown_str = format_duration(cooldown.try_into().unwrap());
             log::warn!(
                 "/{} ratelimit exceeded by {cooldown_str} by {}",
-                parsed_command.name,
+                command.name,
                 context.user.format_name()
             );
             if context
@@ -223,7 +223,12 @@ impl Bot {
             return;
         }
 
-        log::info!("Running {} for {}", parsed_command, context.user.format_name());
+        log::info!(
+            "Running /{} {:?} for {}",
+            command.name,
+            parsed_command.arguments.as_deref().unwrap_or_default(),
+            context.user.format_name()
+        );
 
         let arguments = parsed_command
             .arguments
@@ -240,6 +245,7 @@ impl Bot {
 
     pub fn add_command(&mut self, command: CommandRef) {
         self.commands.push(Arc::new(CommandInstance {
+            name: command.name(),
             ratelimiter: RwLock::new(command.rate_limit()),
             command_ref: command,
         }));

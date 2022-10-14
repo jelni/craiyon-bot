@@ -13,7 +13,7 @@ pub struct KiwiFarms;
 
 #[async_trait]
 impl CommandTrait for KiwiFarms {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "does_kiwifarms_work"
     }
 
