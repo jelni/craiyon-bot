@@ -34,6 +34,7 @@ pub async fn query<S: AsRef<str>>(
             Url::parse_with_params(
                 "https://co.wukko.me/api/json",
                 [
+                    ("format", "mp4"),
                     ("nw", "true"), // no TikTok watermark
                     ("url", url.as_ref()),
                 ],
