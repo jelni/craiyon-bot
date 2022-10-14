@@ -54,7 +54,7 @@ impl Log for Logger {
             Level::Trace => Color::BrightGreen,
         };
 
-        println!("{} {} {}", timestamp.color(Color::BrightBlack), level.color(color), args);
+        println!("{} {} {args}", timestamp.color(Color::BrightBlack), level.color(color));
         writeln!(self.file.lock().unwrap(), "{timestamp} [{target} {level}] {args}").unwrap();
     }
 
