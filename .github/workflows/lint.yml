@@ -1,0 +1,42 @@
+name: Lint
+
+on: push
+
+jobs:
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@master
+        with:
+          toolchain: nightly
+          default: true
+          profile: minimal
+          components: clippy
+
+      - name: Run Clippy
+        run: cargo clippy -- -D warnings
+
+  rustfmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@main
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@master
+        with:
+          toolchain: nightly
+          default: true
+          profile: minimal
+          components: rustfmt
+
+      - name: Run Rustfmt
+        run: cargo fmt --check
