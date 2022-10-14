@@ -12,7 +12,7 @@ pub struct UrbanDictionary;
 
 #[async_trait]
 impl CommandTrait for UrbanDictionary {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "urbandictionary"
     }
 

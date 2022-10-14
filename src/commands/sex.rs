@@ -17,7 +17,7 @@ pub struct Sex;
 
 #[async_trait]
 impl CommandTrait for Sex {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "sex"
     }
 

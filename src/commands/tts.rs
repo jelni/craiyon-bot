@@ -14,7 +14,7 @@ pub struct Tts;
 
 #[async_trait]
 impl CommandTrait for Tts {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "tts"
     }
 

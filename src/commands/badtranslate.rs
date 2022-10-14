@@ -12,7 +12,7 @@ pub struct BadTranslate;
 
 #[async_trait]
 impl CommandTrait for BadTranslate {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "badtranslate"
     }
 

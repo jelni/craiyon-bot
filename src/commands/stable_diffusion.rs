@@ -29,7 +29,7 @@ pub struct StableDiffusion;
 
 #[async_trait]
 impl CommandTrait for StableDiffusion {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "stable_diffusion"
     }
 
@@ -55,7 +55,7 @@ impl CommandTrait for StableDiffusion {
         };
 
         if let Some(issue) = check_prompt(&prompt) {
-            log::warn!("Prompt rejected: {issue:?}");
+            log::info!("Prompt rejected: {issue:?}");
             ctx.reply(issue).await?;
             return Ok(());
         }

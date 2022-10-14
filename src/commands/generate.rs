@@ -21,7 +21,7 @@ pub struct Generate;
 
 #[async_trait]
 impl CommandTrait for Generate {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "generate"
     }
 
@@ -46,7 +46,7 @@ impl CommandTrait for Generate {
         };
 
         if let Some(issue) = check_prompt(&prompt) {
-            log::warn!("Prompt rejected: {issue:?}");
+            log::info!("Prompt rejected: {issue:?}");
             ctx.reply(issue).await?;
             return Ok(());
         }
