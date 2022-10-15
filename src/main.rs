@@ -26,6 +26,7 @@ async fn main() {
     bot.add_command(Box::<commands::badtranslate::BadTranslate>::default());
     bot.add_command(Box::<commands::tts::Tts>::default());
     bot.add_command(Box::<commands::urbandictionary::UrbanDictionary>::default());
+    bot.add_command(Box::<commands::screenshot::Screenshot>::default());
     bot.add_command(Box::<commands::cobalt_download::CobaltDownload>::default());
     bot.add_command(Box::<commands::charinfo::CharInfo>::default());
     bot.add_command(Box::<commands::delete::Delete>::default());

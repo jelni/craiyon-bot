@@ -14,6 +14,7 @@ pub mod delete;
 pub mod generate;
 pub mod kiwifarms;
 pub mod ping;
+pub mod screenshot;
 pub mod sex;
 pub mod stable_diffusion;
 pub mod start;
