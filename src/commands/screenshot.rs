@@ -22,7 +22,7 @@ impl CommandTrait for Screenshot {
     }
 
     fn aliases(&self) -> &[&str] {
-        &["ss", "webimage", "webscreenshot"]
+        &["ss", "webimg", "webimage", "webscreenshot"]
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
