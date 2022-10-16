@@ -34,11 +34,12 @@ pub async fn screenshot(
                 "https://api.microlink.io/",
                 [
                     ("url", url.as_str()),
+                    ("adblock", "false"),
                     ("color_scheme", "dark"),
                     ("ping", "false"),
                     ("prerender", "true"),
                     ("screenshot", "true"),
-                    ("timeout", "60s"),
+                    ("timeout", "1m"),
                     ("viewport.width", "1280"),
                     ("viewport.height", "640"),
                     ("wait_until", "load"),
