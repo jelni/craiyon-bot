@@ -10,8 +10,16 @@ pub async fn auto_reply(ctx: Arc<Context>) {
 
     let words = text.split_ascii_whitespace().collect::<Vec<_>>();
 
-    let reply = if words.contains(&"tomasz") && words.contains(&"fryta") {
+    let reply = if text.contains("tomasz fryta") {
         "real madryt"
+    } else if words.contains(&"obejrz") {
+        "obejrzyj"
+    } else if text.contains("zapytaj mu") {
+        "zapytaj go"
+    } else if text.contains("spytaj mu") {
+        "spytaj go"
+    } else if words.contains(&"poszłem") || words.contains(&"poszlem") {
+        "poszedłem"
     } else {
         return;
     };
