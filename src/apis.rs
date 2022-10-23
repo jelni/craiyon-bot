@@ -1,6 +1,7 @@
 pub mod cobalt;
 pub mod craiyon;
 pub mod google;
+pub mod ivona;
 pub mod kiwifarms;
 pub mod mathjs;
 pub mod microlink;

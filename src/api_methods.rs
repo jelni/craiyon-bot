@@ -71,6 +71,33 @@ impl TelegramRequest for SendDocument {
 }
 
 #[derive(Debug, Default, Serialize)]
+pub struct SendVoice {
+    pub chat_id: ChatID,
+    #[serde(skip_serializing_if = "FileType::needs_upload")]
+    pub voice: FileType,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reply_to_message_id: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allow_sending_without_reply: Option<bool>,
+}
+
+impl TelegramRequest for SendVoice {
+    type Response = Message;
+
+    fn endpoint(&self) -> &str {
+        "sendVoice"
+    }
+
+    fn files(&self) -> RequestFiles {
+        if self.voice.needs_upload() {
+            Some(vec![("voice".into(), self.voice.file().unwrap())])
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug, Default, Serialize)]
 pub struct SendSticker {
     pub chat_id: ChatID,
     pub sticker: FileType,

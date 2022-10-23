@@ -5,8 +5,8 @@ use async_trait::async_trait;
 use tgbotapi::FileType;
 
 use super::CommandTrait;
-use crate::api_methods::SendDocument;
-use crate::apis::translate;
+use crate::api_methods::SendVoice;
+use crate::apis::ivona;
 use crate::utils::Context;
 
 #[derive(Default)]
@@ -30,15 +30,19 @@ impl CommandTrait for Tts {
             return Ok(());
         };
 
-        let language = translate::detect_language(ctx.http_client.clone(), &text).await?;
-        let bytes = translate::tts(ctx.http_client.clone(), text, &language).await?;
+        if text.chars().count() > 1024 {
+            ctx.reply("This text is too long.").await?;
+            return Ok(());
+        }
+
+        let bytes = ivona::synthesize(ctx.http_client.clone(), text, "jan").await?;
 
         ctx.api
-            .make_request(&SendDocument {
+            .make_request(&SendVoice {
                 chat_id: ctx.message.chat_id(),
-                document: FileType::Bytes(format!("tts_{language}.mp3"), bytes),
+                voice: FileType::Bytes("voice.wav".to_string(), bytes),
                 reply_to_message_id: Some(ctx.message.message_id),
-                ..Default::default()
+                allow_sending_without_reply: Some(true),
             })
             .await?;
 

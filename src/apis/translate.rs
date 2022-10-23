@@ -12,11 +12,6 @@ struct Sentence {
     pub trans: String,
 }
 
-#[derive(Deserialize)]
-struct Language {
-    src: String,
-}
-
 pub struct Translation {
     pub text: String,
     pub source_language: String,
@@ -31,7 +26,7 @@ pub async fn single<S: AsRef<str>>(
     let response = http_client
         .get(
             Url::parse_with_params(
-                "https://translate.googleapis.com/translate_a/single",
+                "https://translate.google.com/translate_a/single",
                 [
                     ("client", "gtx"),
                     ("sl", source_language.unwrap_or("auto")),
@@ -70,10 +65,7 @@ pub async fn multiple<'a, I: IntoIterator<Item = &'a str>>(
         params.push(("q", query));
     }
     let response = http_client
-        .get(
-            Url::parse_with_params("https://translate.googleapis.com/translate_a/t", params)
-                .unwrap(),
-        )
+        .get(Url::parse_with_params("https://translate.google.com/translate_a/t", params).unwrap())
         .send()
         .await?
         .error_for_status()?;
@@ -84,45 +76,4 @@ pub async fn multiple<'a, I: IntoIterator<Item = &'a str>>(
     };
 
     Ok(translations)
-}
-
-pub async fn detect_language<S: AsRef<str>>(
-    http_client: reqwest::Client,
-    text: S,
-) -> reqwest::Result<String> {
-    let response = http_client
-        .get(
-            Url::parse_with_params(
-                "https://translate.googleapis.com/translate_a/single",
-                [("client", "gtx"), ("sl", "auto"), ("q", text.as_ref()), ("dj", "1")],
-            )
-            .unwrap(),
-        )
-        .send()
-        .await?
-        .error_for_status()?
-        .json::<Language>()
-        .await?;
-
-    Ok(response.src)
-}
-
-pub async fn tts<S: AsRef<str>>(
-    http_client: reqwest::Client,
-    text: S,
-    language: &str,
-) -> reqwest::Result<Vec<u8>> {
-    let response = http_client
-        .get(
-            Url::parse_with_params(
-                "https://translate.googleapis.com/translate_tts",
-                [("client", "gtx"), ("tl", language), ("q", text.as_ref())],
-            )
-            .unwrap(),
-        )
-        .send()
-        .await?
-        .error_for_status()?;
-
-    Ok(response.bytes().await?.to_vec())
 }
