@@ -14,7 +14,7 @@ mod utils;
 #[tokio::main(flavor = "current_thread")]
 async fn main() {
     logchamp::init();
-    dotenv::dotenv().unwrap();
+    dotenv::dotenv().ok();
 
     let mut bot = Bot::new().await;
 

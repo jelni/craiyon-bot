@@ -19,15 +19,6 @@ pub const MARKDOWN_CHARS: [char; 20] = [
     '\\',
 ];
 
-// yes, people generated all of these
-const DISALLOWED_WORDS: [&str; 42] = [
-    "34", "abuse", "anus", "ass", "bikini", "boob", "booba", "boobs", "braless", "breast",
-    "breasts", "butt", "butts", "cum", "dick", "doujin", "erotic", "hentai", "incest", "lingerie",
-    "loli", "lolicon", "lolis", "naked", "nhentai", "nude", "penis", "porn", "porno", "r18",
-    "r18g", "rape", "rule34", "sex", "sexy", "shota", "shotacon", "slut", "tits", "underage",
-    "xxx", "yiff",
-];
-
 pub type CommandRef = Box<dyn CommandTrait + Send + Sync>;
 
 pub struct CommandInstance {
@@ -222,20 +213,11 @@ pub fn check_prompt<S: AsRef<str>>(prompt: S) -> Option<&'static str> {
     let prompt = prompt.as_ref();
     if prompt.chars().count() > 512 {
         Some("This prompt is too long.")
-    } else if prompt.lines().count() > 5 {
+    } else if prompt.lines().count() > 4 {
         Some("This prompt has too many lines.")
-    } else if is_prompt_suspicious(prompt) {
-        Some("This prompt is sus.")
     } else {
         None
     }
-}
-
-fn is_prompt_suspicious<S: AsRef<str>>(text: S) -> bool {
-    text.as_ref()
-        .to_lowercase()
-        .split(|c: char| !c.is_alphanumeric())
-        .any(|w| DISALLOWED_WORDS.contains(&w))
 }
 
 pub fn image_collage(images: Vec<DynamicImage>, image_count_x: u32, gap: u32) -> DynamicImage {
