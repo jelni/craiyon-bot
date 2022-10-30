@@ -5,7 +5,8 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
-struct Payload {
+struct Payload<'a> {
+    models: &'a [&'a str],
     prompt: String,
     params: Params,
 }
@@ -62,11 +63,13 @@ pub struct Generation {
 
 pub async fn generate<S: Into<String>>(
     http_client: reqwest::Client,
+    models: &[&str],
     prompt: S,
 ) -> reqwest::Result<Result<String, String>> {
     let response = http_client
         .post("https://stablehorde.net/api/v2/generate/async")
         .json(&Payload {
+            models,
             prompt: prompt.into(),
             params: Params { n: 4, width: 512, height: 512, cfg_scale: 7.5, steps: 30 },
         })
