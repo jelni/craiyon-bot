@@ -104,7 +104,6 @@ impl Bot {
         }
 
         if !self.tasks.is_empty() {
-            log::info!("Waiting for {} task(s) to finish…", self.tasks.len());
             for task in self.tasks.drain(..) {
                 task.await.ok();
             }
@@ -197,11 +196,6 @@ impl Bot {
 
         if let Some(cooldown) = cooldown {
             let cooldown_str = format_duration(cooldown.try_into().unwrap());
-            log::warn!(
-                "/{} ratelimit exceeded by {cooldown_str} by {}",
-                command.name,
-                context.user.format_name()
-            );
             if context
                 .ratelimits
                 .write()
@@ -223,22 +217,11 @@ impl Bot {
             return;
         }
 
-        log::info!(
-            "Running /{} {:?} for {}",
-            command.name,
-            parsed_command.arguments.as_deref().unwrap_or_default(),
-            context.user.format_name()
-        );
-
         let arguments = parsed_command
             .arguments
             .or_else(|| context.message.reply_to_message.as_ref().and_then(|r| r.text.clone()));
 
         if let Err(err) = command.command_ref.execute(context.clone(), arguments).await {
-            log::error!(
-                "An error occurred while executing the {:?} command: {err}",
-                parsed_command.name
-            );
             context.reply("An error occurred while executing the command 😩").await.ok();
         }
     }
