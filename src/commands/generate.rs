@@ -45,12 +45,6 @@ impl CommandTrait for Generate {
             return Ok(());
         };
 
-        if let Some(issue) = check_prompt(&prompt) {
-            log::info!("Prompt rejected: {issue:?}");
-            ctx.reply(issue).await?;
-            return Ok(());
-        }
-
         let status_msg = ctx.reply(format!("Generating {prompt}…")).await?;
 
         match craiyon::generate(ctx.http_client.clone(), &prompt).await {
