@@ -16,7 +16,7 @@ pub mod kiwifarms;
 pub mod ping;
 pub mod screenshot;
 pub mod sex;
-pub mod stable_diffusion;
+pub mod stable_horde;
 pub mod start;
 pub mod startit_joke;
 pub mod translate;

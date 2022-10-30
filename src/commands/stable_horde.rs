@@ -24,17 +24,46 @@ const JOIN_STABLE_HORDE: &str = concat!(
     "[consider joining the horde yourself](https://stablehorde.net/)\\!"
 );
 
-#[derive(Default)]
-pub struct StableDiffusion;
+pub struct StableHorde {
+    command_name: &'static str,
+    command_aliases: &'static [&'static str],
+    models: &'static [&'static str],
+}
+
+impl StableHorde {
+    pub fn stable_diffusion() -> Self {
+        Self {
+            command_name: "stable_diffusion",
+            command_aliases: &["sd"],
+            models: &["stable_diffusion"],
+        }
+    }
+
+    pub fn waifu_diffusion() -> Self {
+        Self {
+            command_name: "waifu_diffusion",
+            command_aliases: &["wd"],
+            models: &["waifu_diffusion"],
+        }
+    }
+
+    pub fn furry_diffusion() -> Self {
+        Self {
+            command_name: "furry_diffusion",
+            command_aliases: &["fd", "furry_epoch", "fe"],
+            models: &["Furry Epoch"],
+        }
+    }
+}
 
 #[async_trait]
-impl CommandTrait for StableDiffusion {
+impl CommandTrait for StableHorde {
     fn name(&self) -> &'static str {
-        "stable_diffusion"
+        self.command_name
     }
 
     fn aliases(&self) -> &[&str] {
-        &["sd"]
+        self.command_aliases
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
@@ -60,13 +89,14 @@ impl CommandTrait for StableDiffusion {
             return Ok(());
         }
 
-        let request_id = match stablehorde::generate(ctx.http_client.clone(), &prompt).await? {
-            Ok(request_id) => request_id,
-            Err(err) => {
-                ctx.reply(err).await?;
-                return Ok(());
-            }
-        };
+        let request_id =
+            match stablehorde::generate(ctx.http_client.clone(), self.models, &prompt).await? {
+                Ok(request_id) => request_id,
+                Err(err) => {
+                    ctx.reply(err).await?;
+                    return Ok(());
+                }
+            };
 
         let status_msg = ctx.reply(format!("Generating {prompt}…")).await?;
         let escaped_prompt = escape_markdown(prompt);
