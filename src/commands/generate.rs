@@ -80,7 +80,7 @@ impl CommandTrait for Generate {
                         allow_sending_without_reply: Some(true),
                         reply_markup: Some(donate_markup(
                             "🖍️ Craiyon",
-                            "https://www.craiyon.com/donate",
+                            "https://craiyon.com/donate",
                         )),
                     })
                     .await?;
