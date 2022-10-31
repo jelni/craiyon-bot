@@ -1,12 +1,12 @@
 use std::env;
 use std::future::Future;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
 use reqwest::{redirect, Client};
 use tgbotapi::requests::{GetMe, GetUpdates};
-use tgbotapi::{InlineQuery, Message, Telegram, User};
+use tgbotapi::{InlineQuery, Message, Telegram, Update, User};
+use tokio::signal;
 use tokio::task::JoinHandle;
 
 use crate::not_commands;
@@ -18,7 +18,6 @@ use crate::utils::{
 
 pub struct Bot {
     api: Arc<Telegram>,
-    running: Arc<AtomicBool>,
     http_client: reqwest::Client,
     me: User,
     commands: Vec<Arc<CommandInstance>>,
@@ -33,7 +32,6 @@ impl Bot {
         log::info!("Logged in as {}", me.format_name());
         Self {
             api,
-            running: Arc::new(AtomicBool::new(false)),
             http_client: Client::builder()
                 .redirect(redirect::Policy::none())
                 .timeout(Duration::from_secs(300))
@@ -50,30 +48,15 @@ impl Bot {
     }
 
     pub async fn run(&mut self) {
-        self.running.store(true, Ordering::Relaxed);
-        let running_clone = Arc::clone(&self.running);
-        tokio::spawn(async move {
-            tokio::signal::ctrl_c().await.unwrap();
-            running_clone.store(false, Ordering::Relaxed);
-            log::warn!("Stopping…");
-        });
+        let mut offset = None;
+        loop {
+            let updates = tokio::select! {
+                biased;
+                updates = self.get_updates(offset) => updates,
+                _ = signal::ctrl_c() => break,
+            };
 
-        let mut offset = 0;
-        while self.running.load(Ordering::Relaxed) {
-            let updates = match self
-                .api
-                .make_request(&GetUpdates {
-                    offset: Some(offset + 1),
-                    timeout: Some(120),
-                    allowed_updates: Some(vec![
-                        "message".to_string(),
-                        "inline_query".to_string(),
-                        "my_chat_member".to_string(),
-                    ]),
-                    ..Default::default()
-                })
-                .await
-            {
+            let updates = match updates {
                 Ok(updates) => updates,
                 Err(err) => {
                     log::error!("Error while fetching updates: {err}");
@@ -84,10 +67,6 @@ impl Bot {
 
             self.tasks.retain(|t| !t.is_finished());
 
-            if !self.running.load(Ordering::Relaxed) {
-                break;
-            }
-
             for update in updates {
                 if let Some(message) = update.message {
                     self.on_message(message);
@@ -97,10 +76,8 @@ impl Bot {
                     log_status_update(my_chat_member);
                 }
 
-                offset = update.update_id;
+                offset = Some(update.update_id + 1);
             }
-
-            tokio::time::sleep(Duration::from_secs(1)).await;
         }
 
         if !self.tasks.is_empty() {
@@ -116,6 +93,21 @@ impl Bot {
         T: Future<Output = ()> + Send + 'static,
     {
         self.tasks.push(tokio::spawn(future));
+    }
+
+    async fn get_updates(&self, offset: Option<i32>) -> Result<Vec<Update>, tgbotapi::Error> {
+        self.api
+            .make_request(&GetUpdates {
+                offset,
+                timeout: Some(120),
+                allowed_updates: Some(vec![
+                    "message".to_string(),
+                    "inline_query".to_string(),
+                    "my_chat_member".to_string(),
+                ]),
+                ..Default::default()
+            })
+            .await
     }
 
     fn on_message(&mut self, message: Message) {
