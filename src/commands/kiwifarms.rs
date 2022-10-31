@@ -34,7 +34,16 @@ impl CommandTrait for KiwiFarms {
                     format!("{} no", status.as_u16())
                 }
             }
-            Err(err) => format!("no ({})", err.without_url()),
+            Err(err) => {
+                let err = err.without_url();
+                format!(
+                    "no ({})",
+                    match err.source() {
+                        Some(err) => err,
+                        None => &err as _,
+                    }
+                )
+            }
         };
         ctx.reply(text).await?;
 
