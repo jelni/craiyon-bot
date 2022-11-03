@@ -34,9 +34,7 @@ impl CommandTrait for Screenshot {
         ctx: Arc<Context>,
         arguments: Option<String>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let url = if let Some(arguments) = arguments {
-            arguments
-        } else {
+        let Some(url) = arguments else {
             ctx.missing_argument("URL to screenshot").await;
             return Ok(());
         };

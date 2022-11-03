@@ -25,9 +25,7 @@ impl CommandTrait for Autocomplete {
         ctx: Arc<Context>,
         arguments: Option<String>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let query = if let Some(arguments) = arguments {
-            arguments
-        } else {
+        let Some(query) = arguments else {
             ctx.missing_argument("text to autocomplete").await;
             return Ok(());
         };

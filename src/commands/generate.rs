@@ -38,9 +38,7 @@ impl CommandTrait for Generate {
         ctx: Arc<Context>,
         arguments: Option<String>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let prompt = if let Some(arguments) = arguments {
-            arguments
-        } else {
+        let Some(prompt) = arguments else {
             ctx.missing_argument("prompt to generate").await;
             return Ok(());
         };
