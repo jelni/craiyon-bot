@@ -28,9 +28,7 @@ impl CommandTrait for CobaltDownload {
         ctx: Arc<Context>,
         arguments: Option<String>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let media_url = if let Some(arguments) = arguments {
-            arguments
-        } else {
+        let Some(media_url) = arguments else {
             ctx.missing_argument("URL to download").await;
             return Ok(());
         };

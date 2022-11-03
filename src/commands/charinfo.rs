@@ -24,9 +24,7 @@ impl CommandTrait for CharInfo {
         ctx: Arc<Context>,
         arguments: Option<String>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let chars = if let Some(arguments) = arguments {
-            arguments
-        } else {
+        let Some(chars) = arguments else {
             ctx.missing_argument("characters").await;
             return Ok(());
         };

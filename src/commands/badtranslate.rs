@@ -21,9 +21,7 @@ impl CommandTrait for BadTranslate {
         ctx: Arc<Context>,
         arguments: Option<String>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let text = if let Some(arguments) = arguments {
-            arguments
-        } else {
+        let Some(text) = arguments else {
             ctx.missing_argument("text to translate").await;
             return Ok(());
         };

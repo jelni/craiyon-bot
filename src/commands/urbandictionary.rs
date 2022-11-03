@@ -25,9 +25,7 @@ impl CommandTrait for UrbanDictionary {
         ctx: Arc<Context>,
         arguments: Option<String>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let word = if let Some(arguments) = arguments {
-            arguments
-        } else {
+        let Some(word) = arguments else {
             ctx.missing_argument("word to define").await;
             return Ok(());
         };
