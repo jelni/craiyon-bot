@@ -8,7 +8,7 @@ struct Response {
 
 #[derive(Deserialize)]
 pub struct Data {
-    pub title: String,
+    pub title: Option<String>,
     pub screenshot: Screenshot,
 }
 

@@ -96,15 +96,13 @@ impl CommandTrait for StableHorde {
                 }
             };
 
-        let status_msg = ctx.reply(format!("Generating {prompt}…")).await?;
+        let mut status_msg = None;
         let escaped_prompt = escape_markdown(prompt);
         let start = Instant::now();
         let mut first_wait_time = 0;
         let mut last_edit: Option<Instant> = None;
         let mut last_status = None;
         loop {
-            tokio::time::sleep(Duration::from_secs(2)).await;
-
             let status = match stablehorde::check(ctx.http_client.clone(), &request_id).await? {
                 Ok(status) => status,
                 Err(err) => {
@@ -121,37 +119,46 @@ impl CommandTrait for StableHorde {
                 break;
             };
 
-            if let Some(last_status) = &last_status {
-                if *last_status == status {
-                    continue;
-                }
-            }
+            if last_status.as_ref() != Some(&status) {
+                // the message doesn't exist yet or was edited more than 12 seconds ago
+                if last_edit
+                    .map_or(true, |last_edit| last_edit.elapsed() >= Duration::from_secs(12))
+                {
+                    let queue_info = if status.queue_position > 0 {
+                        format!("Queue position: {}\n", status.queue_position)
+                    } else {
+                        String::new()
+                    };
 
-            if let Some(last_edit) = last_edit {
-                if last_edit.elapsed() < Duration::from_secs(10) {
-                    continue;
-                }
-            }
+                    let mut text = format!(
+                        "Generating {escaped_prompt}…\n{queue_info}`{}` ETA: {}",
+                        progress_bar(
+                            status.waiting as usize,
+                            status.processing as usize,
+                            status.finished as usize
+                        ),
+                        format_duration(status.wait_time.try_into().unwrap())
+                    );
 
-            let queue_info = if status.queue_position > 0 {
-                format!("Queue position: {}\n", status.queue_position)
-            } else {
-                String::new()
+                    if first_wait_time >= 30 {
+                        text.push_str(JOIN_STABLE_HORDE);
+                    }
+
+                    match &status_msg {
+                        None => {
+                            status_msg = Some(ctx.reply_markdown(text).await?);
+                        }
+                        Some(status_msg) => {
+                            ctx.edit_message_markdown(status_msg, text).await?;
+                        }
+                    };
+
+                    last_edit = Some(Instant::now());
+                    last_status = Some(status);
+                }
             };
 
-            let mut text = format!(
-                "Generating {escaped_prompt}…\n{queue_info}`{}` ETA: {}",
-                progress_bar(status.waiting, status.processing, status.finished),
-                format_duration(status.wait_time.try_into().unwrap())
-            );
-
-            if first_wait_time >= 30 {
-                text.push_str(JOIN_STABLE_HORDE);
-            }
-
-            ctx.edit_message_markdown(&status_msg, text).await?;
-            last_edit = Some(Instant::now());
-            last_status = Some(status);
+            tokio::time::sleep(Duration::from_secs(2)).await;
         }
 
         let duration = start.elapsed();
@@ -173,7 +180,7 @@ impl CommandTrait for StableHorde {
             .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
             .collect::<Vec<_>>();
 
-        let image = image_collage(images, 2, 8);
+        let image = image_collage(images, (512, 512), 2, 8);
         let mut buffer = Cursor::new(Vec::new());
         image.write_to(&mut buffer, ImageOutputFormat::Png).unwrap();
 
@@ -211,7 +218,9 @@ impl CommandTrait for StableHorde {
             })
             .await?;
 
-        ctx.delete_message(&status_msg).await.ok();
+        if let Some(status_msg) = status_msg {
+            ctx.delete_message(&status_msg).await.ok();
+        }
 
         Ok(())
     }

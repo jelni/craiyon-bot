@@ -5,10 +5,11 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
-struct Payload<'a> {
-    models: &'a [&'a str],
+struct GenerationInput {
+    models: &'static [&'static str],
     prompt: String,
     params: Params,
+    nsfw: bool,
 }
 
 #[derive(Serialize)]
@@ -16,6 +17,7 @@ struct Params {
     n: usize,
     width: usize,
     height: usize,
+    sampler_name: &'static str,
     cfg_scale: f32,
     steps: usize,
 }
@@ -30,24 +32,14 @@ struct RequestError {
     message: String,
 }
 
-#[derive(Deserialize)]
+#[derive(PartialEq, Deserialize)]
 pub struct Status {
     pub done: bool,
-    pub waiting: usize,
-    pub processing: usize,
-    pub finished: usize,
-    pub queue_position: usize,
-    pub wait_time: usize,
-}
-
-impl PartialEq for Status {
-    fn eq(&self, other: &Self) -> bool {
-        self.waiting == other.waiting
-            && self.processing == other.processing
-            && self.finished == other.finished
-            && self.queue_position == other.queue_position
-            && self.wait_time == other.wait_time
-    }
+    pub waiting: u32,
+    pub processing: u32,
+    pub finished: u32,
+    pub queue_position: u32,
+    pub wait_time: u32,
 }
 
 #[derive(Deserialize)]
@@ -63,15 +55,23 @@ pub struct Generation {
 
 pub async fn generate<S: Into<String>>(
     http_client: reqwest::Client,
-    models: &[&str],
+    models: &'static [&'static str],
     prompt: S,
 ) -> reqwest::Result<Result<String, String>> {
     let response = http_client
         .post("https://stablehorde.net/api/v2/generate/async")
-        .json(&Payload {
+        .json(&GenerationInput {
             models,
             prompt: prompt.into(),
-            params: Params { n: 4, width: 512, height: 512, cfg_scale: 7.5, steps: 30 },
+            params: Params {
+                n: 4,
+                width: 512,
+                height: 512,
+                sampler_name: "k_euler",
+                cfg_scale: 7.5,
+                steps: 32,
+            },
+            nsfw: true,
         })
         .header("apikey", env::var("STABLEHORDE_TOKEN").unwrap())
         .send()
