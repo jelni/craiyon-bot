@@ -70,7 +70,7 @@ impl CommandTrait for Screenshot {
             .make_request(&SendPhoto {
                 chat_id: ctx.message.chat_id(),
                 photo: FileType::Url(data.screenshot.url),
-                caption: Some(data.title),
+                caption: data.title,
                 reply_to_message_id: Some(ctx.message.message_id),
                 allow_sending_without_reply: Some(true),
                 ..Default::default()

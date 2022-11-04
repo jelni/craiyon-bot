@@ -3,6 +3,7 @@ use std::io::Cursor;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use image::imageops::FilterType;
 use image::{ImageFormat, ImageOutputFormat};
 use reqwest::StatusCode;
 use tgbotapi::requests::ParseMode;
@@ -57,10 +58,11 @@ impl CommandTrait for Generate {
                     .images
                     .into_iter()
                     .flat_map(|image| {
-                        image::load_from_memory_with_format(&image, ImageFormat::Jpeg)
+                        image::load_from_memory_with_format(&image, ImageFormat::WebP)
                     })
+                    .map(|image| image.resize_exact(256, 256, FilterType::Lanczos3))
                     .collect::<Vec<_>>();
-                let image = image_collage(images, 3, 8);
+                let image = image_collage(images, (256, 256), 3, 8);
                 let mut buffer = Cursor::new(Vec::new());
                 image.write_to(&mut buffer, ImageOutputFormat::Png).unwrap();
 
