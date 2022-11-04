@@ -12,17 +12,11 @@ use tgbotapi::{FileType, InlineKeyboardButton, InlineKeyboardMarkup};
 
 use super::CommandTrait;
 use crate::api_methods::SendPhoto;
-use crate::apis::stablehorde;
+use crate::apis::stablehorde::{self, Status};
 use crate::ratelimit::RateLimiter;
 use crate::utils::{
     check_prompt, escape_markdown, format_duration, image_collage, Context, TruncateWithEllipsis,
 };
-
-const JOIN_STABLE_HORDE: &str = concat!(
-    "\n\nStable Horde is run by volunteers\\. ",
-    "To make waiting times shorter, ",
-    "[consider joining the horde yourself](https://stablehorde.net/)\\!"
-);
 
 pub struct StableHorde {
     command_name: &'static str,
@@ -67,7 +61,7 @@ impl CommandTrait for StableHorde {
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
-        RateLimiter::new(3, 120)
+        RateLimiter::new(3, 300)
     }
 
     #[allow(clippy::too_many_lines)]
@@ -111,39 +105,20 @@ impl CommandTrait for StableHorde {
                 }
             };
 
-            if first_wait_time == 0 {
-                first_wait_time = status.wait_time;
-            }
-
             if status.done {
                 break;
             };
+
+            if first_wait_time == 0 {
+                first_wait_time = status.wait_time;
+            }
 
             if last_status.as_ref() != Some(&status) {
                 // the message doesn't exist yet or was edited more than 12 seconds ago
                 if last_edit
                     .map_or(true, |last_edit| last_edit.elapsed() >= Duration::from_secs(12))
                 {
-                    let queue_info = if status.queue_position > 0 {
-                        format!("Queue position: {}\n", status.queue_position)
-                    } else {
-                        String::new()
-                    };
-
-                    let mut text = format!(
-                        "Generating {escaped_prompt}…\n{queue_info}`{}` ETA: {}",
-                        progress_bar(
-                            status.waiting as usize,
-                            status.processing as usize,
-                            status.finished as usize
-                        ),
-                        format_duration(status.wait_time.try_into().unwrap())
-                    );
-
-                    if first_wait_time >= 30 {
-                        text.push_str(JOIN_STABLE_HORDE);
-                    }
-
+                    let text = format_status(&status, &escaped_prompt, first_wait_time);
                     match &status_msg {
                         None => {
                             status_msg = Some(ctx.reply_markdown(text).await?);
@@ -224,6 +199,30 @@ impl CommandTrait for StableHorde {
 
         Ok(())
     }
+}
+
+fn format_status(status: &Status, escaped_prompt: &str, first_wait_time: u32) -> String {
+    let queue_info = if status.queue_position > 0 {
+        format!("Queue position: {}\n", status.queue_position)
+    } else {
+        String::new()
+    };
+
+    let mut text = format!(
+        "Generating {escaped_prompt}…\n{queue_info}`{}` ETA: {}",
+        progress_bar(status.waiting as usize, status.processing as usize, status.finished as usize),
+        format_duration(status.wait_time.try_into().unwrap())
+    );
+
+    if first_wait_time >= 30 {
+        text.push_str(concat!(
+            "\n\nStable Horde is run by volunteers\\. ",
+            "To make waiting times shorter, ",
+            "[consider joining the horde yourself](https://stablehorde.net/)\\!"
+        ));
+    };
+
+    text
 }
 
 fn progress_bar(waiting: usize, processing: usize, finished: usize) -> String {
