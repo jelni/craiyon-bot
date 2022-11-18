@@ -210,7 +210,11 @@ fn format_status(status: &Status, escaped_prompt: &str, first_wait_time: u32) ->
 
     let mut text = format!(
         "Generating {escaped_prompt}…\n{queue_info}`{}` ETA: {}",
-        progress_bar(status.waiting as usize, status.processing as usize, status.finished as usize),
+        progress_bar(
+            status.waiting.abs() as usize,
+            status.processing.abs() as usize,
+            status.finished.abs() as usize
+        ),
         format_duration(status.wait_time.try_into().unwrap())
     );
 

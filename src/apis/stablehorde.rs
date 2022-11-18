@@ -35,9 +35,10 @@ struct RequestError {
 #[derive(PartialEq, Deserialize)]
 pub struct Status {
     pub done: bool,
-    pub waiting: u32,
-    pub processing: u32,
-    pub finished: u32,
+    // use u32 for these fields once Stable Horde fixes the race condition
+    pub waiting: i8,
+    pub processing: i8,
+    pub finished: i8,
     pub queue_position: u32,
     pub wait_time: u32,
 }
