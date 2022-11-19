@@ -1,10 +1,10 @@
-use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use tgbotapi::FileType;
 
-use super::CommandTrait;
+use super::CommandError::MissingArgument;
+use super::{CommandResult, CommandTrait};
 use crate::api_methods::SendVoice;
 use crate::apis::ivona;
 use crate::utils::Context;
@@ -18,19 +18,15 @@ impl CommandTrait for Tts {
         "tts"
     }
 
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        arguments: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let Some(text) = arguments else {
-            ctx.missing_argument("text to synthesize").await;
-            return Ok(());
-        };
+    fn aliases(&self) -> &[&str] {
+        &["ivona"]
+    }
+
+    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+        let text = arguments.ok_or(MissingArgument("text to synthesize"))?;
 
         if text.chars().count() > 1024 {
-            ctx.reply("This text is too long.").await?;
-            return Ok(());
+            Err("This text is too long.")?;
         }
 
         let bytes = ivona::synthesize(ctx.http_client.clone(), text, "jan").await?;

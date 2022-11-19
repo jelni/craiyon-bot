@@ -89,10 +89,6 @@ pub struct Context {
 }
 
 impl Context {
-    pub async fn missing_argument<S: AsRef<str>>(&self, argument: S) {
-        self.reply(format!("Missing {}.", argument.as_ref())).await.ok();
-    }
-
     async fn _reply<S: Into<String>>(
         &self,
         text: S,

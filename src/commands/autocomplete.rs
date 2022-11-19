@@ -1,9 +1,9 @@
-use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::CommandTrait;
+use super::CommandError::MissingArgument;
+use super::{CommandResult, CommandTrait};
 use crate::apis::google;
 use crate::utils::Context;
 
@@ -20,15 +20,8 @@ impl CommandTrait for Autocomplete {
         &["complete", "google"]
     }
 
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        arguments: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let Some(query) = arguments else {
-            ctx.missing_argument("text to autocomplete").await;
-            return Ok(());
-        };
+    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+        let query = arguments.ok_or(MissingArgument("text to autocomplete"))?;
 
         let completions = google::complete(ctx.http_client.clone(), &query).await?;
         let query_lowercase = query.to_lowercase();

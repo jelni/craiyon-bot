@@ -9,6 +9,7 @@ use tgbotapi::{InlineQuery, Message, Telegram, Update, User};
 use tokio::signal;
 use tokio::task::JoinHandle;
 
+use crate::commands::CommandError;
 use crate::not_commands;
 use crate::ratelimit::RateLimiter;
 use crate::utils::{
@@ -215,23 +216,41 @@ impl Bot {
             return;
         }
 
-        log::info!(
-            "Running /{} {:?} for {}",
-            command.name,
-            parsed_command.arguments.as_deref().unwrap_or_default(),
-            context.user.format_name()
-        );
-
         let arguments = parsed_command
             .arguments
             .or_else(|| context.message.reply_to_message.as_ref().and_then(|r| r.text.clone()));
 
+        log::info!(
+            "Running /{} {:?} for {} in {}",
+            command.name,
+            arguments.as_deref().unwrap_or_default(),
+            context.user.format_name(),
+            context.message.chat.title.as_deref().unwrap_or("PM")
+        );
+
         if let Err(err) = command.command_ref.execute(context.clone(), arguments).await {
-            log::error!(
-                "An error occurred while executing the {:?} command: {err}",
-                parsed_command.name
-            );
-            context.reply("An error occurred while executing the command 😩").await.ok();
+            match err {
+                CommandError::CustomError(text) => {
+                    context.reply(text).await.ok();
+                }
+                CommandError::CustomMarkdownError(text) => {
+                    context.reply_markdown(text).await.ok();
+                }
+                CommandError::MissingArgument(argument) => {
+                    context.reply(format!("missing {argument}")).await.ok();
+                }
+                CommandError::TelegramError(err) => {
+                    log::error!(
+                        "a Telegram error occurred in the /{} command: {err}",
+                        command.name
+                    );
+                    context.reply("sending the message failed 😔").await.ok();
+                }
+                CommandError::ReqwestError(err) => {
+                    log::error!("an HTTP error occurred in the /{} command: {err}", command.name);
+                    context.reply(err.without_url().to_string()).await.ok();
+                }
+            }
         }
     }
 

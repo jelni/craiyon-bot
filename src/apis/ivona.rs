@@ -9,5 +9,5 @@ pub async fn synthesize<S: AsRef<str>>(
         Url::parse_with_params("https://ivona.sakamoto.pl/ivonaapi", [("text", text.as_ref())])
             .unwrap();
     url.path_segments_mut().unwrap().push(voice);
-    Ok(http_client.get(url).send().await?.bytes().await?.to_vec())
+    Ok(http_client.get(url).send().await?.error_for_status()?.bytes().await?.to_vec())
 }

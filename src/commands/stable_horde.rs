@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt::Write;
 use std::io::Cursor;
 use std::sync::Arc;
@@ -10,7 +9,8 @@ use image::{ImageFormat, ImageOutputFormat};
 use tgbotapi::requests::{ParseMode, ReplyMarkup};
 use tgbotapi::{FileType, InlineKeyboardButton, InlineKeyboardMarkup};
 
-use super::CommandTrait;
+use super::CommandError::MissingArgument;
+use super::{CommandResult, CommandTrait};
 use crate::api_methods::SendPhoto;
 use crate::apis::stablehorde::{self, Status};
 use crate::ratelimit::RateLimiter;
@@ -65,30 +65,16 @@ impl CommandTrait for StableHorde {
     }
 
     #[allow(clippy::too_many_lines)]
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        arguments: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let Some(prompt) = arguments else {
-            ctx.missing_argument("prompt to generate").await;
-            return Ok(());
-        };
+    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+        let prompt = arguments.ok_or(MissingArgument("prompt to generate"))?;
 
         if let Some(issue) = check_prompt(&prompt) {
             log::info!("Prompt rejected: {issue:?}");
-            ctx.reply(issue).await?;
-            return Ok(());
+            Err(issue)?;
         }
 
         let request_id =
-            match stablehorde::generate(ctx.http_client.clone(), self.models, &prompt).await? {
-                Ok(request_id) => request_id,
-                Err(err) => {
-                    ctx.reply(err).await?;
-                    return Ok(());
-                }
-            };
+            stablehorde::generate(ctx.http_client.clone(), self.models, &prompt).await??;
 
         let mut status_msg = None;
         let escaped_prompt = escape_markdown(prompt);
@@ -97,13 +83,15 @@ impl CommandTrait for StableHorde {
         let mut last_edit: Option<Instant> = None;
         let mut last_status = None;
         loop {
-            let status = match stablehorde::check(ctx.http_client.clone(), &request_id).await? {
-                Ok(status) => status,
-                Err(err) => {
-                    ctx.reply(err).await?;
-                    return Ok(());
+            let status = loop {
+                match stablehorde::check(ctx.http_client.clone(), &request_id).await {
+                    Err(err) if err.is_request() => {
+                        log::error!("{err}");
+                        tokio::time::sleep(Duration::from_secs(1)).await;
+                    }
+                    status => break status,
                 }
-            };
+            }??;
 
             if status.done {
                 break;
@@ -137,14 +125,7 @@ impl CommandTrait for StableHorde {
         }
 
         let duration = start.elapsed();
-
-        let results = match stablehorde::results(ctx.http_client.clone(), &request_id).await? {
-            Ok(results) => results,
-            Err(err) => {
-                ctx.reply(err).await?;
-                return Ok(());
-            }
-        };
+        let results = stablehorde::results(ctx.http_client.clone(), &request_id).await??;
         let mut workers = Counter::<String>::new();
         let images = results
             .into_iter()
@@ -211,9 +192,9 @@ fn format_status(status: &Status, escaped_prompt: &str, first_wait_time: u32) ->
     let mut text = format!(
         "Generating {escaped_prompt}…\n{queue_info}`{}` ETA: {}",
         progress_bar(
-            status.waiting.abs() as usize,
-            status.processing.abs() as usize,
-            status.finished.abs() as usize
+            status.waiting.unsigned_abs() as usize,
+            status.processing.unsigned_abs() as usize,
+            status.finished.unsigned_abs() as usize
         ),
         format_duration(status.wait_time.try_into().unwrap())
     );
