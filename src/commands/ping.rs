@@ -1,10 +1,9 @@
-use std::error::Error;
 use std::sync::Arc;
 use std::time::Instant;
 
 use async_trait::async_trait;
 
-use super::CommandTrait;
+use super::{CommandResult, CommandTrait};
 use crate::utils::Context;
 
 #[derive(Default)]
@@ -16,11 +15,7 @@ impl CommandTrait for Ping {
         "ping"
     }
 
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        _: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {
         let start = Instant::now();
         let message = ctx.reply("Measuring…").await?;
         let duration = start.elapsed();

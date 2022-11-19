@@ -1,9 +1,8 @@
-use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::CommandTrait;
+use super::{CommandResult, CommandTrait};
 use crate::utils::Context;
 
 #[allow(clippy::unreadable_literal)]
@@ -22,11 +21,7 @@ impl CommandTrait for Delete {
         &["del"]
     }
 
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        _: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {
         if ctx.user.id != OWNER_ID {
             return Ok(());
         }

@@ -1,9 +1,9 @@
-use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::CommandTrait;
+use super::CommandError::{CustomMarkdownError, MissingArgument};
+use super::{CommandResult, CommandTrait};
 use crate::apis::urbandictionary;
 use crate::utils::Context;
 
@@ -20,28 +20,20 @@ impl CommandTrait for UrbanDictionary {
         &["ud", "urban", "dictionary"]
     }
 
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        arguments: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let Some(word) = arguments else {
-            ctx.missing_argument("word to define").await;
-            return Ok(());
-        };
+    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+        let word = arguments.ok_or(MissingArgument("word to define"))?;
 
-        let response = if let Ok(Some(definition)) =
-            urbandictionary::define(ctx.http_client.clone(), word).await
-        {
-            definition.into_markdown()
+        if let Ok(Some(definition)) = urbandictionary::define(ctx.http_client.clone(), word).await {
+            ctx.reply_markdown(definition.into_markdown()).await?;
         } else {
-            concat!(
-                "There are no definitions for this word\\.\n",
-                "Be the first to [define it](https://urbandictionary.com/add.php)\\!"
-            )
-            .to_string()
+            Err(CustomMarkdownError(
+                concat!(
+                    "There are no definitions for this word\\.\n",
+                    "Be the first to [define it](https://urbandictionary.com/add.php)\\!"
+                )
+                .to_string(),
+            ))?;
         };
-        ctx.reply_markdown(response).await?;
 
         Ok(())
     }

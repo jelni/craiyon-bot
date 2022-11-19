@@ -1,11 +1,11 @@
-use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use reqwest::{StatusCode, Url};
 use tgbotapi::FileType;
 
-use super::CommandTrait;
+use super::CommandError::{CustomMarkdownError, MissingArgument};
+use super::{CommandResult, CommandTrait};
 use crate::api_methods::SendDocument;
 use crate::apis::cobalt;
 use crate::utils::{donate_markup, Context};
@@ -23,23 +23,10 @@ impl CommandTrait for CobaltDownload {
         &["cobalt", "download", "dl"]
     }
 
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        arguments: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let Some(media_url) = arguments else {
-            ctx.missing_argument("URL to download").await;
-            return Ok(());
-        };
+    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+        let media_url = arguments.ok_or(MissingArgument("URL to download"))?;
 
-        let mut urls = match cobalt::query(ctx.http_client.clone(), &media_url).await? {
-            Ok(urls) => urls,
-            Err(text) => {
-                ctx.reply(text).await?;
-                return Ok(());
-            }
-        };
+        let mut urls = cobalt::query(ctx.http_client.clone(), media_url.clone()).await??;
 
         let status_msg = ctx.reply("Downloading…").await?;
 
@@ -49,16 +36,11 @@ impl CommandTrait for CobaltDownload {
         for url in urls {
             match cobalt::download(ctx.http_client.clone(), url).await {
                 Ok(download) if download.media.is_empty() => {
-                    ctx.reply("≫ cobalt failed to download media. Try again later.").await?;
-                    return Ok(());
+                    Err("≫ cobalt failed to download media. Try again later.")?;
                 }
                 Ok(download) => downloads.push(download),
                 Err(err) => {
-                    ctx.reply(
-                        err.status().unwrap_or(StatusCode::INTERNAL_SERVER_ERROR).to_string(),
-                    )
-                    .await?;
-                    return Ok(());
+                    Err(err.status().unwrap_or(StatusCode::INTERNAL_SERVER_ERROR).to_string())?;
                 }
             }
         }
@@ -79,9 +61,8 @@ impl CommandTrait for CobaltDownload {
             {
                 let text = "Could not upload media to Telegram\\. You can [download it here]";
                 let url =
-                    Url::parse_with_params("https://co.wukko.me/", [("u", media_url)]).unwrap();
-                ctx.reply_markdown(format!("{text}({url})\\.")).await?;
-                return Ok(());
+                    Url::parse_with_params("https://co.wukko.me/", [("u", &media_url)]).unwrap();
+                Err(CustomMarkdownError(format!("{text}({url})\\.")))?;
             }
         }
 

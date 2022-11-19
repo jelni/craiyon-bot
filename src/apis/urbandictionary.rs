@@ -1,5 +1,6 @@
 use std::fmt::Write;
 
+use reqwest::header::LOCATION;
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 use time::macros::format_description;
@@ -40,8 +41,15 @@ async fn search<S: AsRef<str>>(http_client: reqwest::Client, term: S) -> reqwest
 
     match response.status() {
         StatusCode::FOUND => {
-            let (_, term) =
-                response.headers()["Location"].to_str().unwrap().split_once("?term=").unwrap();
+            let term = response
+                .headers()
+                .get(LOCATION)
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .split_once("?term=")
+                .unwrap()
+                .1;
 
             Ok(term.to_string())
         }

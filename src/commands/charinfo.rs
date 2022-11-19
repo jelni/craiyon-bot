@@ -1,9 +1,9 @@
-use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::CommandTrait;
+use super::CommandError::MissingArgument;
+use super::{CommandResult, CommandTrait};
 use crate::utils::{escape_markdown, Context, MARKDOWN_CHARS};
 
 #[derive(Default)]
@@ -19,15 +19,8 @@ impl CommandTrait for CharInfo {
         &["ch"]
     }
 
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        arguments: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let Some(chars) = arguments else {
-            ctx.missing_argument("characters").await;
-            return Ok(());
-        };
+    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+        let chars = arguments.ok_or(MissingArgument("characters"))?;
 
         let mut lines = chars
             .chars()

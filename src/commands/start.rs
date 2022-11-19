@@ -1,9 +1,8 @@
-use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::CommandTrait;
+use super::{CommandResult, CommandTrait};
 use crate::utils::Context;
 
 #[derive(Default)]
@@ -15,14 +14,10 @@ impl CommandTrait for Start {
         "start"
     }
 
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        _: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {
         ctx.reply_markdown(concat!(
-            "Use the /generate command to generate images\\.\n",
-            "*Example:* `/generate crayons in a box`"
+            "use the /generate command to generate images\\.\n",
+            "*example:* `/generate crayons in a box`"
         ))
         .await?;
 

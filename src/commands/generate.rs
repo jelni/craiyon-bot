@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::io::Cursor;
 use std::sync::Arc;
 
@@ -9,7 +8,8 @@ use reqwest::StatusCode;
 use tgbotapi::requests::ParseMode;
 use tgbotapi::FileType;
 
-use super::CommandTrait;
+use super::CommandError::MissingArgument;
+use super::{CommandResult, CommandTrait};
 use crate::api_methods::SendPhoto;
 use crate::apis::craiyon;
 use crate::ratelimit::RateLimiter;
@@ -34,20 +34,12 @@ impl CommandTrait for Generate {
         RateLimiter::new(3, 60)
     }
 
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        arguments: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let Some(prompt) = arguments else {
-            ctx.missing_argument("prompt to generate").await;
-            return Ok(());
-        };
+    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+        let prompt = arguments.ok_or(MissingArgument("prompt to generate"))?;
 
         if let Some(issue) = check_prompt(&prompt) {
             log::info!("Prompt rejected: {issue:?}");
-            ctx.reply(issue).await?;
-            return Ok(());
+            Err(issue)?;
         }
 
         let status_msg = ctx.reply(format!("Generating {prompt}…")).await?;

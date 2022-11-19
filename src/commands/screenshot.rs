@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -6,7 +5,8 @@ use reqwest::Url;
 use tgbotapi::FileType;
 use url::ParseError;
 
-use super::CommandTrait;
+use super::CommandError::{CustomMarkdownError, MissingArgument};
+use super::{CommandResult, CommandTrait};
 use crate::api_methods::SendPhoto;
 use crate::apis::microlink;
 use crate::ratelimit::RateLimiter;
@@ -29,42 +29,25 @@ impl CommandTrait for Screenshot {
         RateLimiter::new(3, 120)
     }
 
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        arguments: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let Some(url) = arguments else {
-            ctx.missing_argument("URL to screenshot").await;
-            return Ok(());
-        };
+    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+        let url = arguments.ok_or(MissingArgument("URL to screenshot"))?;
 
         let url = match Url::parse(&url) {
             Err(ParseError::RelativeUrlWithoutBase) => Url::parse(&format!("http://{url}")),
             url => url,
         };
 
-        let url = match url {
-            Ok(url) => url,
-            Err(err) => {
-                ctx.reply(err.to_string()).await?;
-                return Ok(());
-            }
-        };
-
-        let data = match microlink::screenshot(ctx.http_client.clone(), url).await? {
-            Ok(data) => data,
-            Err(err) => {
-                ctx.reply_markdown(format!(
-                    "[{}]({}): {}",
-                    escape_markdown(err.code),
-                    err.more,
-                    escape_markdown(err.message)
-                ))
-                .await?;
-                return Ok(());
-            }
-        };
+        let data =
+            microlink::screenshot(ctx.http_client.clone(), url.map_err(|err| err.to_string())?)
+                .await?
+                .map_err(|err| {
+                    CustomMarkdownError(format!(
+                        "[{}]({}): {}",
+                        escape_markdown(err.code),
+                        err.more,
+                        escape_markdown(err.message)
+                    ))
+                })?;
 
         ctx.api
             .make_request(&SendPhoto {

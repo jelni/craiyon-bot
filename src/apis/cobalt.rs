@@ -1,22 +1,38 @@
-use reqwest::Url;
-use serde::Deserialize;
+use reqwest::header::{ACCEPT, CONTENT_DISPOSITION};
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct Payload<'a> {
+    url: &'a str,
+    v_format: &'a str,
+    v_quality: &'a str,
+    a_format: &'a str,
+    #[serde(rename = "isNoTTWatermark")]
+    is_no_ttwatermark: bool,
+}
 
 #[derive(Deserialize)]
 struct Response {
-    pub status: String,
-    pub text: Option<String>,
-    pub url: Option<Urls>,
+    status: Status,
+    text: Option<String>,
+    url: Option<String>,
+    picker: Option<Vec<PickerItem>>,
 }
 
 #[derive(Deserialize)]
-#[serde(untagged)]
-enum Urls {
-    Single(String),
-    Many(Vec<Media>),
+#[serde(rename_all = "kebab-case")]
+enum Status {
+    Stream,
+    Redirect,
+    Picker,
+    Success,
+    Error,
+    RateLimit,
 }
 
 #[derive(Deserialize)]
-struct Media {
+struct PickerItem {
     url: String,
 }
 
@@ -30,34 +46,24 @@ pub async fn query<S: AsRef<str>>(
     url: S,
 ) -> reqwest::Result<Result<Vec<String>, String>> {
     let response = http_client
-        .get(
-            Url::parse_with_params(
-                "https://co.wukko.me/api/json",
-                [
-                    ("quality", "max"),
-                    ("audioFormat", "best"),
-                    ("format", "mp4"),
-                    ("nw", "true"), // no TikTok watermark
-                    ("url", url.as_ref()),
-                ],
-            )
-            .unwrap(),
-        )
+        .post("https://co.wukko.me/api/json")
+        .json(&Payload {
+            url: url.as_ref(),
+            v_format: "mp4",
+            v_quality: "max",
+            a_format: "best",
+            is_no_ttwatermark: true,
+        })
+        .header(ACCEPT, "application/json")
         .send()
         .await?
         .json::<Response>()
         .await?;
 
-    match response.status.as_str() {
-        "stream" | "redirect" | "picker" => {
-            let urls = match response.url.unwrap() {
-                Urls::Single(url) => vec![url],
-                Urls::Many(media) => media.into_iter().map(|m| m.url).collect(),
-            };
-            Ok(Ok(urls))
-        }
-        "success" | "error" | "rate-limit" => Ok(Err(response.text.unwrap())),
-        _ => Ok(Err(format!("unknown status: {:?}", response.status))),
+    match response.status {
+        Status::Stream | Status::Redirect => Ok(Ok(vec![response.url.unwrap()])),
+        Status::Picker => Ok(Ok(response.picker.unwrap().into_iter().map(|i| i.url).collect())),
+        Status::Success | Status::Error | Status::RateLimit => Ok(Err(response.text.unwrap())),
     }
 }
 
@@ -69,7 +75,7 @@ pub async fn download<S: AsRef<str>>(
 
     let filename = match response
         .headers()
-        .get("Content-Disposition")
+        .get(CONTENT_DISPOSITION)
         .and_then(|h| parse_filename(h.to_str().unwrap()))
     {
         Some(filename) => filename,
@@ -80,8 +86,8 @@ pub async fn download<S: AsRef<str>>(
 }
 
 /// parses the `filename` from a `Content-Disposition` header
-fn parse_filename(header: &str) -> Option<&str> {
-    header.split(';').find_map(|dir| {
+fn parse_filename(value: &str) -> Option<&str> {
+    value.split(';').find_map(|dir| {
         let mut pair = dir.trim().split('=');
         if pair.next().unwrap() == "filename" {
             Some(pair.next().unwrap().trim_matches('"'))

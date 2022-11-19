@@ -1,9 +1,8 @@
-use std::error::Error;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::CommandTrait;
+use super::{CommandResult, CommandTrait};
 use crate::apis::poligon;
 use crate::utils::Context;
 
@@ -20,11 +19,7 @@ impl CommandTrait for StartItJoke {
         &["startit"]
     }
 
-    async fn execute(
-        &self,
-        ctx: Arc<Context>,
-        _: Option<String>,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {
         let joke = poligon::startit_joke(ctx.http_client.clone()).await?;
         ctx.reply(format!("Kacper Podpora mówi: {joke}")).await?;
 
