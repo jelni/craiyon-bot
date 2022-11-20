@@ -6,8 +6,8 @@ use tgbotapi::requests::{
     DeleteMessage, EditMessageText, MessageOrBool, ParseMode, ReplyMarkup, SendMessage,
 };
 use tgbotapi::{
-    ChatMemberStatus, ChatMemberUpdated, ChatType, FileType, InlineKeyboardButton,
-    InlineKeyboardMarkup, Message, MessageEntityType, Telegram, User,
+    ChatMemberStatus, ChatMemberUpdated, FileType, InlineKeyboardButton, InlineKeyboardMarkup,
+    Message, MessageEntityType, Telegram, User,
 };
 
 use crate::api_methods::SendSticker;
@@ -43,7 +43,7 @@ impl ParsedCommand {
                 .map(|e| {
                     let command = message
                         .text
-                        .clone()
+                        .as_ref()
                         .unwrap()
                         .chars()
                         .skip((e.offset + 1).try_into().unwrap_or_default())
@@ -55,7 +55,7 @@ impl ParsedCommand {
                     };
                     let arguments = message
                         .text
-                        .clone()
+                        .as_ref()
                         .unwrap()
                         .chars()
                         .skip(e.length.try_into().unwrap_or_default())
@@ -208,9 +208,9 @@ impl TruncateWithEllipsis for String {
 pub fn check_prompt<S: AsRef<str>>(prompt: S) -> Option<&'static str> {
     let prompt = prompt.as_ref();
     if prompt.chars().count() > 512 {
-        Some("This prompt is too long.")
+        Some("this prompt is too long.")
     } else if prompt.lines().count() > 4 {
-        Some("This prompt has too many lines.")
+        Some("this prompt has too many lines.")
     } else {
         None
     }
@@ -269,7 +269,7 @@ pub fn escape_markdown<S: AsRef<str>>(text: S) -> String {
 pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMarkup {
     ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
         inline_keyboard: vec![vec![InlineKeyboardButton {
-            text: format!("Donate to {}", name.as_ref()),
+            text: format!("donate to {}", name.as_ref()),
             url: Some(url.into()),
             ..Default::default()
         }]],
@@ -277,10 +277,6 @@ pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMa
 }
 
 pub fn log_status_update(update: ChatMemberUpdated) {
-    if update.chat.chat_type == ChatType::Private {
-        return;
-    }
-
     let old_status = update.old_chat_member.status;
     let new_status = update.new_chat_member.status;
 
@@ -289,8 +285,8 @@ pub fn log_status_update(update: ChatMemberUpdated) {
     }
 
     let status = match new_status {
-        ChatMemberStatus::Member => "Joined",
-        ChatMemberStatus::Left | ChatMemberStatus::Kicked => "Left",
+        ChatMemberStatus::Member => "joined",
+        ChatMemberStatus::Left | ChatMemberStatus::Kicked => "left",
         _ => return,
     };
 

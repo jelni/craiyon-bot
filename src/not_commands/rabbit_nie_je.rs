@@ -9,8 +9,8 @@ pub async fn rabbit_nie_je(ctx: Arc<Context>) {
     if let Some(chat) = &ctx.message.forward_from_chat {
         if chat.id == RABBIT_JE {
             let result = match ctx.delete_message(&ctx.message).await {
-                Ok(_) => "Deleted",
-                Err(_) => "Couldn't delete",
+                Ok(_) => "deleted",
+                Err(_) => "couldn't delete",
             };
             log::warn!(
                 "{result} a message from {:?} in {:?}",

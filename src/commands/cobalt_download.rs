@@ -28,7 +28,7 @@ impl CommandTrait for CobaltDownload {
 
         let mut urls = cobalt::query(ctx.http_client.clone(), media_url.clone()).await??;
 
-        let status_msg = ctx.reply("Downloading…").await?;
+        let status_msg = ctx.reply("downloading…").await?;
 
         urls.truncate(4);
         let mut downloads = Vec::with_capacity(urls.len());
@@ -36,7 +36,7 @@ impl CommandTrait for CobaltDownload {
         for url in urls {
             match cobalt::download(ctx.http_client.clone(), url).await {
                 Ok(download) if download.media.is_empty() => {
-                    Err("≫ cobalt failed to download media. Try again later.")?;
+                    Err("≫ cobalt failed to download media. try again later.")?;
                 }
                 Ok(download) => downloads.push(download),
                 Err(err) => {
@@ -59,7 +59,7 @@ impl CommandTrait for CobaltDownload {
                 .await
                 .is_err()
             {
-                let text = "Could not upload media to Telegram\\. You can [download it here]";
+                let text = "could not upload media to Telegram\\. you can [download it here]";
                 let url =
                     Url::parse_with_params("https://co.wukko.me/", [("u", &media_url)]).unwrap();
                 Err(CustomMarkdownError(format!("{text}({url})\\.")))?;

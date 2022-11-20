@@ -26,7 +26,7 @@ impl CommandTrait for Tts {
         let text = arguments.ok_or(MissingArgument("text to synthesize"))?;
 
         if text.chars().count() > 1024 {
-            Err("This text is too long.")?;
+            Err("this text is too long.")?;
         }
 
         let bytes = ivona::synthesize(ctx.http_client.clone(), text, "jan").await?;

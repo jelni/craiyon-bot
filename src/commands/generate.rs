@@ -38,11 +38,11 @@ impl CommandTrait for Generate {
         let prompt = arguments.ok_or(MissingArgument("prompt to generate"))?;
 
         if let Some(issue) = check_prompt(&prompt) {
-            log::info!("Prompt rejected: {issue:?}");
+            log::info!("prompt rejected: {issue:?}");
             Err(issue)?;
         }
 
-        let status_msg = ctx.reply(format!("Generating {prompt}…")).await?;
+        let status_msg = ctx.reply(format!("generating {prompt}…")).await?;
 
         match craiyon::generate(ctx.http_client.clone(), &prompt).await {
             Ok(result) => {
@@ -63,7 +63,7 @@ impl CommandTrait for Generate {
                         chat_id: ctx.message.chat_id(),
                         photo: FileType::Bytes("image.png".to_string(), buffer.into_inner()),
                         caption: Some(format!(
-                            "Generated *{}* in {}\\.",
+                            "generated *{}* in {}\\.",
                             escape_markdown(prompt),
                             format_duration(result.duration.as_secs())
                         )),

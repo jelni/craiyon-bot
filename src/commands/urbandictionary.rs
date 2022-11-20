@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::CommandError::{CustomMarkdownError, MissingArgument};
+use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::urbandictionary;
 use crate::utils::Context;
@@ -26,13 +26,7 @@ impl CommandTrait for UrbanDictionary {
         if let Ok(Some(definition)) = urbandictionary::define(ctx.http_client.clone(), word).await {
             ctx.reply_markdown(definition.into_markdown()).await?;
         } else {
-            Err(CustomMarkdownError(
-                concat!(
-                    "There are no definitions for this word\\.\n",
-                    "Be the first to [define it](https://urbandictionary.com/add.php)\\!"
-                )
-                .to_string(),
-            ))?;
+            Err("sorry, there are no definitions for this word.")?;
         };
 
         Ok(())
