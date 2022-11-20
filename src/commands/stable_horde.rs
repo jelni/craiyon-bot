@@ -83,15 +83,7 @@ impl CommandTrait for StableHorde {
         let mut last_edit: Option<Instant> = None;
         let mut last_status = None;
         loop {
-            let status = loop {
-                match stablehorde::check(ctx.http_client.clone(), &request_id).await {
-                    Err(err) if err.is_request() => {
-                        log::error!("{err}");
-                        tokio::time::sleep(Duration::from_secs(1)).await;
-                    }
-                    status => break status,
-                }
-            }??;
+            let status = stablehorde::check(ctx.http_client.clone(), &request_id).await??;
 
             if status.done {
                 break;

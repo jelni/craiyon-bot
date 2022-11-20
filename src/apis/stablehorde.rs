@@ -1,6 +1,7 @@
 use std::env;
+use std::time::Duration;
 
-use reqwest::StatusCode;
+use reqwest::{StatusCode, Url};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
@@ -95,10 +96,17 @@ async fn generation_info<O: DeserializeOwned>(
     action: &str,
     request_id: &str,
 ) -> reqwest::Result<Result<O, String>> {
-    let response = http_client
-        .get(format!("https://stablehorde.net/api/v2/generate/{action}/{request_id}"))
-        .send()
-        .await?;
+    let url = Url::parse(&format!("https://stablehorde.net/api/v2/generate/{action}/{request_id}"))
+        .unwrap();
+    let response = loop {
+        match http_client.get(url.clone()).send().await {
+            Err(err) if err.is_request() => {
+                log::error!("{err}");
+                tokio::time::sleep(Duration::from_secs(1)).await;
+            }
+            response => break response,
+        }
+    }?;
 
     match response.status() {
         StatusCode::OK => Ok(Ok(response.json::<O>().await?)),
