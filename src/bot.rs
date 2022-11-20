@@ -190,7 +190,7 @@ impl Bot {
 
         if let Some(cooldown) = cooldown {
             let cooldown_str = format_duration(cooldown.try_into().unwrap());
-            log::warn!(
+            log::info!(
                 "/{} ratelimit exceeded by {cooldown_str} by {}",
                 command.name,
                 context.user.format_name()
@@ -221,7 +221,7 @@ impl Bot {
             .or_else(|| context.message.reply_to_message.as_ref().and_then(|r| r.text.clone()));
 
         log::info!(
-            "Running /{} {:?} for {} in {}",
+            "Running /{} {:?} for {:?} in {:?}",
             command.name,
             arguments.as_deref().unwrap_or_default(),
             context.user.format_name(),

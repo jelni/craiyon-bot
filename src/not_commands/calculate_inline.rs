@@ -29,15 +29,9 @@ pub async fn calculate_inline(
     let (title, message_text) = if query.split_ascii_whitespace().collect::<String>() == "2+2" {
         ("5".to_string(), format!("{query} = 5"))
     } else {
-        match mathjs::evaluate(http_client.clone(), query.clone()).await {
-            Ok(result) => match result {
-                Ok(result) => (result.clone(), format!("{query} = {result}")),
-                Err(err) => (err.clone(), err),
-            },
-            Err(err) => {
-                log::error!("{err}");
-                return;
-            }
+        match mathjs::evaluate(http_client.clone(), query.clone()).await.unwrap() {
+            Ok(result) => (result.clone(), format!("{query} = {result}")),
+            Err(err) => (err.clone(), err),
         }
     };
 

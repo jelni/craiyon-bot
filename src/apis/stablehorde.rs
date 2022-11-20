@@ -101,7 +101,7 @@ async fn generation_info<O: DeserializeOwned>(
     let response = loop {
         match http_client.get(url.clone()).send().await {
             Err(err) if err.is_request() => {
-                log::error!("{err}");
+                log::warn!("{err}");
                 tokio::time::sleep(Duration::from_secs(1)).await;
             }
             response => break response,

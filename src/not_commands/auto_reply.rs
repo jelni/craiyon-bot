@@ -32,7 +32,7 @@ pub async fn auto_reply(ctx: Arc<Context>) {
         .update_rate_limit(ctx.user.id, ctx.message.date)
         .is_some()
     {
-        log::warn!("Auto reply ratelimit exceeded by {} ({reply:?})", ctx.user.format_name());
+        log::info!("Auto reply ratelimit exceeded by {} ({reply:?})", ctx.user.format_name());
         return;
     }
 
