@@ -69,7 +69,7 @@ impl CommandTrait for StableHorde {
         let prompt = arguments.ok_or(MissingArgument("prompt to generate"))?;
 
         if let Some(issue) = check_prompt(&prompt) {
-            log::info!("Prompt rejected: {issue:?}");
+            log::info!("prompt rejected: {issue:?}");
             Err(issue)?;
         }
 
@@ -79,7 +79,7 @@ impl CommandTrait for StableHorde {
         let mut status_msg = None;
         let escaped_prompt = escape_markdown(prompt);
         let start = Instant::now();
-        let mut first_wait_time = 0;
+        let mut show_volunteer_notice = false;
         let mut last_edit: Option<Instant> = None;
         let mut last_status = None;
         loop {
@@ -89,8 +89,8 @@ impl CommandTrait for StableHorde {
                 break;
             };
 
-            if first_wait_time == 0 {
-                first_wait_time = status.wait_time;
+            if !show_volunteer_notice && status.wait_time >= 30 {
+                show_volunteer_notice = true;
             }
 
             if last_status.as_ref() != Some(&status) {
@@ -98,7 +98,7 @@ impl CommandTrait for StableHorde {
                 if last_edit
                     .map_or(true, |last_edit| last_edit.elapsed() >= Duration::from_secs(12))
                 {
-                    let text = format_status(&status, &escaped_prompt, first_wait_time);
+                    let text = format_status(&status, &escaped_prompt, show_volunteer_notice);
                     match &status_msg {
                         None => {
                             status_msg = Some(ctx.reply_markdown(text).await?);
@@ -158,7 +158,7 @@ impl CommandTrait for StableHorde {
                 allow_sending_without_reply: Some(true),
                 reply_markup: Some(ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
                     inline_keyboard: vec![vec![InlineKeyboardButton {
-                        text: "Generated thanks to Stable Horde".to_string(),
+                        text: "generated thanks to Stable Horde".to_string(),
                         url: Some("https://stablehorde.net/".to_string()),
                         ..Default::default()
                     }]],
@@ -174,15 +174,15 @@ impl CommandTrait for StableHorde {
     }
 }
 
-fn format_status(status: &Status, escaped_prompt: &str, first_wait_time: u32) -> String {
+fn format_status(status: &Status, escaped_prompt: &str, volunteer_notice: bool) -> String {
     let queue_info = if status.queue_position > 0 {
-        format!("Queue position: {}\n", status.queue_position)
+        format!("queue position: {}\n", status.queue_position)
     } else {
         String::new()
     };
 
     let mut text = format!(
-        "Generating {escaped_prompt}…\n{queue_info}`{}` ETA: {}",
+        "generating {escaped_prompt}…\n{queue_info}`{}` ETA: {}",
         progress_bar(
             status.waiting.unsigned_abs() as usize,
             status.processing.unsigned_abs() as usize,
@@ -191,11 +191,11 @@ fn format_status(status: &Status, escaped_prompt: &str, first_wait_time: u32) ->
         format_duration(status.wait_time.try_into().unwrap())
     );
 
-    if first_wait_time >= 30 {
+    if volunteer_notice {
         text.push_str(concat!(
             "\n\nStable Horde is run by volunteers\\. ",
-            "To make waiting times shorter, ",
-            "[consider joining the horde yourself](https://stablehorde.net/)\\!"
+            "to make waiting times shorter, ",
+            "[consider joining yourself](https://stablehorde.net/)\\!"
         ));
     };
 

@@ -30,7 +30,7 @@ impl Bot {
     pub async fn new() -> Self {
         let api = Arc::new(Telegram::new(env::var("TELEGRAM_TOKEN").unwrap()));
         let me = api.make_request(&GetMe).await.unwrap();
-        log::info!("Logged in as {}", me.format_name());
+        log::info!("logged in as {}", me.format_name());
         Self {
             api,
             http_client: Client::builder()
@@ -60,7 +60,7 @@ impl Bot {
             let updates = match updates {
                 Ok(updates) => updates,
                 Err(err) => {
-                    log::error!("Error while fetching updates: {err}");
+                    log::error!("error while fetching updates: {err}");
                     tokio::time::sleep(Duration::from_secs(30)).await;
                     continue;
                 }
@@ -82,7 +82,7 @@ impl Bot {
         }
 
         if !self.tasks.is_empty() {
-            log::info!("Waiting for {} task(s) to finish…", self.tasks.len());
+            log::info!("waiting for {} task(s) to finish…", self.tasks.len());
             for task in self.tasks.drain(..) {
                 task.await.ok();
             }
@@ -206,7 +206,7 @@ impl Bot {
                 let cooldown_end =
                     Instant::now() + Duration::from_secs(cooldown.max(5).try_into().unwrap());
                 if let Ok(message) = context
-                    .reply(format!("You can use this command again in {cooldown_str}."))
+                    .reply(format!("you can use this command again in {cooldown_str}."))
                     .await
                 {
                     tokio::time::sleep_until(cooldown_end.into()).await;
@@ -221,7 +221,7 @@ impl Bot {
             .or_else(|| context.message.reply_to_message.as_ref().and_then(|r| r.text.clone()));
 
         log::info!(
-            "Running /{} {:?} for {:?} in {:?}",
+            "running /{} {:?} for {} in {}",
             command.name,
             arguments.as_deref().unwrap_or_default(),
             context.user.format_name(),
@@ -237,17 +237,14 @@ impl Bot {
                     context.reply_markdown(text).await.ok();
                 }
                 CommandError::MissingArgument(argument) => {
-                    context.reply(format!("missing {argument}")).await.ok();
+                    context.reply(format!("missing {argument}.")).await.ok();
                 }
                 CommandError::TelegramError(err) => {
-                    log::error!(
-                        "a Telegram error occurred in the /{} command: {err}",
-                        command.name
-                    );
+                    log::error!("Telegram error in the /{} command: {err}", command.name);
                     context.reply("sending the message failed 😔").await.ok();
                 }
                 CommandError::ReqwestError(err) => {
-                    log::error!("an HTTP error occurred in the /{} command: {err}", command.name);
+                    log::error!("HTTP error in the /{} command: {err}", command.name);
                     context.reply(err.without_url().to_string()).await.ok();
                 }
             }

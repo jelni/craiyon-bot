@@ -24,7 +24,7 @@ impl CommandTrait for CharInfo {
 
         let mut lines = chars
             .chars()
-            .take(11)
+            .take(10)
             .into_iter()
             .map(|c| {
                 if c.is_ascii_whitespace() {
@@ -41,8 +41,8 @@ impl CommandTrait for CharInfo {
             })
             .collect::<Vec<_>>();
 
-        if lines.len() > 10 {
-            lines.last_mut().unwrap().replace_range(.., "…");
+        if chars.chars().count() > 10 {
+            lines.push("…".into());
         }
 
         ctx.reply_markdown(lines.join("\n")).await?;
