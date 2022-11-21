@@ -102,9 +102,9 @@ impl Bot {
                 offset,
                 timeout: Some(120),
                 allowed_updates: Some(vec![
-                    "message".to_string(),
-                    "inline_query".to_string(),
-                    "my_chat_member".to_string(),
+                    "message".into(),
+                    "inline_query".into(),
+                    "my_chat_member".into(),
                 ]),
                 ..Default::default()
             })

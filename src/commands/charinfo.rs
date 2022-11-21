@@ -33,7 +33,7 @@ impl CommandTrait for CharInfo {
                     let cu32 = c as u32;
                     format!(
                         "`{}` `U\\+{:04X}` – `{}`",
-                        if MARKDOWN_CHARS.contains(&c) { format!("\\{c}") } else { c.to_string() },
+                        if MARKDOWN_CHARS.contains(&c) { format!("\\{c}") } else { c.into() },
                         cu32,
                         escape_markdown(charname::get_name(cu32))
                     )

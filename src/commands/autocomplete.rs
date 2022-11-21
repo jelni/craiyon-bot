@@ -26,10 +26,7 @@ impl CommandTrait for Autocomplete {
         let completions = google::complete(ctx.http_client.clone(), &query).await?;
         let query_lowercase = query.to_lowercase();
         ctx.reply_html(
-            completions
-                .into_iter()
-                .find(|c| *c != query_lowercase)
-                .unwrap_or_else(|| "no autocompletions".to_string()),
+            completions.into_iter().find(|c| *c != query_lowercase).ok_or("no autocompletions")?,
         )
         .await?;
 

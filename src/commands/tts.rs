@@ -34,7 +34,7 @@ impl CommandTrait for Tts {
         ctx.api
             .make_request(&SendVoice {
                 chat_id: ctx.message.chat_id(),
-                voice: FileType::Bytes("voice.wav".to_string(), bytes),
+                voice: FileType::Bytes("voice.wav".into(), bytes),
                 reply_to_message_id: Some(ctx.message.message_id),
                 allow_sending_without_reply: Some(true),
             })

@@ -26,7 +26,7 @@ impl CommandTrait for Sex {
 
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
         let question_mark = arguments.map_or(false, |a| a.starts_with('?'));
-        ctx.send_sticker(FileType::FileID(SEX[usize::from(question_mark)].to_string())).await?;
+        ctx.send_sticker(FileType::FileID(SEX[usize::from(question_mark)].into())).await?;
 
         Ok(())
     }
