@@ -21,6 +21,7 @@ struct Params {
     sampler_name: &'static str,
     cfg_scale: f32,
     steps: usize,
+    karras: bool,
 }
 
 #[derive(Deserialize)]
@@ -72,6 +73,7 @@ pub async fn generate<S: Into<String>>(
                 sampler_name: "k_euler",
                 cfg_scale: 7.5,
                 steps: 32,
+                karras: true,
             },
             nsfw: true,
         })
