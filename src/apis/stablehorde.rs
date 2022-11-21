@@ -19,7 +19,6 @@ struct Params {
     width: usize,
     height: usize,
     sampler_name: &'static str,
-    cfg_scale: f32,
     steps: usize,
     karras: bool,
 }
@@ -71,8 +70,7 @@ pub async fn generate<S: Into<String>>(
                 width: 512,
                 height: 512,
                 sampler_name: "k_euler",
-                cfg_scale: 7.5,
-                steps: 32,
+                steps: 24,
                 karras: true,
             },
             nsfw: true,
