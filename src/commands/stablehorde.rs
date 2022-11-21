@@ -135,9 +135,9 @@ impl CommandTrait for StableHorde {
         ctx.api
             .make_request(&SendPhoto {
                 chat_id: ctx.message.chat_id(),
-                photo: FileType::Bytes("image.png".to_string(), buffer.into_inner()),
+                photo: FileType::Bytes("image.png".into(), buffer.into_inner()),
                 caption: Some(format!(
-                    "Generated *{}* in {} by {}\\.",
+                    "generated *{}* in {} by {}\\.",
                     escaped_prompt,
                     format_duration(duration.as_secs()),
                     workers
@@ -158,8 +158,8 @@ impl CommandTrait for StableHorde {
                 allow_sending_without_reply: Some(true),
                 reply_markup: Some(ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
                     inline_keyboard: vec![vec![InlineKeyboardButton {
-                        text: "generated thanks to Stable Horde".to_string(),
-                        url: Some("https://stablehorde.net/".to_string()),
+                        text: "generated thanks to Stable Horde".into(),
+                        url: Some("https://stablehorde.net/".into()),
                         ..Default::default()
                     }]],
                 })),

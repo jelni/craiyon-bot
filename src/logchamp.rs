@@ -42,7 +42,7 @@ impl Log for Logger {
         let timestamp = time::OffsetDateTime::now_utc()
             .format(format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"))
             .unwrap();
-        let target = record.target().to_string();
+        let target = record.target();
         let level = record.level().as_str();
         let args = record.args();
 

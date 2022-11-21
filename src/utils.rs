@@ -36,41 +36,39 @@ pub struct ParsedCommand {
 
 impl ParsedCommand {
     pub fn parse(message: &Message) -> Option<ParsedCommand> {
-        message.entities.clone().and_then(|entities| {
-            entities
-                .into_iter()
-                .find(|e| e.entity_type == MessageEntityType::BotCommand && e.offset == 0)
-                .map(|e| {
-                    let command = message
-                        .text
-                        .as_ref()
-                        .unwrap()
-                        .chars()
-                        .skip((e.offset + 1).try_into().unwrap_or_default())
-                        .take((e.length - 1).try_into().unwrap_or_default())
-                        .collect::<String>();
-                    let (command_name, username) = match command.split_once('@') {
-                        Some(parts) => (parts.0.to_string(), Some(parts.1)),
-                        None => (command, None),
-                    };
-                    let arguments = message
-                        .text
-                        .as_ref()
-                        .unwrap()
-                        .chars()
-                        .skip(e.length.try_into().unwrap_or_default())
-                        .collect::<String>()
-                        .trim_start()
-                        .to_string();
+        let entity = message
+            .entities
+            .as_ref()?
+            .iter()
+            .find(|e| e.entity_type == MessageEntityType::BotCommand && e.offset == 0)?;
 
-                    let arguments = if arguments.is_empty() { None } else { Some(arguments) };
+        let command = message
+            .text
+            .as_ref()
+            .unwrap()
+            .chars()
+            .skip((entity.offset + 1).try_into().ok()?)
+            .take((entity.length - 1).try_into().ok()?)
+            .collect::<String>();
+        let (command_name, username) = match command.split_once('@') {
+            Some(parts) => (parts.0.into(), Some(parts.1)),
+            None => (command, None),
+        };
+        let arguments = message
+            .text
+            .as_ref()
+            .unwrap()
+            .chars()
+            .skip(entity.length.try_into().unwrap_or_default())
+            .skip_while(char::is_ascii_whitespace)
+            .collect::<String>();
 
-                    ParsedCommand {
-                        name: command_name.to_lowercase(),
-                        bot_username: username.map(str::to_string),
-                        arguments,
-                    }
-                })
+        let arguments = if arguments.is_empty() { None } else { Some(arguments) };
+
+        Some(ParsedCommand {
+            name: command_name.to_lowercase(),
+            bot_username: username.map(str::to_string),
+            arguments,
         })
     }
 }

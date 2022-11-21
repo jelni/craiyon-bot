@@ -51,9 +51,9 @@ async fn search<S: AsRef<str>>(http_client: reqwest::Client, term: S) -> reqwest
                 .unwrap()
                 .1;
 
-            Ok(term.to_string())
+            Ok(term.into())
         }
-        StatusCode::OK => Ok(term.as_ref().to_string()),
+        StatusCode::OK => Ok(term.as_ref().into()),
         _ => unreachable!(),
     }
 }

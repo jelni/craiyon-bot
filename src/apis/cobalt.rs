@@ -82,7 +82,7 @@ pub async fn download<S: AsRef<str>>(
         None => response.url().path_segments().unwrap().last().unwrap(),
     };
 
-    Ok(Download { filename: filename.to_string(), media: response.bytes().await?.to_vec() })
+    Ok(Download { filename: filename.into(), media: response.bytes().await?.to_vec() })
 }
 
 /// parses the `filename` from a `Content-Disposition` header

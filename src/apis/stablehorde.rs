@@ -87,7 +87,7 @@ pub async fn generate<S: Into<String>>(
             let error = response
                 .json::<RequestError>()
                 .await
-                .map_or_else(|_| "zjebalo sie".to_string(), |e| e.message);
+                .map_or_else(|_| "zjebalo sie".into(), |e| e.message);
             Ok(Err(format!("{}: {error}", status.as_u16())))
         }
     }
@@ -116,7 +116,7 @@ async fn generation_info<O: DeserializeOwned>(
             let error = response
                 .json::<RequestError>()
                 .await
-                .map_or_else(|_| "zjebalo sie".to_string(), |e| e.message);
+                .map_or_else(|_| "zjebalo sie".into(), |e| e.message);
             Ok(Err(format!("{}: {error}", status.as_u16())))
         }
     }

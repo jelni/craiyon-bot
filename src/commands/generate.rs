@@ -61,7 +61,7 @@ impl CommandTrait for Generate {
                 ctx.api
                     .make_request(&SendPhoto {
                         chat_id: ctx.message.chat_id(),
-                        photo: FileType::Bytes("image.png".to_string(), buffer.into_inner()),
+                        photo: FileType::Bytes("image.png".into(), buffer.into_inner()),
                         caption: Some(format!(
                             "generated *{}* in {}\\.",
                             escape_markdown(prompt),

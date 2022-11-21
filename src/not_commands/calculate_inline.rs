@@ -27,7 +27,7 @@ pub async fn calculate_inline(
     }
 
     let (title, message_text) = if query.split_ascii_whitespace().collect::<String>() == "2+2" {
-        ("5".to_string(), format!("{query} = 5"))
+        ("5".into(), format!("{query} = 5"))
     } else {
         match mathjs::evaluate(http_client.clone(), query.clone()).await.unwrap() {
             Ok(result) => (result.clone(), format!("{query} = {result}")),
@@ -38,8 +38,8 @@ pub async fn calculate_inline(
     api.make_request(&AnswerInlineQuery {
         inline_query_id: inline_query.id,
         results: vec![InlineQueryResult {
-            id: "0".to_string(),
-            result_type: "article".to_string(),
+            id: "0".into(),
+            result_type: "article".into(),
             content: InlineQueryType::Article(InlineQueryResultArticle {
                 title,
                 input_message_content: InputMessageType::Text(InputMessageText {

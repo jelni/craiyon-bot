@@ -25,7 +25,7 @@ impl CommandTrait for KiwiFarms {
         let text = match kiwifarms::status(ctx.http_client.clone()).await {
             Ok(status) => {
                 if status == StatusCode::OK || status == StatusCode::FOUND {
-                    "yes 🤬".to_string()
+                    "yes 🤬".into()
                 } else {
                     format!("{} no", status.as_u16())
                 }
