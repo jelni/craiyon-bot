@@ -97,7 +97,7 @@ impl Bot {
                 value: OptionValue::String(OptionValueString { value }),
             }) => {
                 assert!(
-                    name == "version" && value == "1.8.3",
+                    !(name == "version" && value != "1.8.3"),
                     "unexpected TDLib version {value:?}!"
                 );
             }
