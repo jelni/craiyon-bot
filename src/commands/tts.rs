@@ -1,11 +1,13 @@
+use std::io::Write;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use tgbotapi::FileType;
+use tdlib::enums::{InputFile, InputMessageContent};
+use tdlib::types::{InputFileLocal, InputMessageVoiceNote};
+use tempfile::NamedTempFile;
 
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
-use crate::api_methods::SendVoice;
 use crate::apis::ivona;
 use crate::utils::Context;
 
@@ -30,15 +32,21 @@ impl CommandTrait for Tts {
         }
 
         let bytes = ivona::synthesize(ctx.http_client.clone(), text, "jan").await?;
+        let mut temp_file = NamedTempFile::new().unwrap();
+        temp_file.write_all(&bytes).unwrap();
 
-        ctx.api
-            .make_request(&SendVoice {
-                chat_id: ctx.message.chat_id(),
-                voice: FileType::Bytes("voice.wav".into(), bytes),
-                reply_to_message_id: Some(ctx.message.message_id),
-                allow_sending_without_reply: Some(true),
-            })
-            .await?;
+        ctx.reply_custom(
+            InputMessageContent::InputMessageVoiceNote(InputMessageVoiceNote {
+                voice_note: InputFile::Local(InputFileLocal {
+                    path: temp_file.path().to_str().unwrap().into(),
+                }),
+                duration: 0,
+                waveform: String::new(),
+                caption: None,
+            }),
+            None,
+        )
+        .await?;
 
         Ok(())
     }

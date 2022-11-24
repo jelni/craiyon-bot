@@ -1,12 +1,14 @@
+use std::io::Write;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use reqwest::{StatusCode, Url};
-use tgbotapi::FileType;
+use reqwest::StatusCode;
+use tdlib::enums::{InputFile, InputMessageContent};
+use tdlib::types::{InputFileLocal, InputMessageDocument};
+use tempfile::NamedTempFile;
 
-use super::CommandError::{CustomMarkdownError, MissingArgument};
+use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
-use crate::api_methods::SendDocument;
 use crate::apis::cobalt;
 use crate::utils::{donate_markup, Context};
 
@@ -46,27 +48,24 @@ impl CommandTrait for CobaltDownload {
         }
 
         for download in downloads {
-            if ctx
-                .api
-                .make_request(&SendDocument {
-                    chat_id: ctx.message.chat_id(),
-                    document: FileType::Bytes(download.filename, download.media),
-                    reply_to_message_id: Some(ctx.message.message_id),
-                    allow_sending_without_reply: Some(true),
-                    reply_markup: Some(donate_markup("≫ cobalt", "https://boosty.to/wukko")),
-                    ..Default::default()
-                })
-                .await
-                .is_err()
-            {
-                let text = "could not upload media to Telegram\\. you can [download it here]";
-                let url =
-                    Url::parse_with_params("https://co.wukko.me/", [("u", &media_url)]).unwrap();
-                Err(CustomMarkdownError(format!("{text}({url})\\.")))?;
-            }
+            let mut temp_file = NamedTempFile::new().unwrap();
+            temp_file.write_all(&download.media).unwrap();
+
+            ctx.reply_custom(
+                InputMessageContent::InputMessageDocument(InputMessageDocument {
+                    document: InputFile::Local(InputFileLocal {
+                        path: temp_file.path().to_str().unwrap().into(),
+                    }),
+                    thumbnail: None,
+                    disable_content_type_detection: false,
+                    caption: None,
+                }),
+                Some(donate_markup("≫ cobalt", "https://boosty.to/wukko")),
+            )
+            .await?;
         }
 
-        ctx.delete_message(&status_msg).await.ok();
+        ctx.delete_message(status_msg.id).await.ok();
 
         Ok(())
     }

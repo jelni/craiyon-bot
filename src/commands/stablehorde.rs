@@ -1,17 +1,23 @@
 use std::fmt::Write;
-use std::io::Cursor;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use counter::Counter;
-use image::{ImageFormat, ImageOutputFormat};
-use tgbotapi::requests::{ParseMode, ReplyMarkup};
-use tgbotapi::{FileType, InlineKeyboardButton, InlineKeyboardMarkup};
+use image::ImageFormat;
+use tdlib::enums::{
+    FormattedText, InlineKeyboardButtonType, InputFile, InputMessageContent, ReplyMarkup,
+    TextParseMode,
+};
+use tdlib::functions;
+use tdlib::types::{
+    InlineKeyboardButton, InlineKeyboardButtonTypeUrl, InputFileLocal, InputMessagePhoto,
+    ReplyMarkupInlineKeyboard, TextParseModeMarkdown,
+};
+use tempfile::NamedTempFile;
 
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
-use crate::api_methods::SendPhoto;
 use crate::apis::stablehorde::{self, Status};
 use crate::ratelimit::RateLimiter;
 use crate::utils::{
@@ -129,45 +135,58 @@ impl CommandTrait for StableHorde {
             .collect::<Vec<_>>();
 
         let image = image_collage(images, (512, 512), 2, 8);
-        let mut buffer = Cursor::new(Vec::new());
-        image.write_to(&mut buffer, ImageOutputFormat::Png).unwrap();
+        let mut temp_file = NamedTempFile::new().unwrap();
+        image.write_to(temp_file.as_file_mut(), ImageFormat::Png).unwrap();
 
-        ctx.api
-            .make_request(&SendPhoto {
-                chat_id: ctx.message.chat_id(),
-                photo: FileType::Bytes("image.png".into(), buffer.into_inner()),
-                caption: Some(format!(
-                    "generated *{}* in {} by {}\\.",
-                    escaped_prompt,
-                    format_duration(duration.as_secs()),
-                    workers
-                        .most_common()
-                        .into_iter()
-                        .map(|(mut k, v)| {
-                            k.truncate_with_ellipsis(64);
-                            if v > 1 {
-                                write!(k, " ({v})").unwrap();
-                            }
-                            escape_markdown(k)
-                        })
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )),
-                parse_mode: Some(ParseMode::MarkdownV2),
-                reply_to_message_id: Some(ctx.message.message_id),
-                allow_sending_without_reply: Some(true),
-                reply_markup: Some(ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
-                    inline_keyboard: vec![vec![InlineKeyboardButton {
-                        text: "generated thanks to Stable Horde".into(),
-                        url: Some("https://stablehorde.net/".into()),
-                        ..Default::default()
-                    }]],
-                })),
-            })
-            .await?;
+        let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
+            format!(
+                "generated *{}* in {} by {}\\.",
+                escaped_prompt,
+                format_duration(duration.as_secs()),
+                workers
+                    .most_common()
+                    .into_iter()
+                    .map(|(mut k, v)| {
+                        k.truncate_with_ellipsis(64);
+                        if v > 1 {
+                            write!(k, " ({v})").unwrap();
+                        }
+                        escape_markdown(k)
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
+            ctx.client_id,
+        )
+        .await
+        .unwrap();
+
+        ctx.reply_custom(
+            InputMessageContent::InputMessagePhoto(InputMessagePhoto {
+                photo: InputFile::Local(InputFileLocal {
+                    path: temp_file.path().to_str().unwrap().into(),
+                }),
+                thumbnail: None,
+                added_sticker_file_ids: Vec::new(),
+                width: image.width().try_into().unwrap(),
+                height: image.height().try_into().unwrap(),
+                caption: Some(formatted_text),
+                ttl: 0,
+            }),
+            Some(ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
+                rows: vec![vec![InlineKeyboardButton {
+                    text: "generated thanks to Stable Horde".into(),
+                    r#type: InlineKeyboardButtonType::Url(InlineKeyboardButtonTypeUrl {
+                        url: "https://stablehorde.net/".into(),
+                    }),
+                }]],
+            })),
+        )
+        .await?;
 
         if let Some(status_msg) = status_msg {
-            ctx.delete_message(&status_msg).await.ok();
+            ctx.delete_message(status_msg.id).await.ok();
         }
 
         Ok(())

@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use async_trait::async_trait;
+use tdlib::functions;
 
 use super::{CommandResult, CommandTrait};
 use crate::utils::Context;
@@ -17,9 +18,9 @@ impl CommandTrait for Ping {
 
     async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {
         let start = Instant::now();
-        let message = ctx.reply("measuring…").await?;
+        functions::test_network(ctx.client_id).await?;
         let duration = start.elapsed();
-        ctx.edit_message(&message, format!("ping: {}ms", duration.as_millis())).await?;
+        ctx.reply(format!("ping: {}ms", duration.as_millis())).await?;
 
         Ok(())
     }

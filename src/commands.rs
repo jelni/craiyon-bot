@@ -40,7 +40,7 @@ pub enum CommandError {
     CustomError(String),
     CustomMarkdownError(String),
     MissingArgument(&'static str),
-    TelegramError(tgbotapi::Error),
+    TelegramError(tdlib::types::Error),
     ReqwestError(reqwest::Error),
 }
 
@@ -56,8 +56,8 @@ impl From<&str> for CommandError {
     }
 }
 
-impl From<tgbotapi::Error> for CommandError {
-    fn from(value: tgbotapi::Error) -> Self {
+impl From<tdlib::types::Error> for CommandError {
+    fn from(value: tdlib::types::Error) -> Self {
         Self::TelegramError(value)
     }
 }

@@ -2,7 +2,6 @@
 
 use bot::Bot;
 
-mod api_methods;
 mod apis;
 mod bot;
 mod commands;
@@ -11,12 +10,12 @@ mod not_commands;
 mod ratelimit;
 mod utils;
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() {
     logchamp::init();
     dotenv::dotenv().ok();
 
-    let mut bot = Bot::new().await;
+    let mut bot = Bot::new();
 
     bot.add_command(Box::<commands::start::Start>::default());
     bot.add_command(Box::<commands::ping::Ping>::default());

@@ -1,16 +1,17 @@
 use std::convert::TryInto;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex};
 
 use image::{imageops, DynamicImage};
-use tgbotapi::requests::{
-    DeleteMessage, EditMessageText, MessageOrBool, ParseMode, ReplyMarkup, SendMessage,
+use tdlib::enums::{
+    self, ChatMemberStatus, InlineKeyboardButtonType, InputMessageContent, ReplyMarkup,
+    TextEntityType, TextParseMode,
 };
-use tgbotapi::{
-    ChatMemberStatus, ChatMemberUpdated, FileType, InlineKeyboardButton, InlineKeyboardMarkup,
-    Message, MessageEntityType, Telegram, User,
+use tdlib::functions;
+use tdlib::types::{
+    FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, InputMessageText, Message,
+    ReplyMarkupInlineKeyboard, TextParseModeMarkdown, UpdateChatMember, User,
 };
 
-use crate::api_methods::SendSticker;
 use crate::commands::CommandTrait;
 use crate::ratelimit::RateLimiter;
 
@@ -23,7 +24,7 @@ pub type CommandRef = Box<dyn CommandTrait + Send + Sync>;
 
 pub struct CommandInstance {
     pub name: &'static str,
-    pub ratelimiter: RwLock<RateLimiter<i64>>,
+    pub ratelimiter: Mutex<RateLimiter<i64>>,
     pub command_ref: CommandRef,
 }
 
@@ -35,17 +36,14 @@ pub struct ParsedCommand {
 }
 
 impl ParsedCommand {
-    pub fn parse(message: &Message) -> Option<ParsedCommand> {
-        let entity = message
+    pub fn parse(formatted_text: &FormattedText) -> Option<ParsedCommand> {
+        let entity = formatted_text
             .entities
-            .as_ref()?
             .iter()
-            .find(|e| e.entity_type == MessageEntityType::BotCommand && e.offset == 0)?;
+            .find(|e| e.r#type == TextEntityType::BotCommand && e.offset == 0)?;
 
-        let command = message
+        let command = formatted_text
             .text
-            .as_ref()
-            .unwrap()
             .chars()
             .skip((entity.offset + 1).try_into().ok()?)
             .take((entity.length - 1).try_into().ok()?)
@@ -54,10 +52,8 @@ impl ParsedCommand {
             Some(parts) => (parts.0.into(), Some(parts.1)),
             None => (command, None),
         };
-        let arguments = message
+        let arguments = formatted_text
             .text
-            .as_ref()
-            .unwrap()
             .chars()
             .skip(entity.length.try_into().unwrap_or_default())
             .skip_while(char::is_ascii_whitespace)
@@ -79,98 +75,125 @@ pub struct RateLimits {
 }
 
 pub struct Context {
-    pub api: Arc<Telegram>,
+    pub client_id: i32,
     pub message: Message,
     pub user: User,
     pub http_client: reqwest::Client,
-    pub ratelimits: Arc<RwLock<RateLimits>>,
+    pub ratelimits: Arc<Mutex<RateLimits>>,
 }
 
 impl Context {
-    async fn _reply<S: Into<String>>(
+    pub async fn reply_custom(
         &self,
-        text: S,
-        parse_mode: Option<ParseMode>,
-    ) -> Result<Message, tgbotapi::Error> {
-        self.api
-            .make_request(&SendMessage {
-                chat_id: self.message.chat_id(),
-                text: text.into(),
-                parse_mode,
-                disable_web_page_preview: Some(true),
-                reply_to_message_id: Some(self.message.message_id),
-                allow_sending_without_reply: Some(true),
-                ..Default::default()
-            })
-            .await
+        message_content: InputMessageContent,
+        reply_markup: Option<enums::ReplyMarkup>,
+    ) -> Result<Message, tdlib::types::Error> {
+        let enums::Message::Message(message) = functions::send_message(
+            self.message.chat_id,
+            self.message.message_thread_id,
+            self.message.id,
+            None,
+            reply_markup,
+            message_content,
+            self.client_id,
+        )
+        .await?;
+
+        Ok(message)
     }
 
-    pub async fn reply<S: Into<String>>(&self, text: S) -> Result<Message, tgbotapi::Error> {
-        self._reply(text, None).await
+    async fn _reply_text(&self, text: FormattedText) -> Result<Message, tdlib::types::Error> {
+        self.reply_custom(
+            InputMessageContent::InputMessageText(InputMessageText {
+                text,
+                disable_web_page_preview: true,
+                clear_draft: true,
+            }),
+            None,
+        )
+        .await
+    }
+
+    pub async fn reply<S: Into<String>>(&self, text: S) -> Result<Message, tdlib::types::Error> {
+        self._reply_text(FormattedText { text: text.into(), ..Default::default() }).await
     }
 
     pub async fn reply_markdown<S: Into<String>>(
         &self,
         text: S,
-    ) -> Result<Message, tgbotapi::Error> {
-        self._reply(text, Some(ParseMode::MarkdownV2)).await
+    ) -> Result<Message, tdlib::types::Error> {
+        let enums::FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
+            text.into(),
+            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
+            self.client_id,
+        )
+        .await?;
+
+        self._reply_text(formatted_text).await
     }
 
-    pub async fn reply_html<S: Into<String>>(&self, text: S) -> Result<Message, tgbotapi::Error> {
-        self._reply(text, Some(ParseMode::Html)).await
+    pub async fn reply_html<S: Into<String>>(
+        &self,
+        text: S,
+    ) -> Result<Message, tdlib::types::Error> {
+        let enums::FormattedText::FormattedText(formatted_text) =
+            functions::parse_text_entities(text.into(), TextParseMode::Html, self.client_id)
+                .await?;
+
+        self._reply_text(formatted_text).await
     }
 
-    async fn _edit_message<S: Into<String>>(
+    async fn _edit_message(
         &self,
         message: &Message,
-        text: S,
-        parse_mode: Option<ParseMode>,
-    ) -> Result<MessageOrBool, tgbotapi::Error> {
-        self.api
-            .make_request(&EditMessageText {
-                chat_id: message.chat_id(),
-                message_id: Some(message.message_id),
-                text: text.into(),
-                parse_mode,
-                disable_web_page_preview: Some(true),
-                ..Default::default()
-            })
-            .await
+        text: FormattedText,
+    ) -> Result<Message, tdlib::types::Error> {
+        let enums::Message::Message(message) = functions::edit_message_text(
+            message.chat_id,
+            message.id,
+            None,
+            InputMessageContent::InputMessageText(InputMessageText {
+                text,
+                disable_web_page_preview: true,
+                clear_draft: true,
+            }),
+            self.client_id,
+        )
+        .await?;
+
+        Ok(message)
     }
 
+    #[allow(dead_code)]
     pub async fn edit_message<S: Into<String>>(
         &self,
         message: &Message,
         text: S,
-    ) -> Result<MessageOrBool, tgbotapi::Error> {
-        self._edit_message(message, text, None).await
+    ) -> Result<Message, tdlib::types::Error> {
+        self._edit_message(message, FormattedText { text: text.into(), ..Default::default() }).await
     }
 
     pub async fn edit_message_markdown<S: Into<String>>(
         &self,
         message: &Message,
         text: S,
-    ) -> Result<MessageOrBool, tgbotapi::Error> {
-        self._edit_message(message, text, Some(ParseMode::MarkdownV2)).await
+    ) -> Result<Message, tdlib::types::Error> {
+        let enums::FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
+            text.into(),
+            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
+            self.client_id,
+        )
+        .await?;
+
+        self._edit_message(message, formatted_text).await
     }
 
-    pub async fn delete_message(&self, message: &Message) -> Result<bool, tgbotapi::Error> {
-        self.api
-            .make_request(&DeleteMessage {
-                chat_id: message.chat_id(),
-                message_id: message.message_id,
-            })
-            .await
+    pub async fn delete_messages(&self, message_ids: Vec<i64>) -> Result<(), tdlib::types::Error> {
+        functions::delete_messages(self.message.chat_id, message_ids, true, self.client_id).await
     }
 
-    pub async fn send_sticker(&self, sticker: FileType) -> Result<Message, tgbotapi::Error> {
-        self.api
-            .make_request(&SendSticker {
-                chat_id: self.message.chat_id(),
-                sticker,
-                reply_to_message_id: Some(self.message.message_id),
-            })
-            .await
+    pub async fn delete_message(&self, message_id: i64) -> Result<(), tdlib::types::Error> {
+        self.delete_messages(vec![message_id]).await
     }
 }
 
@@ -180,12 +203,14 @@ pub trait DisplayUser {
 
 impl DisplayUser for User {
     fn format_name(&self) -> String {
-        match &self.username {
-            Some(username) => format!("@{username}"),
-            None => match &self.last_name {
-                Some(last_name) => format!("{} {last_name}", self.first_name),
-                None => self.first_name.clone(),
-            },
+        if self.username.is_empty() {
+            if self.last_name.is_empty() {
+                self.first_name.clone()
+            } else {
+                format!("{} {}", self.first_name, self.last_name)
+            }
+        } else {
+            format!("@{}", self.username)
         }
     }
 }
@@ -265,16 +290,15 @@ pub fn escape_markdown<S: AsRef<str>>(text: S) -> String {
 }
 
 pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMarkup {
-    ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
-        inline_keyboard: vec![vec![InlineKeyboardButton {
+    ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
+        rows: vec![vec![InlineKeyboardButton {
             text: format!("donate to {}", name.as_ref()),
-            url: Some(url.into()),
-            ..Default::default()
+            r#type: InlineKeyboardButtonType::Url(InlineKeyboardButtonTypeUrl { url: url.into() }),
         }]],
     })
 }
 
-pub fn log_status_update(update: ChatMemberUpdated) {
+pub async fn log_status_update(update: UpdateChatMember, client_id: i32) {
     let old_status = update.old_chat_member.status;
     let new_status = update.new_chat_member.status;
 
@@ -284,9 +308,11 @@ pub fn log_status_update(update: ChatMemberUpdated) {
 
     let status = match new_status {
         ChatMemberStatus::Member => "joined",
-        ChatMemberStatus::Left | ChatMemberStatus::Kicked => "left",
+        ChatMemberStatus::Left => "left",
         _ => return,
     };
 
-    log::info!("{} {:?}", status, update.chat.title.unwrap_or_default());
+    let enums::Chat::Chat(chat) = functions::get_chat(update.chat_id, client_id).await.unwrap();
+
+    log::info!("{} {:?}", status, chat.title);
 }
