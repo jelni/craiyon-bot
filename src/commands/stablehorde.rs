@@ -11,7 +11,7 @@ use tdlib::enums::{
 };
 use tdlib::functions;
 use tdlib::types::{
-    InlineKeyboardButton, InlineKeyboardButtonTypeUrl, InputFileLocal, InputMessagePhoto,
+    InlineKeyboardButton, InlineKeyboardButtonTypeUrl, InputFileLocal, InputMessagePhoto, Message,
     ReplyMarkupInlineKeyboard, TextParseModeMarkdown,
 };
 use tempfile::NamedTempFile;
@@ -82,7 +82,7 @@ impl CommandTrait for StableHorde {
         let request_id =
             stablehorde::generate(ctx.http_client.clone(), self.models, &prompt).await??;
 
-        let mut status_msg = None;
+        let mut status_msg: Option<Message> = None;
         let escaped_prompt = escape_markdown(prompt);
         let start = Instant::now();
         let mut show_volunteer_notice = false;
@@ -105,14 +105,14 @@ impl CommandTrait for StableHorde {
                     .map_or(true, |last_edit| last_edit.elapsed() >= Duration::from_secs(12))
                 {
                     let text = format_status(&status, &escaped_prompt, show_volunteer_notice);
-                    match &status_msg {
+                    status_msg = Some(match status_msg {
                         None => {
-                            status_msg = Some(ctx.reply_markdown(text).await?);
+                            ctx.message_queue
+                                .wait_for_message(ctx.reply_markdown(text).await?.id)
+                                .await?
                         }
-                        Some(status_msg) => {
-                            ctx.edit_message_markdown(status_msg, text).await?;
-                        }
-                    };
+                        Some(status_msg) => ctx.edit_message_markdown(status_msg.id, text).await?,
+                    });
 
                     last_edit = Some(Instant::now());
                     last_status = Some(status);

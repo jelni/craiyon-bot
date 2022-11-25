@@ -1,6 +1,5 @@
 use std::env;
 use std::future::Future;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -11,25 +10,37 @@ use tdlib::enums::{
 use tdlib::functions;
 use tdlib::types::{
     AuthorizationStateWaitEncryptionKey, Message, MessageText, OptionValueString, TdlibParameters,
-    UpdateAuthorizationState, UpdateChatMember, UpdateConnectionState, UpdateNewInlineQuery,
-    UpdateNewMessage, UpdateOption, User,
+    UpdateAuthorizationState, UpdateChatMember, UpdateConnectionState, UpdateMessageSendFailed,
+    UpdateMessageSendSucceeded, UpdateNewInlineQuery, UpdateNewMessage, UpdateOption, User,
 };
 use tokio::signal;
 use tokio::task::JoinHandle;
 
 use crate::commands::CommandError;
+use crate::message_queue::MessageQueue;
 use crate::ratelimit::RateLimiter;
 use crate::utils::{
     format_duration, CommandInstance, CommandRef, Context, DisplayUser, ParsedCommand, RateLimits,
 };
 use crate::{not_commands, utils};
 
+pub type TdError = tdlib::types::Error;
+
+#[derive(Clone, Copy)]
+enum BotState {
+    Running,
+    WaitingToClose,
+    Closing,
+    Closed,
+}
+
 pub struct Bot {
     client_id: i32,
-    running: AtomicBool,
+    state: Arc<Mutex<BotState>>,
     me: Arc<Mutex<Option<User>>>,
     http_client: reqwest::Client,
     commands: Vec<Arc<CommandInstance>>,
+    message_queue: Arc<MessageQueue>,
     ratelimits: Arc<Mutex<RateLimits>>,
     tasks: Vec<JoinHandle<()>>,
 }
@@ -38,7 +49,7 @@ impl Bot {
     pub fn new() -> Self {
         Self {
             client_id: tdlib::create_client(),
-            running: AtomicBool::new(false),
+            state: Arc::new(Mutex::new(BotState::Closed)),
             me: Arc::new(Mutex::new(None)),
             http_client: Client::builder()
                 .redirect(redirect::Policy::none())
@@ -51,26 +62,38 @@ impl Bot {
                 auto_reply: RateLimiter::new(2, 20),
             })),
             tasks: Vec::new(),
+            message_queue: Arc::new(MessageQueue::default()),
         }
     }
 
     pub async fn run(&mut self) {
-        self.running.store(true, Ordering::Relaxed);
+        *self.state.lock().unwrap() = BotState::Running;
         let client_id = self.client_id;
         self.run_task(async move {
             functions::set_log_verbosity_level(1, client_id).await.unwrap();
         });
 
-        let client_id = self.client_id;
+        let state = self.state.clone();
         self.run_task(async move {
             signal::ctrl_c().await.unwrap();
-            functions::close(client_id).await.unwrap();
+            log::warn!("Ctrl+C received");
+            *state.lock().unwrap() = BotState::WaitingToClose;
         });
 
-        while self.running.load(Ordering::Relaxed) {
-            self.tasks.retain(|t| !t.is_finished());
+        loop {
             if let Some((update, _)) = tdlib::receive() {
                 self.on_update(update);
+            }
+            self.tasks.retain(|t| !t.is_finished());
+            let state = *self.state.lock().unwrap();
+            match state {
+                BotState::WaitingToClose => {
+                    if self.tasks.is_empty() {
+                        self.close();
+                    }
+                }
+                BotState::Closed => break,
+                _ => (),
             }
         }
 
@@ -80,6 +103,14 @@ impl Bot {
                 task.await.ok();
             }
         }
+    }
+
+    fn close(&mut self) {
+        *self.state.lock().unwrap() = BotState::Closing;
+        let client_id = self.client_id;
+        self.run_task(async move {
+            functions::close(client_id).await.unwrap();
+        });
     }
 
     fn run_task<T: Future<Output = ()> + Send + 'static>(&mut self, future: T) {
@@ -92,6 +123,8 @@ impl Bot {
                 self.on_authorization_state_update(authorization_state);
             }
             Update::NewMessage(UpdateNewMessage { message }) => self.on_message(message),
+            Update::MessageSendSucceeded(update) => self.on_message_sent(Ok(update)),
+            Update::MessageSendFailed(update) => self.on_message_sent(Err(update)),
             Update::Option(UpdateOption {
                 name,
                 value: OptionValue::String(OptionValueString { value }),
@@ -102,7 +135,7 @@ impl Bot {
                 );
             }
             Update::ConnectionState(UpdateConnectionState { state }) => {
-                println!("connection: {state:?}");
+                log::info!("connection: {state:?}");
             }
             Update::NewInlineQuery(query) => self.on_inline_query(query),
             Update::ChatMember(update) => self.on_chat_member_update(update),
@@ -113,7 +146,7 @@ impl Bot {
     #[allow(clippy::needless_pass_by_value)]
     fn on_authorization_state_update(&mut self, authorization_state: AuthorizationState) {
         {
-            println!("authorization: {authorization_state:?}");
+            log::info!("authorization: {authorization_state:?}");
             match authorization_state {
                 AuthorizationState::WaitTdlibParameters => {
                     let client_id = self.client_id;
@@ -161,7 +194,7 @@ impl Bot {
                     });
                 }
                 AuthorizationState::Ready => self.on_ready(),
-                AuthorizationState::Closed => self.running.store(false, Ordering::Relaxed),
+                AuthorizationState::Closed => *self.state.lock().unwrap() = BotState::Closed,
                 _ => (),
             }
         }
@@ -177,20 +210,18 @@ impl Bot {
     }
 
     fn on_message(&mut self, message: Message) {
-        let MessageContent::MessageText(MessageText { text, .. }) = &message.content else {
-            // ignore non-text messages
-            return;
+        let BotState::Running = *self.state.lock().unwrap() else {
+            return; // ignore when closing
         };
-
+        let MessageContent::MessageText(MessageText { text, .. }) = &message.content else {
+            return; // ignore non-text messages
+        };
         if message.forward_info.is_some() {
-            // ignore forwarded messages
-            return;
+            return; // ignore forwarded messages
         }
-
         let Some(parsed_command) = ParsedCommand::parse(text) else {
             return;
         };
-
         let Some(command) = self.get_command(&parsed_command) else {
             return;
         };
@@ -200,6 +231,7 @@ impl Bot {
             parsed_command.arguments,
             command,
             self.http_client.clone(),
+            self.message_queue.clone(),
             self.ratelimits.clone(),
             self.client_id,
         ));
@@ -215,6 +247,13 @@ impl Bot {
 
     fn on_chat_member_update(&mut self, update: UpdateChatMember) {
         self.run_task(utils::log_status_update(update, self.client_id));
+    }
+
+    fn on_message_sent(
+        &mut self,
+        result: Result<UpdateMessageSendSucceeded, UpdateMessageSendFailed>,
+    ) {
+        self.message_queue.message_sent(result);
     }
 
     fn get_command(&self, parsed_command: &ParsedCommand) -> Option<Arc<CommandInstance>> {
@@ -241,6 +280,7 @@ impl Bot {
         arguments: Option<String>,
         command: Arc<CommandInstance>,
         http_client: reqwest::Client,
+        message_queue: Arc<MessageQueue>,
         ratelimits: Arc<Mutex<RateLimits>>,
         client_id: i32,
     ) {
@@ -258,7 +298,8 @@ impl Bot {
             return;
         }
 
-        let context = Arc::new(Context { client_id, message, user, http_client, ratelimits });
+        let context =
+            Arc::new(Context { client_id, message, user, http_client, message_queue, ratelimits });
 
         let cooldown = command
             .ratelimiter

@@ -6,6 +6,7 @@ mod apis;
 mod bot;
 mod commands;
 mod logchamp;
+mod message_queue;
 mod not_commands;
 mod ratelimit;
 mod utils;
