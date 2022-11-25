@@ -27,15 +27,26 @@ use crate::utils::{
 pub struct StableHorde {
     command_name: &'static str,
     command_aliases: &'static [&'static str],
-    models: &'static [&'static str],
+    model: &'static str,
+    size: u32,
 }
 
 impl StableHorde {
+    pub fn stable_diffusion_2() -> Self {
+        Self {
+            command_name: "stable_diffusion_2",
+            command_aliases: &["sd2"],
+            model: "stable_diffusion_2.0",
+            size: 768,
+        }
+    }
+
     pub fn stable_diffusion() -> Self {
         Self {
             command_name: "stable_diffusion",
             command_aliases: &["sd"],
-            models: &["stable_diffusion"],
+            model: "stable_diffusion",
+            size: 512,
         }
     }
 
@@ -43,15 +54,17 @@ impl StableHorde {
         Self {
             command_name: "waifu_diffusion",
             command_aliases: &["wd"],
-            models: &["waifu_diffusion"],
+            model: "waifu_diffusion",
+            size: 512,
         }
     }
 
     pub fn furry_diffusion() -> Self {
         Self {
             command_name: "furry_diffusion",
-            command_aliases: &["fd", "furry_epoch", "fe"],
-            models: &["Furry Epoch"],
+            command_aliases: &["fd"],
+            model: "Furry Epoch",
+            size: 512,
         }
     }
 }
@@ -80,7 +93,8 @@ impl CommandTrait for StableHorde {
         }
 
         let request_id =
-            stablehorde::generate(ctx.http_client.clone(), self.models, &prompt).await??;
+            stablehorde::generate(ctx.http_client.clone(), self.model, &prompt, self.size)
+                .await??;
 
         let mut status_msg: Option<Message> = None;
         let escaped_prompt = escape_markdown(prompt);
@@ -162,28 +176,31 @@ impl CommandTrait for StableHorde {
         .await
         .unwrap();
 
-        ctx.reply_custom(
-            InputMessageContent::InputMessagePhoto(InputMessagePhoto {
-                photo: InputFile::Local(InputFileLocal {
-                    path: temp_file.path().to_str().unwrap().into(),
-                }),
-                thumbnail: None,
-                added_sticker_file_ids: Vec::new(),
-                width: image.width().try_into().unwrap(),
-                height: image.height().try_into().unwrap(),
-                caption: Some(formatted_text),
-                ttl: 0,
-            }),
-            Some(ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
-                rows: vec![vec![InlineKeyboardButton {
-                    text: "generated thanks to Stable Horde".into(),
-                    r#type: InlineKeyboardButtonType::Url(InlineKeyboardButtonTypeUrl {
-                        url: "https://stablehorde.net/".into(),
+        let message = ctx
+            .reply_custom(
+                InputMessageContent::InputMessagePhoto(InputMessagePhoto {
+                    photo: InputFile::Local(InputFileLocal {
+                        path: temp_file.path().to_str().unwrap().into(),
                     }),
-                }]],
-            })),
-        )
-        .await?;
+                    thumbnail: None,
+                    added_sticker_file_ids: Vec::new(),
+                    width: image.width().try_into().unwrap(),
+                    height: image.height().try_into().unwrap(),
+                    caption: Some(formatted_text),
+                    ttl: 0,
+                }),
+                Some(ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
+                    rows: vec![vec![InlineKeyboardButton {
+                        text: "generated thanks to Stable Horde".into(),
+                        r#type: InlineKeyboardButtonType::Url(InlineKeyboardButtonTypeUrl {
+                            url: "https://stablehorde.net/".into(),
+                        }),
+                    }]],
+                })),
+            )
+            .await?;
+
+        ctx.message_queue.wait_for_message(message.id).await?;
 
         if let Some(status_msg) = status_msg {
             ctx.delete_message(status_msg.id).await.ok();

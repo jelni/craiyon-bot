@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
 struct GenerationInput {
-    models: &'static [&'static str],
+    models: Vec<&'static str>,
     prompt: String,
     params: Params,
     nsfw: bool,
@@ -15,11 +15,11 @@ struct GenerationInput {
 
 #[derive(Serialize)]
 struct Params {
-    n: usize,
-    width: usize,
-    height: usize,
+    n: u32,
+    width: u32,
+    height: u32,
     sampler_name: &'static str,
-    steps: usize,
+    steps: u32,
     karras: bool,
 }
 
@@ -57,18 +57,19 @@ pub struct Generation {
 
 pub async fn generate<S: Into<String>>(
     http_client: reqwest::Client,
-    models: &'static [&'static str],
+    model: &'static str,
     prompt: S,
+    size: u32,
 ) -> reqwest::Result<Result<String, String>> {
     let response = http_client
         .post("https://stablehorde.net/api/v2/generate/async")
         .json(&GenerationInput {
-            models,
+            models: vec![model],
             prompt: prompt.into(),
             params: Params {
                 n: 4,
-                width: 512,
-                height: 512,
+                width: size,
+                height: size,
                 sampler_name: "k_euler",
                 steps: 24,
                 karras: true,

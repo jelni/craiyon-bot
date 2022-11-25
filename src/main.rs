@@ -21,6 +21,7 @@ async fn main() {
     bot.add_command(Box::<commands::start::Start>::default());
     bot.add_command(Box::<commands::ping::Ping>::default());
     bot.add_command(Box::<commands::generate::Generate>::default());
+    bot.add_command(Box::new(commands::stablehorde::StableHorde::stable_diffusion_2()));
     bot.add_command(Box::new(commands::stablehorde::StableHorde::stable_diffusion()));
     bot.add_command(Box::new(commands::stablehorde::StableHorde::waifu_diffusion()));
     bot.add_command(Box::new(commands::stablehorde::StableHorde::furry_diffusion()));

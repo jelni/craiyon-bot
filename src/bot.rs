@@ -96,13 +96,6 @@ impl Bot {
                 _ => (),
             }
         }
-
-        if !self.tasks.is_empty() {
-            log::info!("waiting for {} task(s) to finish…", self.tasks.len());
-            for task in self.tasks.drain(..) {
-                task.await.ok();
-            }
-        }
     }
 
     fn close(&mut self) {

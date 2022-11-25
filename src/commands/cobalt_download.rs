@@ -30,7 +30,8 @@ impl CommandTrait for CobaltDownload {
 
         let mut urls = cobalt::query(ctx.http_client.clone(), media_url.clone()).await??;
 
-        let status_msg = ctx.reply("downloading…").await?;
+        let status_msg =
+            ctx.message_queue.wait_for_message(ctx.reply("downloading…").await?.id).await?;
 
         urls.truncate(4);
         let mut downloads = Vec::with_capacity(urls.len());
