@@ -148,7 +148,7 @@ impl CommandTrait for StableHorde {
             .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
             .collect::<Vec<_>>();
 
-        let image = image_collage(images, (512, 512), 2, 8);
+        let image = image_collage(images, (self.size, self.size), 2, 8);
         let mut temp_file = NamedTempFile::new().unwrap();
         image.write_to(temp_file.as_file_mut(), ImageFormat::Png).unwrap();
 

@@ -90,6 +90,8 @@ impl Bot {
                 BotState::WaitingToClose => {
                     if self.tasks.is_empty() {
                         self.close();
+                    } else {
+                        log::info!("waiting for {} task(s) to finish…", self.tasks.len());
                     }
                 }
                 BotState::Closed => break,

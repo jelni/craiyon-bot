@@ -8,8 +8,8 @@ use super::{CommandResult, CommandTrait};
 use crate::utils::Context;
 
 const SEX: [&str; 2] = [
-    "CAACAgQAAxkBAAEX8npjHImztCnVUekWoGsQcoqzITtAiAACsQwAAhKVaVMIFeTFdsnn_CkE",
-    "CAACAgQAAxkBAAEX9DljHNrRW0S-xydtOOE7n9g4pFEixAACfwsAAhbWcFPn8gyFbHwwoykE",
+    "CAACAgQAAxkBAAIHfGOBPouzDkVHO9WAvBrBcMShtX5PAAKxDAACEpVpUwgV5MV2yef8JAQ",
+    "CAACAgQAAxkBAAIHe2OBPolUMdfqvn_-38aWQ3bJ0NojAAJ_CwACFtZwU-fyDIVsfDCjJAQ",
 ];
 
 #[derive(Default)]
