@@ -4,6 +4,7 @@ use bot::Bot;
 
 mod apis;
 mod bot;
+mod command_manager;
 mod commands;
 mod logchamp;
 mod message_queue;
@@ -27,11 +28,11 @@ async fn main() {
     bot.add_command(Box::new(commands::stablehorde::StableHorde::furry_diffusion()));
     bot.add_command(Box::<commands::translate::Translate>::default());
     bot.add_command(Box::<commands::badtranslate::BadTranslate>::default());
-    bot.add_command(Box::<commands::tts::Tts>::default());
     bot.add_command(Box::<commands::urbandictionary::UrbanDictionary>::default());
     bot.add_command(Box::<commands::screenshot::Screenshot>::default());
     bot.add_command(Box::<commands::cobalt_download::CobaltDownload>::default());
     bot.add_command(Box::<commands::charinfo::CharInfo>::default());
+    bot.add_command(Box::<commands::tts::Tts>::default());
     bot.add_command(Box::<commands::delete::Delete>::default());
     bot.add_command(Box::<commands::startit_joke::StartItJoke>::default());
     bot.add_command(Box::<commands::autocomplete::Autocomplete>::default());

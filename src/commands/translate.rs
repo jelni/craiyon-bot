@@ -12,12 +12,12 @@ pub struct Translate;
 
 #[async_trait]
 impl CommandTrait for Translate {
-    fn name(&self) -> &'static str {
-        "translate"
+    fn command_names(&self) -> &[&str] {
+        &["translate", "tr", "trans"]
     }
 
-    fn aliases(&self) -> &[&str] {
-        &["tr", "trans"]
+    fn description(&self) -> Option<&'static str> {
+        Some("translate text to English using Google Translate")
     }
 
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {

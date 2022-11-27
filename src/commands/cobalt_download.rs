@@ -17,12 +17,12 @@ pub struct CobaltDownload;
 
 #[async_trait]
 impl CommandTrait for CobaltDownload {
-    fn name(&self) -> &'static str {
-        "cobalt_download"
+    fn command_names(&self) -> &[&str] {
+        &["cobalt_download", "cobalt", "download", "dl"]
     }
 
-    fn aliases(&self) -> &[&str] {
-        &["cobalt", "download", "dl"]
+    fn description(&self) -> Option<&'static str> {
+        Some("download online media using ≫ cobalt")
     }
 
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {

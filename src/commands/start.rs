@@ -10,8 +10,8 @@ pub struct Start;
 
 #[async_trait]
 impl CommandTrait for Start {
-    fn name(&self) -> &'static str {
-        "start"
+    fn command_names(&self) -> &[&str] {
+        &["start"]
     }
 
     async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {

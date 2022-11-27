@@ -16,12 +16,8 @@ pub struct Tts;
 
 #[async_trait]
 impl CommandTrait for Tts {
-    fn name(&self) -> &'static str {
-        "tts"
-    }
-
-    fn aliases(&self) -> &[&str] {
-        &["ivona"]
+    fn command_names(&self) -> &[&str] {
+        &["tts", "ivona"]
     }
 
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {

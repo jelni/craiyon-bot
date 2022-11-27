@@ -12,12 +12,12 @@ pub struct BadTranslate;
 
 #[async_trait]
 impl CommandTrait for BadTranslate {
-    fn name(&self) -> &'static str {
-        "badtranslate"
+    fn command_names(&self) -> &[&str] {
+        &["badtranslate", "btr", "btrans"]
     }
 
-    fn aliases(&self) -> &[&str] {
-        &["btr", "btrans"]
+    fn description(&self) -> Option<&'static str> {
+        Some("badly translate text to English")
     }
 
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {

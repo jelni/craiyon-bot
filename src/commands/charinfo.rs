@@ -11,12 +11,12 @@ pub struct CharInfo;
 
 #[async_trait]
 impl CommandTrait for CharInfo {
-    fn name(&self) -> &'static str {
-        "charinfo"
+    fn command_names(&self) -> &[&str] {
+        &["charinfo", "ch"]
     }
 
-    fn aliases(&self) -> &[&str] {
-        &["ch"]
+    fn description(&self) -> Option<&'static str> {
+        Some("get Unicode character names")
     }
 
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {

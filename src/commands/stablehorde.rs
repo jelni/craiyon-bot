@@ -25,8 +25,8 @@ use crate::utils::{
 };
 
 pub struct StableHorde {
-    command_name: &'static str,
-    command_aliases: &'static [&'static str],
+    command_names: &'static [&'static str],
+    command_description: &'static str,
     model: &'static str,
     size: u32,
 }
@@ -34,8 +34,8 @@ pub struct StableHorde {
 impl StableHorde {
     pub fn stable_diffusion_2() -> Self {
         Self {
-            command_name: "stable_diffusion_2",
-            command_aliases: &["sd2"],
+            command_names: &["stable_diffusion_2", "sd2"],
+            command_description: "generate images using Stable Diffusion 2.0",
             model: "stable_diffusion_2.0",
             size: 768,
         }
@@ -43,8 +43,8 @@ impl StableHorde {
 
     pub fn stable_diffusion() -> Self {
         Self {
-            command_name: "stable_diffusion",
-            command_aliases: &["sd"],
+            command_names: &["stable_diffusion", "sd"],
+            command_description: "generate images using Stable Diffusion",
             model: "stable_diffusion",
             size: 512,
         }
@@ -52,8 +52,8 @@ impl StableHorde {
 
     pub fn waifu_diffusion() -> Self {
         Self {
-            command_name: "waifu_diffusion",
-            command_aliases: &["wd"],
+            command_names: &["waifu_diffusion", "wd"],
+            command_description: "generate images using Waifu Diffusion",
             model: "waifu_diffusion",
             size: 512,
         }
@@ -61,8 +61,8 @@ impl StableHorde {
 
     pub fn furry_diffusion() -> Self {
         Self {
-            command_name: "furry_diffusion",
-            command_aliases: &["fd"],
+            command_names: &["furry_diffusion", "fd"],
+            command_description: "generate images using Furry Epoch",
             model: "Furry Epoch",
             size: 512,
         }
@@ -71,12 +71,12 @@ impl StableHorde {
 
 #[async_trait]
 impl CommandTrait for StableHorde {
-    fn name(&self) -> &'static str {
-        self.command_name
+    fn command_names(&self) -> &[&str] {
+        self.command_names
     }
 
-    fn aliases(&self) -> &[&str] {
-        self.command_aliases
+    fn description(&self) -> Option<&'static str> {
+        Some(self.command_description)
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
@@ -109,7 +109,7 @@ impl CommandTrait for StableHorde {
                 break;
             };
 
-            if !show_volunteer_notice && status.wait_time >= 30 {
+            if status.wait_time >= 30 {
                 show_volunteer_notice = true;
             }
 

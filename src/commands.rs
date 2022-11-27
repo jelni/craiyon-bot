@@ -27,13 +27,16 @@ pub type CommandResult = Result<(), CommandError>;
 
 #[async_trait]
 pub trait CommandTrait {
-    fn name(&self) -> &'static str;
-    fn aliases(&self) -> &[&str] {
-        &[]
+    fn command_names(&self) -> &[&str];
+
+    fn description(&self) -> Option<&'static str> {
+        None
     }
+
     fn rate_limit(&self) -> RateLimiter<i64> {
-        RateLimiter::new(4, 20)
+        RateLimiter::new(3, 30)
     }
+
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult;
 }
 

@@ -13,12 +13,8 @@ pub struct Delete;
 
 #[async_trait]
 impl CommandTrait for Delete {
-    fn name(&self) -> &'static str {
-        "delete"
-    }
-
-    fn aliases(&self) -> &[&str] {
-        &["del"]
+    fn command_names(&self) -> &[&str] {
+        &["delete", "del"]
     }
 
     async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {
