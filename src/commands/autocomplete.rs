@@ -16,6 +16,10 @@ impl CommandTrait for Autocomplete {
         &["autocomplete", "complete", "google"]
     }
 
+    fn description(&self) -> Option<&'static str> {
+        Some("autocompletes a query with Google")
+    }
+
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
         let query = arguments.ok_or(MissingArgument("text to autocomplete"))?;
 

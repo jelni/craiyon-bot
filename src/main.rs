@@ -20,7 +20,6 @@ async fn main() {
     let mut bot = Bot::new();
 
     bot.add_command(Box::<commands::start::Start>::default());
-    bot.add_command(Box::<commands::ping::Ping>::default());
     bot.add_command(Box::<commands::generate::Generate>::default());
     bot.add_command(Box::new(commands::stablehorde::StableHorde::stable_diffusion_2()));
     bot.add_command(Box::new(commands::stablehorde::StableHorde::stable_diffusion()));
@@ -32,11 +31,13 @@ async fn main() {
     bot.add_command(Box::<commands::screenshot::Screenshot>::default());
     bot.add_command(Box::<commands::cobalt_download::CobaltDownload>::default());
     bot.add_command(Box::<commands::charinfo::CharInfo>::default());
-    bot.add_command(Box::<commands::tts::Tts>::default());
-    bot.add_command(Box::<commands::delete::Delete>::default());
-    bot.add_command(Box::<commands::startit_joke::StartItJoke>::default());
     bot.add_command(Box::<commands::autocomplete::Autocomplete>::default());
+    bot.add_command(Box::<commands::tts::Tts>::default());
     bot.add_command(Box::<commands::kiwifarms::KiwiFarms>::default());
+    bot.add_command(Box::<commands::startit_joke::StartItJoke>::default());
+    bot.add_command(Box::<commands::kebab::Kebab>::default());
+    bot.add_command(Box::<commands::ping::Ping>::default());
+    bot.add_command(Box::<commands::delete::Delete>::default());
     bot.add_command(Box::<commands::sex::Sex>::default());
 
     bot.run().await;
