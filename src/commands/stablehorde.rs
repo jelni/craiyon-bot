@@ -1,17 +1,23 @@
 use std::fmt::Write;
-use std::io::Cursor;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use counter::Counter;
-use image::{ImageFormat, ImageOutputFormat};
-use tgbotapi::requests::{ParseMode, ReplyMarkup};
-use tgbotapi::{FileType, InlineKeyboardButton, InlineKeyboardMarkup};
+use image::ImageFormat;
+use tdlib::enums::{
+    FormattedText, InlineKeyboardButtonType, InputFile, InputMessageContent, ReplyMarkup,
+    TextParseMode,
+};
+use tdlib::functions;
+use tdlib::types::{
+    InlineKeyboardButton, InlineKeyboardButtonTypeUrl, InputFileLocal, InputMessagePhoto, Message,
+    ReplyMarkupInlineKeyboard, TextParseModeMarkdown,
+};
+use tempfile::NamedTempFile;
 
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
-use crate::api_methods::SendPhoto;
 use crate::apis::stablehorde::{self, Status};
 use crate::ratelimit::RateLimiter;
 use crate::utils::{
@@ -21,15 +27,26 @@ use crate::utils::{
 pub struct StableHorde {
     command_name: &'static str,
     command_aliases: &'static [&'static str],
-    models: &'static [&'static str],
+    model: &'static str,
+    size: u32,
 }
 
 impl StableHorde {
+    pub fn stable_diffusion_2() -> Self {
+        Self {
+            command_name: "stable_diffusion_2",
+            command_aliases: &["sd2"],
+            model: "stable_diffusion_2.0",
+            size: 768,
+        }
+    }
+
     pub fn stable_diffusion() -> Self {
         Self {
             command_name: "stable_diffusion",
             command_aliases: &["sd"],
-            models: &["stable_diffusion"],
+            model: "stable_diffusion",
+            size: 512,
         }
     }
 
@@ -37,15 +54,17 @@ impl StableHorde {
         Self {
             command_name: "waifu_diffusion",
             command_aliases: &["wd"],
-            models: &["waifu_diffusion"],
+            model: "waifu_diffusion",
+            size: 512,
         }
     }
 
     pub fn furry_diffusion() -> Self {
         Self {
             command_name: "furry_diffusion",
-            command_aliases: &["fd", "furry_epoch", "fe"],
-            models: &["Furry Epoch"],
+            command_aliases: &["fd"],
+            model: "Furry Epoch",
+            size: 512,
         }
     }
 }
@@ -74,9 +93,10 @@ impl CommandTrait for StableHorde {
         }
 
         let request_id =
-            stablehorde::generate(ctx.http_client.clone(), self.models, &prompt).await??;
+            stablehorde::generate(ctx.http_client.clone(), self.model, &prompt, self.size)
+                .await??;
 
-        let mut status_msg = None;
+        let mut status_msg: Option<Message> = None;
         let escaped_prompt = escape_markdown(prompt);
         let start = Instant::now();
         let mut show_volunteer_notice = false;
@@ -99,14 +119,14 @@ impl CommandTrait for StableHorde {
                     .map_or(true, |last_edit| last_edit.elapsed() >= Duration::from_secs(12))
                 {
                     let text = format_status(&status, &escaped_prompt, show_volunteer_notice);
-                    match &status_msg {
+                    status_msg = Some(match status_msg {
                         None => {
-                            status_msg = Some(ctx.reply_markdown(text).await?);
+                            ctx.message_queue
+                                .wait_for_message(ctx.reply_markdown(text).await?.id)
+                                .await?
                         }
-                        Some(status_msg) => {
-                            ctx.edit_message_markdown(status_msg, text).await?;
-                        }
-                    };
+                        Some(status_msg) => ctx.edit_message_markdown(status_msg.id, text).await?,
+                    });
 
                     last_edit = Some(Instant::now());
                     last_status = Some(status);
@@ -128,46 +148,62 @@ impl CommandTrait for StableHorde {
             .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
             .collect::<Vec<_>>();
 
-        let image = image_collage(images, (512, 512), 2, 8);
-        let mut buffer = Cursor::new(Vec::new());
-        image.write_to(&mut buffer, ImageOutputFormat::Png).unwrap();
+        let image = image_collage(images, (self.size, self.size), 2, 8);
+        let mut temp_file = NamedTempFile::new().unwrap();
+        image.write_to(temp_file.as_file_mut(), ImageFormat::Png).unwrap();
 
-        ctx.api
-            .make_request(&SendPhoto {
-                chat_id: ctx.message.chat_id(),
-                photo: FileType::Bytes("image.png".into(), buffer.into_inner()),
-                caption: Some(format!(
-                    "generated *{}* in {} by {}\\.",
-                    escaped_prompt,
-                    format_duration(duration.as_secs()),
-                    workers
-                        .most_common()
-                        .into_iter()
-                        .map(|(mut k, v)| {
-                            k.truncate_with_ellipsis(64);
-                            if v > 1 {
-                                write!(k, " ({v})").unwrap();
-                            }
-                            escape_markdown(k)
-                        })
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                )),
-                parse_mode: Some(ParseMode::MarkdownV2),
-                reply_to_message_id: Some(ctx.message.message_id),
-                allow_sending_without_reply: Some(true),
-                reply_markup: Some(ReplyMarkup::InlineKeyboardMarkup(InlineKeyboardMarkup {
-                    inline_keyboard: vec![vec![InlineKeyboardButton {
+        let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
+            format!(
+                "generated *{}* in {} by {}\\.",
+                escaped_prompt,
+                format_duration(duration.as_secs()),
+                workers
+                    .most_common()
+                    .into_iter()
+                    .map(|(mut k, v)| {
+                        k.truncate_with_ellipsis(64);
+                        if v > 1 {
+                            write!(k, " ({v})").unwrap();
+                        }
+                        escape_markdown(k)
+                    })
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
+            ctx.client_id,
+        )
+        .await
+        .unwrap();
+
+        let message = ctx
+            .reply_custom(
+                InputMessageContent::InputMessagePhoto(InputMessagePhoto {
+                    photo: InputFile::Local(InputFileLocal {
+                        path: temp_file.path().to_str().unwrap().into(),
+                    }),
+                    thumbnail: None,
+                    added_sticker_file_ids: Vec::new(),
+                    width: image.width().try_into().unwrap(),
+                    height: image.height().try_into().unwrap(),
+                    caption: Some(formatted_text),
+                    ttl: 0,
+                }),
+                Some(ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
+                    rows: vec![vec![InlineKeyboardButton {
                         text: "generated thanks to Stable Horde".into(),
-                        url: Some("https://stablehorde.net/".into()),
-                        ..Default::default()
+                        r#type: InlineKeyboardButtonType::Url(InlineKeyboardButtonTypeUrl {
+                            url: "https://stablehorde.net/".into(),
+                        }),
                     }]],
                 })),
-            })
+            )
             .await?;
 
+        ctx.message_queue.wait_for_message(message.id).await?;
+
         if let Some(status_msg) = status_msg {
-            ctx.delete_message(&status_msg).await.ok();
+            ctx.delete_message(status_msg.id).await.ok();
         }
 
         Ok(())

@@ -20,7 +20,7 @@ jobs:
           components: clippy
 
       - name: Run Clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --features tdlib/dox -- -D warnings
 
   rustfmt:
     name: Rustfmt

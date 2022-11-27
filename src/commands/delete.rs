@@ -26,8 +26,9 @@ impl CommandTrait for Delete {
             return Ok(());
         }
 
-        if let Some(message) = &ctx.message.reply_to_message {
-            ctx.delete_message(message).await.ok();
+        let reply_to_message_id = ctx.message.reply_to_message_id;
+        if reply_to_message_id != 0 {
+            ctx.delete_message(reply_to_message_id).await.ok();
         }
 
         Ok(())
