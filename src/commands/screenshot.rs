@@ -3,9 +3,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use reqwest::Url;
-use tdlib::enums::{FormattedText, InputFile, InputMessageContent, TextParseMode};
-use tdlib::functions;
-use tdlib::types::{InputFileLocal, InputMessagePhoto, TextParseModeMarkdown};
+use tdlib::enums::{InputFile, InputMessageContent};
+use tdlib::types::{FormattedText, InputFileLocal, InputMessagePhoto};
 use tempfile::NamedTempFile;
 use url::ParseError;
 
@@ -63,19 +62,6 @@ impl CommandTrait for Screenshot {
         let mut temp_file = NamedTempFile::new().unwrap();
         temp_file.write_all(&screenshot).unwrap();
 
-        let caption = match data.title {
-            Some(title) => {
-                let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
-                    title,
-                    TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
-                    ctx.client_id,
-                )
-                .await?;
-                Some(formatted_text)
-            }
-            None => None,
-        };
-
         let message = ctx
             .reply_custom(
                 InputMessageContent::InputMessagePhoto(InputMessagePhoto {
@@ -86,7 +72,7 @@ impl CommandTrait for Screenshot {
                     added_sticker_file_ids: Vec::new(),
                     width: 0,
                     height: 0,
-                    caption,
+                    caption: data.title.map(|t| FormattedText { text: t, ..Default::default() }),
                     ttl: 0,
                 }),
                 None,
