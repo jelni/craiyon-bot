@@ -16,6 +16,10 @@ impl CommandTrait for Ping {
         &["ping"]
     }
 
+    fn description(&self) -> Option<&'static str> {
+        Some("check if the bot is online")
+    }
+
     async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {
         let start = Instant::now();
         functions::test_network(ctx.client_id).await?;

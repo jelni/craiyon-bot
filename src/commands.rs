@@ -12,6 +12,7 @@ pub mod charinfo;
 pub mod cobalt_download;
 pub mod delete;
 pub mod generate;
+pub mod kebab;
 pub mod kiwifarms;
 pub mod ping;
 pub mod screenshot;

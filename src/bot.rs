@@ -199,13 +199,11 @@ impl Bot {
     fn on_ready(&mut self) {
         let client_id = self.client_id;
         let me = self.me.clone();
-        self.run_task(async move {
-            let enums::User::User(user) = functions::get_me(client_id).await.unwrap();
-            *me.lock().unwrap() = Some(user);
-        });
-
         let commands = self.command_manager.public_command_list();
         self.run_task(async move {
+            let enums::User::User(user) = functions::get_me(client_id).await.unwrap();
+            log::info!("running as @{}", user.username);
+            *me.lock().unwrap() = Some(user);
             Bot::sync_commands(commands, client_id).await.unwrap();
         });
     }

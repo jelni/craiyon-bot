@@ -14,7 +14,11 @@ pub struct KiwiFarms;
 #[async_trait]
 impl CommandTrait for KiwiFarms {
     fn command_names(&self) -> &[&str] {
-        &["does_kiwifarms_work", "kf"]
+        &["does_kiwifarms_work", "kiwifarms", "kf"]
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        Some("checks if The Kiwi Farms forum still works")
     }
 
     async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {

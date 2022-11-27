@@ -30,5 +30,6 @@ dotenv = "0.15"
 tempfile = "3.3"
 log = { version = "0.4", features = ["std"] }
 colored = "2.0"
+rand = "0.8"
 counter = "0.5"
 charname = "0.2"
