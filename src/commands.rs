@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
+use crate::bot::TdError;
 use crate::ratelimit::RateLimiter;
 use crate::utils::Context;
 
@@ -40,7 +41,7 @@ pub enum CommandError {
     CustomError(String),
     CustomMarkdownError(String),
     MissingArgument(&'static str),
-    TelegramError(tgbotapi::Error),
+    TelegramError(TdError),
     ReqwestError(reqwest::Error),
 }
 
@@ -56,8 +57,8 @@ impl From<&str> for CommandError {
     }
 }
 
-impl From<tgbotapi::Error> for CommandError {
-    fn from(value: tgbotapi::Error) -> Self {
+impl From<TdError> for CommandError {
+    fn from(value: TdError) -> Self {
         Self::TelegramError(value)
     }
 }

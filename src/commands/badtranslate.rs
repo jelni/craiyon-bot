@@ -16,6 +16,10 @@ impl CommandTrait for BadTranslate {
         "badtranslate"
     }
 
+    fn aliases(&self) -> &[&str] {
+        &["btr", "btrans"]
+    }
+
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
         let text = arguments.ok_or(MissingArgument("text to translate"))?;
 

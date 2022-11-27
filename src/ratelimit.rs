@@ -1,18 +1,18 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-pub struct RateLimiter<K: Eq + Hash> {
+pub struct RateLimiter<K> {
     limit: usize,
-    duration: i64,
-    history: HashMap<K, Vec<i64>>,
+    duration: i32,
+    history: HashMap<K, Vec<i32>>,
 }
 
 impl<K: Eq + Hash> RateLimiter<K> {
-    pub fn new(limit: usize, duration: i64) -> Self {
+    pub fn new(limit: usize, duration: i32) -> Self {
         Self { limit, duration, history: HashMap::new() }
     }
 
-    pub fn update_rate_limit(&mut self, key: K, time: i64) -> Option<i64> {
+    pub fn update_rate_limit(&mut self, key: K, time: i32) -> Option<i32> {
         if let Some(value) = self.history.get_mut(&key) {
             let cooldown = if value.len() >= self.limit {
                 value.truncate(self.limit);

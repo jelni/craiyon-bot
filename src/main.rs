@@ -2,25 +2,26 @@
 
 use bot::Bot;
 
-mod api_methods;
 mod apis;
 mod bot;
 mod commands;
 mod logchamp;
+mod message_queue;
 mod not_commands;
 mod ratelimit;
 mod utils;
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() {
     logchamp::init();
     dotenv::dotenv().ok();
 
-    let mut bot = Bot::new().await;
+    let mut bot = Bot::new();
 
     bot.add_command(Box::<commands::start::Start>::default());
     bot.add_command(Box::<commands::ping::Ping>::default());
     bot.add_command(Box::<commands::generate::Generate>::default());
+    bot.add_command(Box::new(commands::stablehorde::StableHorde::stable_diffusion_2()));
     bot.add_command(Box::new(commands::stablehorde::StableHorde::stable_diffusion()));
     bot.add_command(Box::new(commands::stablehorde::StableHorde::waifu_diffusion()));
     bot.add_command(Box::new(commands::stablehorde::StableHorde::furry_diffusion()));

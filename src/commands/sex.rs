@@ -1,14 +1,15 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use tgbotapi::FileType;
+use tdlib::enums::{InputFile, InputMessageContent};
+use tdlib::types::{InputFileRemote, InputMessageSticker};
 
 use super::{CommandResult, CommandTrait};
 use crate::utils::Context;
 
 const SEX: [&str; 2] = [
-    "CAACAgQAAxkBAAEX8npjHImztCnVUekWoGsQcoqzITtAiAACsQwAAhKVaVMIFeTFdsnn_CkE",
-    "CAACAgQAAxkBAAEX9DljHNrRW0S-xydtOOE7n9g4pFEixAACfwsAAhbWcFPn8gyFbHwwoykE",
+    "CAACAgQAAxkBAAIHfGOBPouzDkVHO9WAvBrBcMShtX5PAAKxDAACEpVpUwgV5MV2yef8JAQ",
+    "CAACAgQAAxkBAAIHe2OBPolUMdfqvn_-38aWQ3bJ0NojAAJ_CwACFtZwU-fyDIVsfDCjJAQ",
 ];
 
 #[derive(Default)]
@@ -26,7 +27,19 @@ impl CommandTrait for Sex {
 
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
         let question_mark = arguments.map_or(false, |a| a.starts_with('?'));
-        ctx.send_sticker(FileType::FileID(SEX[usize::from(question_mark)].into())).await?;
+        ctx.reply_custom(
+            InputMessageContent::InputMessageSticker(InputMessageSticker {
+                sticker: InputFile::Remote(InputFileRemote {
+                    id: SEX[usize::from(question_mark)].into(),
+                }),
+                thumbnail: None,
+                width: 0,
+                height: 0,
+                emoji: String::new(),
+            }),
+            None,
+        )
+        .await?;
 
         Ok(())
     }

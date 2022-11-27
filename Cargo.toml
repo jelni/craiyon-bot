@@ -4,8 +4,13 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-tokio = { version = "1.21", features = ["signal", "macros", "rt"] }
-tgbotapi = { git = "https://github.com/Syfaro/tgbotapi-rs" }
+tdlib = { git = "https://github.com/melix99/tdlib-rs" }
+tokio = { version = "1.22", features = [
+    "rt-multi-thread",
+    "macros",
+    "time",
+    "signal",
+] }
 async-trait = "0.1"
 reqwest = { version = "0.11", default-features = false, features = [
     "json",
@@ -14,6 +19,7 @@ reqwest = { version = "0.11", default-features = false, features = [
 url = "2.3"
 serde = "1.0"
 serde_json = "1.0"
+oneshot = "0.1"
 image = { version = "0.24", default-features = false, features = [
     "png",
     "webp",
@@ -21,6 +27,7 @@ image = { version = "0.24", default-features = false, features = [
 base64 = "0.20.0-alpha"
 time = { version = "0.3", features = ["serde", "serde-well-known", "macros"] }
 dotenv = "0.15"
+tempfile = "3.3"
 log = { version = "0.4", features = ["std"] }
 colored = "2.0"
 counter = "0.5"
