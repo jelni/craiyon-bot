@@ -21,12 +21,12 @@ pub struct Generate;
 
 #[async_trait]
 impl CommandTrait for Generate {
-    fn name(&self) -> &'static str {
-        "generate"
+    fn command_names(&self) -> &[&str] {
+        &["generate", "g", "gen", "craiyon"]
     }
 
-    fn aliases(&self) -> &[&str] {
-        &["g", "gen", "craiyon"]
+    fn description(&self) -> Option<&'static str> {
+        Some("generate images using 🖍 Craiyon")
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {

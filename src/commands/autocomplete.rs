@@ -12,12 +12,8 @@ pub struct Autocomplete;
 
 #[async_trait]
 impl CommandTrait for Autocomplete {
-    fn name(&self) -> &'static str {
-        "autocomplete"
-    }
-
-    fn aliases(&self) -> &[&str] {
-        &["complete", "google"]
+    fn command_names(&self) -> &[&str] {
+        &["autocomplete", "complete", "google"]
     }
 
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {

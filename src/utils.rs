@@ -13,7 +13,6 @@ use tdlib::types::{
 };
 
 use crate::bot::TdError;
-use crate::commands::CommandTrait;
 use crate::message_queue::MessageQueue;
 use crate::ratelimit::RateLimiter;
 
@@ -21,14 +20,6 @@ pub const MARKDOWN_CHARS: [char; 20] = [
     '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!', '`',
     '\\',
 ];
-
-pub type CommandRef = Box<dyn CommandTrait + Send + Sync>;
-
-pub struct CommandInstance {
-    pub name: &'static str,
-    pub ratelimiter: Mutex<RateLimiter<i64>>,
-    pub command_ref: CommandRef,
-}
 
 #[derive(Debug, Clone)]
 pub struct ParsedCommand {

@@ -12,8 +12,8 @@ pub struct Ping;
 
 #[async_trait]
 impl CommandTrait for Ping {
-    fn name(&self) -> &'static str {
-        "ping"
+    fn command_names(&self) -> &[&str] {
+        &["ping"]
     }
 
     async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {

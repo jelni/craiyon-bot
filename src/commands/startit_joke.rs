@@ -11,12 +11,8 @@ pub struct StartItJoke;
 
 #[async_trait]
 impl CommandTrait for StartItJoke {
-    fn name(&self) -> &'static str {
-        "startit_joke"
-    }
-
-    fn aliases(&self) -> &[&str] {
-        &["startit"]
+    fn command_names(&self) -> &[&str] {
+        &["startit_joke", "startit"]
     }
 
     async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {

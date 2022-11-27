@@ -12,12 +12,12 @@ pub struct UrbanDictionary;
 
 #[async_trait]
 impl CommandTrait for UrbanDictionary {
-    fn name(&self) -> &'static str {
-        "urbandictionary"
+    fn command_names(&self) -> &[&str] {
+        &["urbandictionary", "urban_dictionary", "ud", "urban", "dictionary"]
     }
 
-    fn aliases(&self) -> &[&str] {
-        &["ud", "urban", "dictionary"]
+    fn description(&self) -> Option<&'static str> {
+        Some("get a word definition from Urban Dictionary")
     }
 
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {

@@ -17,12 +17,8 @@ pub struct Sex;
 
 #[async_trait]
 impl CommandTrait for Sex {
-    fn name(&self) -> &'static str {
-        "sex"
-    }
-
-    fn aliases(&self) -> &[&str] {
-        &["xes"]
+    fn command_names(&self) -> &[&str] {
+        &["sex", "xes"]
     }
 
     async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {

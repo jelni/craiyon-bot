@@ -5,23 +5,24 @@ use std::time::{Duration, Instant};
 
 use reqwest::{redirect, Client};
 use tdlib::enums::{
-    self, AuthorizationState, MessageContent, MessageSender, OptionValue, Update, UserType,
+    self, AuthorizationState, BotCommands, MessageContent, MessageSender, OptionValue, Update,
+    UserType,
 };
 use tdlib::functions;
 use tdlib::types::{
-    AuthorizationStateWaitEncryptionKey, Message, MessageText, OptionValueString, TdlibParameters,
-    UpdateAuthorizationState, UpdateChatMember, UpdateConnectionState, UpdateMessageSendFailed,
-    UpdateMessageSendSucceeded, UpdateNewInlineQuery, UpdateNewMessage, UpdateOption, User,
+    AuthorizationStateWaitEncryptionKey, BotCommand, Message, MessageText, OptionValueString,
+    TdlibParameters, UpdateAuthorizationState, UpdateChatMember, UpdateConnectionState,
+    UpdateMessageSendFailed, UpdateMessageSendSucceeded, UpdateNewInlineQuery, UpdateNewMessage,
+    UpdateOption, User,
 };
 use tokio::signal;
 use tokio::task::JoinHandle;
 
+use crate::command_manager::{CommandInstance, CommandManager, CommandRef};
 use crate::commands::CommandError;
 use crate::message_queue::MessageQueue;
 use crate::ratelimit::RateLimiter;
-use crate::utils::{
-    format_duration, CommandInstance, CommandRef, Context, DisplayUser, ParsedCommand, RateLimits,
-};
+use crate::utils::{format_duration, Context, DisplayUser, ParsedCommand, RateLimits};
 use crate::{not_commands, utils};
 
 pub type TdError = tdlib::types::Error;
@@ -39,7 +40,7 @@ pub struct Bot {
     state: Arc<Mutex<BotState>>,
     me: Arc<Mutex<Option<User>>>,
     http_client: reqwest::Client,
-    commands: Vec<Arc<CommandInstance>>,
+    command_manager: CommandManager,
     message_queue: Arc<MessageQueue>,
     ratelimits: Arc<Mutex<RateLimits>>,
     tasks: Vec<JoinHandle<()>>,
@@ -56,7 +57,7 @@ impl Bot {
                 .timeout(Duration::from_secs(300))
                 .build()
                 .unwrap(),
-            commands: Vec::new(),
+            command_manager: CommandManager::new(),
             ratelimits: Arc::new(Mutex::new(RateLimits {
                 ratelimit_exceeded: RateLimiter::new(1, 20),
                 auto_reply: RateLimiter::new(2, 20),
@@ -202,6 +203,11 @@ impl Bot {
             let enums::User::User(user) = functions::get_me(client_id).await.unwrap();
             *me.lock().unwrap() = Some(user);
         });
+
+        let commands = self.command_manager.public_command_list();
+        self.run_task(async move {
+            Bot::sync_commands(commands, client_id).await.unwrap();
+        });
     }
 
     fn on_message(&mut self, message: Message) {
@@ -215,10 +221,17 @@ impl Bot {
             return; // ignore forwarded messages
         }
         let Some(parsed_command) = ParsedCommand::parse(text) else {
-            return;
+            return; // ignore messages without commands
         };
-        let Some(command) = self.get_command(&parsed_command) else {
-            return;
+        if let Some(bot_username) = &parsed_command.bot_username {
+            if Some(bot_username.to_ascii_lowercase())
+                != self.me.lock().unwrap().as_ref().map(|me| me.username.to_ascii_lowercase())
+            {
+                return; // ignore commands sent to other bots
+            }
+        }
+        let Some(command) = self.command_manager.get_command(&parsed_command.name) else {
+            return; // ignore nonexistent commands
         };
 
         self.run_task(Bot::dispatch_command(
@@ -251,24 +264,6 @@ impl Bot {
         self.message_queue.message_sent(result);
     }
 
-    fn get_command(&self, parsed_command: &ParsedCommand) -> Option<Arc<CommandInstance>> {
-        if let Some(bot_username) = &parsed_command.bot_username {
-            if Some(bot_username.to_ascii_lowercase())
-                != self.me.lock().unwrap().as_ref().map(|me| me.username.to_ascii_lowercase())
-            {
-                return None;
-            }
-        }
-
-        self.commands
-            .iter()
-            .find(|c| {
-                c.name == parsed_command.name
-                    || c.command_ref.aliases().contains(&parsed_command.name.as_str())
-            })
-            .cloned()
-    }
-
     #[allow(clippy::too_many_lines)] // TODO: refactor
     async fn dispatch_command(
         message: Message,
@@ -284,13 +279,11 @@ impl Bot {
                 functions::get_user(user.user_id, client_id).await.unwrap();
             user
         } else {
-            // ignore messages not sent by users
-            return;
+            return; // ignore messages not sent by users
         };
 
         if let UserType::Bot(_) = user.r#type {
-            // ignore bots
-            return;
+            return; // ignore bots
         }
 
         let context =
@@ -305,8 +298,7 @@ impl Bot {
         if let Some(cooldown) = cooldown {
             let cooldown_str = format_duration(cooldown.try_into().unwrap());
             log::info!(
-                "/{} ratelimit exceeded by {cooldown_str} by {}",
-                command.name,
+                "{command} ratelimit exceeded by {cooldown_str} by {}",
                 context.user.format_name()
             );
             if context
@@ -366,14 +358,13 @@ impl Bot {
         };
 
         log::info!(
-            "running /{} {:?} for {} in {}",
-            command.name,
+            "running {command} {:?} for {} in {}",
             arguments.as_deref().unwrap_or_default(),
             context.user.format_name(),
             chat.title
         );
 
-        if let Err(err) = command.command_ref.execute(context.clone(), arguments).await {
+        if let Err(err) = command.command.execute(context.clone(), arguments).await {
             match err {
                 CommandError::CustomError(text) => {
                     context.reply(text).await.ok();
@@ -386,8 +377,7 @@ impl Bot {
                 }
                 CommandError::TelegramError(err) => {
                     log::error!(
-                        "Telegram error in the /{} command: {} {}",
-                        command.name,
+                        "Telegram error in the {command} command: {} {}",
                         err.code,
                         err.message
                     );
@@ -397,7 +387,7 @@ impl Bot {
                         .ok();
                 }
                 CommandError::ReqwestError(err) => {
-                    log::error!("HTTP error in the /{} command: {err}", command.name);
+                    log::error!("HTTP error in the {command} command: {err}");
                     context.reply(err.without_url().to_string()).await.ok();
                 }
             }
@@ -405,10 +395,22 @@ impl Bot {
     }
 
     pub fn add_command(&mut self, command: CommandRef) {
-        self.commands.push(Arc::new(CommandInstance {
-            name: command.name(),
-            ratelimiter: Mutex::new(command.rate_limit()),
-            command_ref: command,
-        }));
+        self.command_manager.add_command(command);
+    }
+
+    pub async fn sync_commands(commands: Vec<BotCommand>, client_id: i32) -> Result<(), TdError> {
+        let BotCommands::BotCommands(bot_commands) =
+            functions::get_commands(None, String::new(), client_id).await?;
+
+        if commands == bot_commands.commands {
+            log::info!("commands already synced");
+            return Ok(());
+        }
+
+        let commands_len = commands.len();
+        functions::set_commands(None, String::new(), commands, client_id).await?;
+        log::info!("synced {commands_len} commands");
+
+        Ok(())
     }
 }

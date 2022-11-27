@@ -13,12 +13,8 @@ pub struct KiwiFarms;
 
 #[async_trait]
 impl CommandTrait for KiwiFarms {
-    fn name(&self) -> &'static str {
-        "does_kiwifarms_work"
-    }
-
-    fn aliases(&self) -> &[&str] {
-        &["kf"]
+    fn command_names(&self) -> &[&str] {
+        &["does_kiwifarms_work", "kf"]
     }
 
     async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {

@@ -19,12 +19,12 @@ pub struct Screenshot;
 
 #[async_trait]
 impl CommandTrait for Screenshot {
-    fn name(&self) -> &'static str {
-        "screenshot"
+    fn command_names(&self) -> &[&str] {
+        &["screenshot", "ss", "webimg", "webimage", "webscreenshot"]
     }
 
-    fn aliases(&self) -> &[&str] {
-        &["ss", "webimg", "webimage", "webscreenshot"]
+    fn description(&self) -> Option<&'static str> {
+        Some("screenshot a webpage")
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
