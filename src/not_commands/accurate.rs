@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use tdlib::enums::{InputMessageContent, MessageContent};
 use tdlib::functions;
 use tdlib::types::{FormattedText, InputMessageText, Message, MessageDice};
@@ -7,6 +9,8 @@ pub async fn accurate(message: Message, client_id: i32) {
         if !filter_dice(&dice) {
             return;
         }
+
+        tokio::time::sleep(Duration::from_secs(3)).await;
 
         functions::send_message(
             message.chat_id,
