@@ -64,7 +64,6 @@ impl ParsedCommand {
 
 pub struct RateLimits {
     pub ratelimit_exceeded: RateLimiter<i64>,
-    pub auto_reply: RateLimiter<i64>,
 }
 
 pub struct Context {

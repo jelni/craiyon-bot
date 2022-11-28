@@ -9,9 +9,9 @@ use tdlib::enums::{
 };
 use tdlib::functions;
 use tdlib::types::{
-    BotCommand, Message, MessageText, UpdateAuthorizationState, UpdateChatMember,
-    UpdateConnectionState, UpdateMessageSendFailed, UpdateMessageSendSucceeded,
-    UpdateNewInlineQuery, UpdateNewMessage, User,
+    BotCommand, Message, UpdateAuthorizationState, UpdateChatMember, UpdateConnectionState,
+    UpdateMessageSendFailed, UpdateMessageSendSucceeded, UpdateNewInlineQuery, UpdateNewMessage,
+    User,
 };
 use tokio::signal;
 use tokio::task::JoinHandle;
@@ -58,7 +58,6 @@ impl Bot {
             command_manager: CommandManager::new(),
             ratelimits: Arc::new(Mutex::new(RateLimits {
                 ratelimit_exceeded: RateLimiter::new(1, 20),
-                auto_reply: RateLimiter::new(2, 20),
             })),
             tasks: Vec::new(),
             message_queue: Arc::new(MessageQueue::default()),
@@ -196,12 +195,17 @@ impl Bot {
         let BotState::Running = *self.state.lock().unwrap() else {
             return; // ignore when closing
         };
-        let MessageContent::MessageText(MessageText { text, .. }) = &message.content else {
-            return; // ignore non-text messages
-        };
         if message.forward_info.is_some() {
             return; // ignore forwarded messages
         }
+        let text = match &message.content {
+            MessageContent::MessageText(text) => &text.text,
+            MessageContent::MessageDice(_) => {
+                self.run_task(not_commands::accurate(message, self.client_id));
+                return;
+            }
+            _ => return, // ignore other message types
+        };
         let Some(parsed_command) = ParsedCommand::parse(text) else {
             return; // ignore messages without commands
         };
@@ -345,7 +349,7 @@ impl Bot {
         };
 
         log::info!(
-            "running {command} {:?} for {} in {}",
+            "running {command} {:?} for {} in {:?}",
             arguments.as_deref().unwrap_or_default(),
             context.user.format_name(),
             chat.title
