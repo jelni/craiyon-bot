@@ -1,11 +1,15 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
+use rand::SeedableRng;
 
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::google;
 use crate::command_context::CommandContext;
+use crate::ratelimit::RateLimiter;
 
 #[derive(Default)]
 pub struct Autocomplete;
@@ -20,15 +24,17 @@ impl CommandTrait for Autocomplete {
         Some("autocompletes a query with Google")
     }
 
+    fn rate_limit(&self) -> RateLimiter<i64> {
+        RateLimiter::new(10, 30)
+    }
+
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let query = arguments.ok_or(MissingArgument("text to autocomplete"))?;
 
-        let completions = google::complete(ctx.http_client.clone(), &query).await?;
-        let query_lowercase = query.to_lowercase();
-        ctx.reply_html(
-            completions.into_iter().find(|c| *c != query_lowercase).ok_or("no autocompletions")?,
-        )
-        .await?;
+        let completions =
+            google::complete(ctx.http_client.clone(), &query).await.unwrap_or_default();
+        ctx.reply(completions.choose(&mut StdRng::from_entropy()).ok_or("no autocompletions")?)
+            .await?;
 
         Ok(())
     }
