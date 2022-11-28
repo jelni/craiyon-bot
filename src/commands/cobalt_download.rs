@@ -29,6 +29,7 @@ impl CommandTrait for CobaltDownload {
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let media_url = arguments.ok_or(MissingArgument("URL to download"))?;
 
+        ctx.send_typing().await?;
         let mut urls = cobalt::query(ctx.http_client.clone(), media_url.clone()).await??;
 
         let status_msg =

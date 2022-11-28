@@ -22,6 +22,8 @@ impl CommandTrait for KiwiFarms {
     }
 
     async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
+        ctx.send_typing().await?;
+
         let text = match kiwifarms::status(ctx.http_client.clone()).await {
             Ok(status) => {
                 if status == StatusCode::OK || status == StatusCode::FOUND {

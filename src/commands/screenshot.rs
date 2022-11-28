@@ -40,6 +40,8 @@ impl CommandTrait for Screenshot {
             url => url,
         };
 
+        ctx.send_typing().await?;
+
         let data =
             microlink::screenshot(ctx.http_client.clone(), url.map_err(|err| err.to_string())?)
                 .await?

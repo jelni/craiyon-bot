@@ -27,6 +27,8 @@ impl CommandTrait for Tts {
             Err("this text is too long.")?;
         }
 
+        ctx.send_typing().await?;
+
         let bytes = ivona::synthesize(ctx.http_client.clone(), text, "jan").await?;
         let mut temp_file = NamedTempFile::new().unwrap();
         temp_file.write_all(&bytes).unwrap();

@@ -40,6 +40,8 @@ impl CommandTrait for Generate {
             Err(issue)?;
         }
 
+        ctx.send_typing().await?;
+
         let status_msg = ctx
             .message_queue
             .wait_for_message(ctx.reply(format!("generating {prompt}…")).await?.id)

@@ -93,6 +93,8 @@ impl CommandTrait for StableHorde {
             Err(issue)?;
         }
 
+        ctx.send_typing().await?;
+
         let request_id =
             stablehorde::generate(ctx.http_client.clone(), self.model, &prompt, self.size)
                 .await??;
