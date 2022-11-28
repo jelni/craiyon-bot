@@ -64,14 +64,6 @@ impl CommandContext {
         self._reply_text(formatted_text).await
     }
 
-    pub async fn reply_html<S: Into<String>>(&self, text: S) -> Result<Message, TdError> {
-        let enums::FormattedText::FormattedText(formatted_text) =
-            functions::parse_text_entities(text.into(), TextParseMode::Html, self.client_id)
-                .await?;
-
-        self._reply_text(formatted_text).await
-    }
-
     async fn _edit_message(
         &self,
         message_id: i64,
