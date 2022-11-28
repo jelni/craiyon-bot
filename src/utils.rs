@@ -1,19 +1,11 @@
-use std::convert::TryInto;
-use std::sync::{Arc, Mutex};
-
 use image::{imageops, DynamicImage};
-use tdlib::enums::{
-    self, ChatMemberStatus, InlineKeyboardButtonType, InputMessageContent, ReplyMarkup,
-    TextEntityType, TextParseMode,
-};
+use tdlib::enums::{self, ChatMemberStatus, InlineKeyboardButtonType, ReplyMarkup};
 use tdlib::functions;
 use tdlib::types::{
-    FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, InputMessageText, Message,
-    ReplyMarkupInlineKeyboard, TextParseModeMarkdown, UpdateChatMember, User,
+    InlineKeyboardButton, InlineKeyboardButtonTypeUrl, ReplyMarkupInlineKeyboard, UpdateChatMember,
+    User,
 };
 
-use crate::bot::TdError;
-use crate::message_queue::MessageQueue;
 use crate::ratelimit::RateLimiter;
 
 pub const MARKDOWN_CHARS: [char; 20] = [
@@ -21,168 +13,8 @@ pub const MARKDOWN_CHARS: [char; 20] = [
     '\\',
 ];
 
-#[derive(Debug, Clone)]
-pub struct ParsedCommand {
-    pub name: String,
-    pub bot_username: Option<String>,
-    pub arguments: Option<String>,
-}
-
-impl ParsedCommand {
-    pub fn parse(formatted_text: &FormattedText) -> Option<ParsedCommand> {
-        let entity = formatted_text
-            .entities
-            .iter()
-            .find(|e| e.r#type == TextEntityType::BotCommand && e.offset == 0)?;
-
-        let command = formatted_text
-            .text
-            .chars()
-            .skip((entity.offset + 1).try_into().ok()?)
-            .take((entity.length - 1).try_into().ok()?)
-            .collect::<String>();
-        let (command_name, username) = match command.split_once('@') {
-            Some(parts) => (parts.0.into(), Some(parts.1)),
-            None => (command, None),
-        };
-        let arguments = formatted_text
-            .text
-            .chars()
-            .skip(entity.length.try_into().unwrap_or_default())
-            .skip_while(char::is_ascii_whitespace)
-            .collect::<String>();
-
-        let arguments = if arguments.is_empty() { None } else { Some(arguments) };
-
-        Some(ParsedCommand {
-            name: command_name.to_lowercase(),
-            bot_username: username.map(str::to_string),
-            arguments,
-        })
-    }
-}
-
 pub struct RateLimits {
     pub ratelimit_exceeded: RateLimiter<i64>,
-}
-
-pub struct Context {
-    pub client_id: i32,
-    pub message: Message,
-    pub user: User,
-    pub http_client: reqwest::Client,
-    pub message_queue: Arc<MessageQueue>,
-    pub ratelimits: Arc<Mutex<RateLimits>>,
-}
-
-impl Context {
-    pub async fn reply_custom(
-        &self,
-        message_content: InputMessageContent,
-        reply_markup: Option<enums::ReplyMarkup>,
-    ) -> Result<Message, TdError> {
-        let enums::Message::Message(message) = functions::send_message(
-            self.message.chat_id,
-            self.message.message_thread_id,
-            self.message.id,
-            None,
-            reply_markup,
-            message_content,
-            self.client_id,
-        )
-        .await?;
-
-        Ok(message)
-    }
-
-    async fn _reply_text(&self, text: FormattedText) -> Result<Message, TdError> {
-        self.reply_custom(
-            InputMessageContent::InputMessageText(InputMessageText {
-                text,
-                disable_web_page_preview: true,
-                clear_draft: true,
-            }),
-            None,
-        )
-        .await
-    }
-
-    pub async fn reply<S: Into<String>>(&self, text: S) -> Result<Message, TdError> {
-        self._reply_text(FormattedText { text: text.into(), ..Default::default() }).await
-    }
-
-    pub async fn reply_markdown<S: Into<String>>(&self, text: S) -> Result<Message, TdError> {
-        let enums::FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
-            text.into(),
-            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
-            self.client_id,
-        )
-        .await?;
-
-        self._reply_text(formatted_text).await
-    }
-
-    pub async fn reply_html<S: Into<String>>(&self, text: S) -> Result<Message, TdError> {
-        let enums::FormattedText::FormattedText(formatted_text) =
-            functions::parse_text_entities(text.into(), TextParseMode::Html, self.client_id)
-                .await?;
-
-        self._reply_text(formatted_text).await
-    }
-
-    async fn _edit_message(
-        &self,
-        message_id: i64,
-        text: FormattedText,
-    ) -> Result<Message, TdError> {
-        let enums::Message::Message(message) = functions::edit_message_text(
-            self.message.chat_id,
-            message_id,
-            None,
-            InputMessageContent::InputMessageText(InputMessageText {
-                text,
-                disable_web_page_preview: true,
-                clear_draft: true,
-            }),
-            self.client_id,
-        )
-        .await?;
-
-        Ok(message)
-    }
-
-    #[allow(dead_code)]
-    pub async fn edit_message<S: Into<String>>(
-        &self,
-        message_id: i64,
-        text: S,
-    ) -> Result<Message, TdError> {
-        self._edit_message(message_id, FormattedText { text: text.into(), ..Default::default() })
-            .await
-    }
-
-    pub async fn edit_message_markdown<S: Into<String>>(
-        &self,
-        message_id: i64,
-        text: S,
-    ) -> Result<Message, TdError> {
-        let enums::FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
-            text.into(),
-            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
-            self.client_id,
-        )
-        .await?;
-
-        self._edit_message(message_id, formatted_text).await
-    }
-
-    pub async fn delete_messages(&self, message_ids: Vec<i64>) -> Result<(), TdError> {
-        functions::delete_messages(self.message.chat_id, message_ids, true, self.client_id).await
-    }
-
-    pub async fn delete_message(&self, message_id: i64) -> Result<(), TdError> {
-        self.delete_messages(vec![message_id]).await
-    }
 }
 
 pub trait DisplayUser {

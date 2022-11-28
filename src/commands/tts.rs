@@ -9,7 +9,7 @@ use tempfile::NamedTempFile;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::ivona;
-use crate::utils::Context;
+use crate::command_context::CommandContext;
 
 #[derive(Default)]
 pub struct Tts;
@@ -20,7 +20,7 @@ impl CommandTrait for Tts {
         &["tts", "ivona"]
     }
 
-    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let text = arguments.ok_or(MissingArgument("text to synthesize"))?;
 
         if text.chars().count() > 1024 {

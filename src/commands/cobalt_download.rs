@@ -10,7 +10,8 @@ use tempfile::NamedTempFile;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::cobalt;
-use crate::utils::{donate_markup, Context};
+use crate::command_context::CommandContext;
+use crate::utils::donate_markup;
 
 #[derive(Default)]
 pub struct CobaltDownload;
@@ -25,7 +26,7 @@ impl CommandTrait for CobaltDownload {
         Some("download online media using ≫ cobalt")
     }
 
-    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let media_url = arguments.ok_or(MissingArgument("URL to download"))?;
 
         let mut urls = cobalt::query(ctx.http_client.clone(), media_url.clone()).await??;

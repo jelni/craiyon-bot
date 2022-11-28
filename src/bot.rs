@@ -16,11 +16,13 @@ use tdlib::types::{
 use tokio::signal;
 use tokio::task::JoinHandle;
 
+use crate::command_context::CommandContext;
 use crate::command_manager::{CommandInstance, CommandManager, CommandRef};
 use crate::commands::CommandError;
 use crate::message_queue::MessageQueue;
+use crate::parsed_command::ParsedCommand;
 use crate::ratelimit::RateLimiter;
-use crate::utils::{format_duration, Context, DisplayUser, ParsedCommand, RateLimits};
+use crate::utils::{format_duration, DisplayUser, RateLimits};
 use crate::{not_commands, utils};
 
 pub type TdError = tdlib::types::Error;
@@ -277,8 +279,14 @@ impl Bot {
             return; // ignore bots
         }
 
-        let context =
-            Arc::new(Context { client_id, message, user, http_client, message_queue, ratelimits });
+        let context = Arc::new(CommandContext {
+            client_id,
+            message,
+            user,
+            http_client,
+            message_queue,
+            ratelimits,
+        });
 
         let cooldown = command
             .ratelimiter

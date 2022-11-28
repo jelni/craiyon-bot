@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use super::{CommandResult, CommandTrait};
-use crate::utils::Context;
+use crate::command_context::CommandContext;
 
 #[allow(clippy::unreadable_literal)]
 const OWNER_ID: i64 = 807128293;
@@ -17,7 +17,7 @@ impl CommandTrait for Delete {
         &["delete", "del"]
     }
 
-    async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
         if ctx.user.id != OWNER_ID {
             return Ok(());
         }

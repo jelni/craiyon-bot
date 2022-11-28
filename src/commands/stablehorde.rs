@@ -19,9 +19,10 @@ use tempfile::NamedTempFile;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::stablehorde::{self, Status};
+use crate::command_context::CommandContext;
 use crate::ratelimit::RateLimiter;
 use crate::utils::{
-    check_prompt, escape_markdown, format_duration, image_collage, Context, TruncateWithEllipsis,
+    check_prompt, escape_markdown, format_duration, image_collage, TruncateWithEllipsis,
 };
 
 pub struct StableHorde {
@@ -84,7 +85,7 @@ impl CommandTrait for StableHorde {
     }
 
     #[allow(clippy::too_many_lines)]
-    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let prompt = arguments.ok_or(MissingArgument("prompt to generate"))?;
 
         if let Some(issue) = check_prompt(&prompt) {

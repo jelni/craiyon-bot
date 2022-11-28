@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::urbandictionary;
-use crate::utils::Context;
+use crate::command_context::CommandContext;
 
 #[derive(Default)]
 pub struct UrbanDictionary;
@@ -20,7 +20,7 @@ impl CommandTrait for UrbanDictionary {
         Some("get a word definition from Urban Dictionary")
     }
 
-    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let word = arguments.ok_or(MissingArgument("word to define"))?;
 
         if let Ok(Some(definition)) = urbandictionary::define(ctx.http_client.clone(), word).await {

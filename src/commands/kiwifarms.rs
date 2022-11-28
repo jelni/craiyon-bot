@@ -6,7 +6,7 @@ use reqwest::StatusCode;
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::kiwifarms;
-use crate::utils::Context;
+use crate::command_context::CommandContext;
 
 #[derive(Default)]
 pub struct KiwiFarms;
@@ -21,7 +21,7 @@ impl CommandTrait for KiwiFarms {
         Some("checks if The Kiwi Farms forum still works")
     }
 
-    async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
         let text = match kiwifarms::status(ctx.http_client.clone()).await {
             Ok(status) => {
                 if status == StatusCode::OK || status == StatusCode::FOUND {

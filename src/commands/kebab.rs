@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rand::seq::SliceRandom;
 
 use super::{CommandResult, CommandTrait};
+use crate::command_context::CommandContext;
 use crate::ratelimit::RateLimiter;
-use crate::utils::Context;
 
 const WORDS: [&str; 7] = ["kebab", "king", "house", "super", "arab", "hot", "sauce"];
 
@@ -26,7 +26,7 @@ impl CommandTrait for Kebab {
         RateLimiter::new(10, 30)
     }
 
-    async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
         let random_name = WORDS
             .choose_multiple(&mut rand::thread_rng(), 2)
             .copied()

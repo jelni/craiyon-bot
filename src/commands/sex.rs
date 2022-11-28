@@ -5,7 +5,7 @@ use tdlib::enums::{InputFile, InputMessageContent};
 use tdlib::types::{InputFileRemote, InputMessageSticker};
 
 use super::{CommandResult, CommandTrait};
-use crate::utils::Context;
+use crate::command_context::CommandContext;
 
 const SEX: [&str; 2] = [
     "CAACAgQAAxkBAAIHfGOBPouzDkVHO9WAvBrBcMShtX5PAAKxDAACEpVpUwgV5MV2yef8JAQ",
@@ -21,7 +21,7 @@ impl CommandTrait for Sex {
         &["sex", "xes"]
     }
 
-    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let question_mark = arguments.map_or(false, |a| a.starts_with('?'));
         ctx.reply_custom(
             InputMessageContent::InputMessageSticker(InputMessageSticker {

@@ -4,11 +4,13 @@ use bot::Bot;
 
 mod apis;
 mod bot;
+mod command_context;
 mod command_manager;
 mod commands;
 mod logchamp;
 mod message_queue;
 mod not_commands;
+mod parsed_command;
 mod ratelimit;
 mod utils;
 

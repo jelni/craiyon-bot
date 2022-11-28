@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::google;
-use crate::utils::Context;
+use crate::command_context::CommandContext;
 
 #[derive(Default)]
 pub struct Autocomplete;
@@ -20,7 +20,7 @@ impl CommandTrait for Autocomplete {
         Some("autocompletes a query with Google")
     }
 
-    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let query = arguments.ok_or(MissingArgument("text to autocomplete"))?;
 
         let completions = google::complete(ctx.http_client.clone(), &query).await?;

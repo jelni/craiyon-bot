@@ -3,8 +3,8 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::bot::TdError;
+use crate::command_context::CommandContext;
 use crate::ratelimit::RateLimiter;
-use crate::utils::Context;
 
 pub mod autocomplete;
 pub mod badtranslate;
@@ -38,7 +38,7 @@ pub trait CommandTrait {
         RateLimiter::new(3, 30)
     }
 
-    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult;
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult;
 }
 
 pub enum CommandError {

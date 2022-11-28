@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use super::{CommandResult, CommandTrait};
-use crate::utils::Context;
+use crate::command_context::CommandContext;
 
 #[derive(Default)]
 pub struct Start;
@@ -14,7 +14,7 @@ impl CommandTrait for Start {
         &["start"]
     }
 
-    async fn execute(&self, ctx: Arc<Context>, _: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
         ctx.reply_markdown(concat!(
             "use the /generate command to generate images\\.\n",
             "*example:* `/generate crayons in a box`"
