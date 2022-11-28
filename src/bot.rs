@@ -5,15 +5,13 @@ use std::time::{Duration, Instant};
 
 use reqwest::{redirect, Client};
 use tdlib::enums::{
-    self, AuthorizationState, BotCommands, MessageContent, MessageSender, OptionValue, Update,
-    UserType,
+    self, AuthorizationState, BotCommands, MessageContent, MessageSender, Update, UserType,
 };
 use tdlib::functions;
 use tdlib::types::{
-    AuthorizationStateWaitEncryptionKey, BotCommand, Message, MessageText, OptionValueString,
-    TdlibParameters, UpdateAuthorizationState, UpdateChatMember, UpdateConnectionState,
-    UpdateMessageSendFailed, UpdateMessageSendSucceeded, UpdateNewInlineQuery, UpdateNewMessage,
-    UpdateOption, User,
+    BotCommand, Message, MessageText, UpdateAuthorizationState, UpdateChatMember,
+    UpdateConnectionState, UpdateMessageSendFailed, UpdateMessageSendSucceeded,
+    UpdateNewInlineQuery, UpdateNewMessage, User,
 };
 use tokio::signal;
 use tokio::task::JoinHandle;
@@ -121,15 +119,6 @@ impl Bot {
             Update::NewMessage(UpdateNewMessage { message }) => self.on_message(message),
             Update::MessageSendSucceeded(update) => self.on_message_sent(Ok(update)),
             Update::MessageSendFailed(update) => self.on_message_sent(Err(update)),
-            Update::Option(UpdateOption {
-                name,
-                value: OptionValue::String(OptionValueString { value }),
-            }) => {
-                assert!(
-                    !(name == "version" && value != "1.8.3"),
-                    "unexpected TDLib version {value:?}!"
-                );
-            }
             Update::ConnectionState(UpdateConnectionState { state }) => {
                 log::info!("connection: {state:?}");
             }
@@ -148,30 +137,22 @@ impl Bot {
                     let client_id = self.client_id;
                     self.run_task(async move {
                         functions::set_tdlib_parameters(
-                            TdlibParameters {
-                                database_directory: ".data".into(),
-                                api_id: env::var("API_ID").unwrap().parse().unwrap(),
-                                api_hash: env::var("API_HASH").unwrap(),
-                                system_language_code: "en".into(),
-                                device_model: env!("CARGO_PKG_NAME").into(),
-                                application_version: env!("CARGO_PKG_VERSION").into(),
-                                enable_storage_optimizer: true,
-                                ignore_file_names: true,
-                                ..Default::default()
-                            },
-                            client_id,
-                        )
-                        .await
-                        .unwrap();
-                    });
-                }
-                AuthorizationState::WaitEncryptionKey(AuthorizationStateWaitEncryptionKey {
-                    ..
-                }) => {
-                    let client_id = self.client_id;
-                    self.run_task(async move {
-                        functions::set_database_encryption_key(
+                            false,
+                            ".data".into(),
+                            String::new(),
                             env::var("DB_ENCRYPTION_KEY").unwrap(),
+                            false,
+                            false,
+                            false,
+                            false,
+                            env::var("API_ID").unwrap().parse().unwrap(),
+                            env::var("API_HASH").unwrap(),
+                            "en".into(),
+                            env!("CARGO_PKG_NAME").into(),
+                            String::new(),
+                            env!("CARGO_PKG_VERSION").into(),
+                            true,
+                            true,
                             client_id,
                         )
                         .await
@@ -202,7 +183,10 @@ impl Bot {
         let commands = self.command_manager.public_command_list();
         self.run_task(async move {
             let enums::User::User(user) = functions::get_me(client_id).await.unwrap();
-            log::info!("running as @{}", user.username);
+            log::info!(
+                "running as @{}",
+                user.usernames.as_ref().map(|u| u.editable_username.as_str()).unwrap_or_default()
+            );
             *me.lock().unwrap() = Some(user);
             Bot::sync_commands(commands, client_id).await.unwrap();
         });
@@ -223,7 +207,12 @@ impl Bot {
         };
         if let Some(bot_username) = &parsed_command.bot_username {
             if Some(bot_username.to_ascii_lowercase())
-                != self.me.lock().unwrap().as_ref().map(|me| me.username.to_ascii_lowercase())
+                != self.me.lock().unwrap().as_ref().map(|me| {
+                    me.usernames
+                        .as_ref()
+                        .map(|u| u.editable_username.to_ascii_lowercase())
+                        .unwrap_or_default()
+                })
             {
                 return; // ignore commands sent to other bots
             }

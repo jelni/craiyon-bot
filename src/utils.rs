@@ -192,14 +192,12 @@ pub trait DisplayUser {
 
 impl DisplayUser for User {
     fn format_name(&self) -> String {
-        if self.username.is_empty() {
-            if self.last_name.is_empty() {
-                self.first_name.clone()
-            } else {
-                format!("{} {}", self.first_name, self.last_name)
-            }
+        if let Some(usernames) = &self.usernames {
+            format!("@{}", usernames.editable_username)
+        } else if self.last_name.is_empty() {
+            self.first_name.clone()
         } else {
-            format!("@{}", self.username)
+            format!("{} {}", self.first_name, self.last_name)
         }
     }
 }
