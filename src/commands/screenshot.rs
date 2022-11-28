@@ -11,8 +11,9 @@ use url::ParseError;
 use super::CommandError::{CustomMarkdownError, MissingArgument};
 use super::{CommandResult, CommandTrait};
 use crate::apis::microlink;
+use crate::command_context::CommandContext;
 use crate::ratelimit::RateLimiter;
-use crate::utils::{escape_markdown, Context};
+use crate::utils::escape_markdown;
 
 #[derive(Default)]
 pub struct Screenshot;
@@ -31,7 +32,7 @@ impl CommandTrait for Screenshot {
         RateLimiter::new(3, 120)
     }
 
-    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let url = arguments.ok_or(MissingArgument("URL to screenshot"))?;
 
         let url = match Url::parse(&url) {

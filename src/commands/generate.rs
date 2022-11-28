@@ -11,10 +11,9 @@ use tempfile::NamedTempFile;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::craiyon;
+use crate::command_context::CommandContext;
 use crate::ratelimit::RateLimiter;
-use crate::utils::{
-    check_prompt, donate_markup, escape_markdown, format_duration, image_collage, Context,
-};
+use crate::utils::{check_prompt, donate_markup, escape_markdown, format_duration, image_collage};
 
 #[derive(Default)]
 pub struct Generate;
@@ -33,7 +32,7 @@ impl CommandTrait for Generate {
         RateLimiter::new(3, 60)
     }
 
-    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let prompt = arguments.ok_or(MissingArgument("prompt to generate"))?;
 
         if let Some(issue) = check_prompt(&prompt) {

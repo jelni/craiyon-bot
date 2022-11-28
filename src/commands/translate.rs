@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::translate;
-use crate::utils::Context;
+use crate::command_context::CommandContext;
 
 #[derive(Default)]
 pub struct Translate;
@@ -20,7 +20,7 @@ impl CommandTrait for Translate {
         Some("translate text to English using Google Translate")
     }
 
-    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let text = arguments.ok_or(MissingArgument("text to translate"))?;
 
         let translation = translate::single(ctx.http_client.clone(), text, None, "en").await?;

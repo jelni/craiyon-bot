@@ -4,7 +4,8 @@ use async_trait::async_trait;
 
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
-use crate::utils::{escape_markdown, Context, MARKDOWN_CHARS};
+use crate::command_context::CommandContext;
+use crate::utils::{escape_markdown, MARKDOWN_CHARS};
 
 #[derive(Default)]
 pub struct CharInfo;
@@ -19,7 +20,7 @@ impl CommandTrait for CharInfo {
         Some("get Unicode character names")
     }
 
-    async fn execute(&self, ctx: Arc<Context>, arguments: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let chars = arguments.ok_or(MissingArgument("characters"))?;
 
         let mut lines = chars
