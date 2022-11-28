@@ -23,6 +23,8 @@ impl CommandTrait for UrbanDictionary {
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let word = arguments.ok_or(MissingArgument("word to define"))?;
 
+        ctx.send_typing().await?;
+
         if let Ok(Some(definition)) = urbandictionary::define(ctx.http_client.clone(), word).await {
             ctx.reply_markdown(definition.into_markdown()).await?;
         } else {

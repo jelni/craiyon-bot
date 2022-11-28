@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use tdlib::enums::{self, InputMessageContent, TextParseMode};
+use tdlib::enums::{self, ChatAction, InputMessageContent, TextParseMode};
 use tdlib::functions;
 use tdlib::types::{FormattedText, InputMessageText, Message, TextParseModeMarkdown, User};
 
@@ -124,5 +124,15 @@ impl CommandContext {
 
     pub async fn delete_message(&self, message_id: i64) -> Result<(), TdError> {
         self.delete_messages(vec![message_id]).await
+    }
+
+    pub async fn send_typing(&self) -> Result<(), TdError> {
+        functions::send_chat_action(
+            self.message.chat_id,
+            self.message.message_thread_id,
+            Some(ChatAction::Typing),
+            self.client_id,
+        )
+        .await
     }
 }
