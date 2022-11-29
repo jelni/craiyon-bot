@@ -9,20 +9,20 @@ use tdlib::enums::{
 };
 use tdlib::functions;
 use tdlib::types::{
-    BotCommand, Message, UpdateAuthorizationState, UpdateChatMember, UpdateConnectionState,
-    UpdateMessageSendFailed, UpdateMessageSendSucceeded, UpdateNewInlineQuery, UpdateNewMessage,
-    User,
+    BotCommand, Message, MessageSenderUser, UpdateChatMember, UpdateMessageSendFailed,
+    UpdateMessageSendSucceeded, UpdateNewInlineQuery, User,
 };
 use tokio::signal;
 use tokio::task::JoinHandle;
 
+use crate::cache::Cache;
 use crate::command_context::CommandContext;
 use crate::command_manager::{CommandInstance, CommandManager, CommandRef};
 use crate::commands::CommandError;
 use crate::message_queue::MessageQueue;
 use crate::parsed_command::ParsedCommand;
 use crate::ratelimit::RateLimiter;
-use crate::utils::{format_duration, DisplayUser, RateLimits};
+use crate::utils::{format_duration, RateLimits};
 use crate::{not_commands, utils};
 
 pub type TdError = tdlib::types::Error;
@@ -39,6 +39,7 @@ pub struct Bot {
     client_id: i32,
     state: Arc<Mutex<BotState>>,
     me: Arc<Mutex<Option<User>>>,
+    cache: Cache,
     http_client: reqwest::Client,
     command_manager: CommandManager,
     message_queue: Arc<MessageQueue>,
@@ -52,6 +53,7 @@ impl Bot {
             client_id: tdlib::create_client(),
             state: Arc::new(Mutex::new(BotState::Closed)),
             me: Arc::new(Mutex::new(None)),
+            cache: Cache::default(),
             http_client: Client::builder()
                 .redirect(redirect::Policy::none())
                 .timeout(Duration::from_secs(300))
@@ -114,23 +116,20 @@ impl Bot {
 
     fn on_update(&mut self, update: Update) {
         match update {
-            Update::AuthorizationState(UpdateAuthorizationState { authorization_state }) => {
-                self.on_authorization_state_update(authorization_state);
+            Update::AuthorizationState(update) => {
+                self.on_authorization_state_update(&update.authorization_state);
             }
-            Update::NewMessage(UpdateNewMessage { message }) => self.on_message(message),
+            Update::NewMessage(update) => self.on_message(update.message),
             Update::MessageSendSucceeded(update) => self.on_message_sent(Ok(update)),
             Update::MessageSendFailed(update) => self.on_message_sent(Err(update)),
-            Update::ConnectionState(UpdateConnectionState { state }) => {
-                log::info!("connection: {state:?}");
-            }
-            Update::NewInlineQuery(query) => self.on_inline_query(query),
+            Update::ConnectionState(update) => log::info!("connection: {:?}", update.state),
+            Update::NewInlineQuery(update) => self.on_inline_query(update),
             Update::ChatMember(update) => self.on_chat_member_update(update),
-            _ => (),
+            update => self.cache.update(update),
         }
     }
 
-    #[allow(clippy::needless_pass_by_value)]
-    fn on_authorization_state_update(&mut self, authorization_state: AuthorizationState) {
+    fn on_authorization_state_update(&mut self, authorization_state: &AuthorizationState) {
         {
             log::info!("authorization: {authorization_state:?}");
             match authorization_state {
@@ -200,6 +199,20 @@ impl Bot {
         if message.forward_info.is_some() {
             return; // ignore forwarded messages
         }
+        let MessageSender::User(MessageSenderUser { user_id }) = message.sender_id else {
+            return; // ignore messages not sent by users
+        };
+        let Some(user) = self.cache.get_user(user_id) else {
+            log::warn!("user {user_id} not cached");
+            return; // ignore users not in cache
+        };
+        let UserType::Regular = user.r#type else {
+            return; // ignore bots
+        };
+        let Some(chat) = self.cache.get_chat(message.chat_id) else {
+            log::warn!("chat {user_id} not cached");
+            return; // ignore chats not in cache
+        };
         let text = match &message.content {
             MessageContent::MessageText(text) => &text.text,
             MessageContent::MessageDice(_) => {
@@ -228,13 +241,17 @@ impl Bot {
         };
 
         self.run_task(Bot::dispatch_command(
-            message,
-            parsed_command.arguments,
             command,
-            self.http_client.clone(),
-            self.message_queue.clone(),
-            self.ratelimits.clone(),
-            self.client_id,
+            parsed_command.arguments,
+            Arc::new(CommandContext {
+                chat,
+                user,
+                message,
+                client_id: self.client_id,
+                ratelimits: self.ratelimits.clone(),
+                message_queue: self.message_queue.clone(),
+                http_client: self.http_client.clone(),
+            }),
         ));
     }
 
@@ -247,7 +264,9 @@ impl Bot {
     }
 
     fn on_chat_member_update(&mut self, update: UpdateChatMember) {
-        self.run_task(utils::log_status_update(update, self.client_id));
+        if let Some(chat) = self.cache.get_chat(update.chat_id) {
+            utils::log_status_update(update, &chat);
+        };
     }
 
     fn on_message_sent(
@@ -259,35 +278,10 @@ impl Bot {
 
     #[allow(clippy::too_many_lines)] // TODO: refactor
     async fn dispatch_command(
-        message: Message,
-        arguments: Option<String>,
         command: Arc<CommandInstance>,
-        http_client: reqwest::Client,
-        message_queue: Arc<MessageQueue>,
-        ratelimits: Arc<Mutex<RateLimits>>,
-        client_id: i32,
+        arguments: Option<String>,
+        context: Arc<CommandContext>,
     ) {
-        let user = if let MessageSender::User(user) = &message.sender_id {
-            let enums::User::User(user) =
-                functions::get_user(user.user_id, client_id).await.unwrap();
-            user
-        } else {
-            return; // ignore messages not sent by users
-        };
-
-        if let UserType::Bot(_) = user.r#type {
-            return; // ignore bots
-        }
-
-        let context = Arc::new(CommandContext {
-            client_id,
-            message,
-            user,
-            http_client,
-            message_queue,
-            ratelimits,
-        });
-
         let cooldown = command
             .ratelimiter
             .lock()
@@ -296,10 +290,7 @@ impl Bot {
 
         if let Some(cooldown) = cooldown {
             let cooldown_str = format_duration(cooldown.try_into().unwrap());
-            log::info!(
-                "{command} ratelimit exceeded by {cooldown_str} by {}",
-                context.user.format_name()
-            );
+            log::info!("{command} ratelimit exceeded by {cooldown_str} by {}", context.user);
             if context
                 .ratelimits
                 .lock()
@@ -329,7 +320,7 @@ impl Bot {
                     match functions::get_message(
                         context.message.chat_id,
                         context.message.reply_to_message_id,
-                        client_id,
+                        context.client_id,
                     )
                     .await
                     {
@@ -348,19 +339,11 @@ impl Bot {
             arguments => arguments,
         };
 
-        let chat = match functions::get_chat(context.message.chat_id, client_id).await {
-            Ok(chat) => {
-                let enums::Chat::Chat(chat) = chat;
-                chat
-            }
-            Err(_) => return,
-        };
-
         log::info!(
-            "running {command} {:?} for {} in {:?}",
+            "running {command} {:?} for {} in {}",
             arguments.as_deref().unwrap_or_default(),
-            context.user.format_name(),
-            chat.title
+            context.user,
+            context.chat
         );
 
         if let Err(err) = command.command.execute(context.clone(), arguments).await {
