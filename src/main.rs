@@ -4,6 +4,7 @@ use bot::Bot;
 
 mod apis;
 mod bot;
+mod cache;
 mod command_context;
 mod command_manager;
 mod commands;

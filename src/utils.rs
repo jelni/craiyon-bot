@@ -1,11 +1,10 @@
 use image::{imageops, DynamicImage};
-use tdlib::enums::{self, ChatMemberStatus, InlineKeyboardButtonType, ReplyMarkup};
-use tdlib::functions;
+use tdlib::enums::{ChatMemberStatus, ChatType, InlineKeyboardButtonType, ReplyMarkup};
 use tdlib::types::{
     InlineKeyboardButton, InlineKeyboardButtonTypeUrl, ReplyMarkupInlineKeyboard, UpdateChatMember,
-    User,
 };
 
+use crate::cache::CompactChat;
 use crate::ratelimit::RateLimiter;
 
 pub const MARKDOWN_CHARS: [char; 20] = [
@@ -15,22 +14,6 @@ pub const MARKDOWN_CHARS: [char; 20] = [
 
 pub struct RateLimits {
     pub ratelimit_exceeded: RateLimiter<i64>,
-}
-
-pub trait DisplayUser {
-    fn format_name(&self) -> String;
-}
-
-impl DisplayUser for User {
-    fn format_name(&self) -> String {
-        if let Some(usernames) = &self.usernames {
-            format!("@{}", usernames.editable_username)
-        } else if self.last_name.is_empty() {
-            self.first_name.clone()
-        } else {
-            format!("{} {}", self.first_name, self.last_name)
-        }
-    }
 }
 
 pub trait TruncateWithEllipsis {
@@ -116,11 +99,13 @@ pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMa
     })
 }
 
-pub async fn log_status_update(update: UpdateChatMember, client_id: i32) {
-    let old_status = update.old_chat_member.status;
-    let new_status = update.new_chat_member.status;
+pub fn log_status_update(update: UpdateChatMember, chat: &CompactChat) {
+    if let ChatType::Private(_) = chat.r#type {
+        return;
+    }
 
-    if old_status == new_status {
+    let new_status = update.new_chat_member.status;
+    if new_status == update.old_chat_member.status {
         return;
     }
 
@@ -130,7 +115,5 @@ pub async fn log_status_update(update: UpdateChatMember, client_id: i32) {
         _ => return,
     };
 
-    let enums::Chat::Chat(chat) = functions::get_chat(update.chat_id, client_id).await.unwrap();
-
-    log::info!("{} {:?}", status, chat.title);
+    log::info!("{} {}", status, chat);
 }

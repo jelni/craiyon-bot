@@ -2,19 +2,21 @@ use std::sync::{Arc, Mutex};
 
 use tdlib::enums::{self, ChatAction, InputMessageContent, TextParseMode};
 use tdlib::functions;
-use tdlib::types::{FormattedText, InputMessageText, Message, TextParseModeMarkdown, User};
+use tdlib::types::{FormattedText, InputMessageText, Message, TextParseModeMarkdown};
 
 use crate::bot::TdError;
+use crate::cache::{CompactChat, CompactUser};
 use crate::message_queue::MessageQueue;
 use crate::utils::RateLimits;
 
 pub struct CommandContext {
-    pub client_id: i32,
+    pub chat: CompactChat,
+    pub user: CompactUser,
     pub message: Message,
-    pub user: User,
-    pub http_client: reqwest::Client,
-    pub message_queue: Arc<MessageQueue>,
+    pub client_id: i32,
     pub ratelimits: Arc<Mutex<RateLimits>>,
+    pub message_queue: Arc<MessageQueue>,
+    pub http_client: reqwest::Client,
 }
 
 impl CommandContext {
