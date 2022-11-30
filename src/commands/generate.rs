@@ -57,7 +57,7 @@ impl CommandTrait for Generate {
 
         let image = image_collage(images, (256, 256), 3, 8);
         let mut temp_file = NamedTempFile::new().unwrap();
-        image.write_to(temp_file.as_file_mut(), ImageFormat::Png).unwrap();
+        image.write_to(&mut temp_file, ImageFormat::Png).unwrap();
 
         let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
             format!(

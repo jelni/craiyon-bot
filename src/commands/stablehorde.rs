@@ -4,7 +4,8 @@ use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use counter::Counter;
-use image::ImageFormat;
+use image::imageops::FilterType;
+use image::{DynamicImage, ImageFormat};
 use tdlib::enums::{
     FormattedText, InlineKeyboardButtonType, InputFile, InputMessageContent, ReplyMarkup,
     TextParseMode,
@@ -16,7 +17,7 @@ use tdlib::types::{
 };
 use tempfile::NamedTempFile;
 
-use super::CommandError::MissingArgument;
+use super::CommandError::{self, MissingArgument};
 use super::{CommandResult, CommandTrait};
 use crate::apis::stablehorde::{self, Status};
 use crate::command_context::CommandContext;
@@ -29,7 +30,8 @@ pub struct StableHorde {
     command_names: &'static [&'static str],
     command_description: &'static str,
     model: &'static str,
-    size: u32,
+    size: (u32, u32),
+    resize_to: Option<(u32, u32)>,
 }
 
 impl StableHorde {
@@ -38,7 +40,8 @@ impl StableHorde {
             command_names: &["stable_diffusion_2", "sd2"],
             command_description: "generate images using Stable Diffusion 2.0",
             model: "stable_diffusion_2.0",
-            size: 768,
+            size: (768, 768),
+            resize_to: Some((512, 512)),
         }
     }
 
@@ -47,7 +50,8 @@ impl StableHorde {
             command_names: &["stable_diffusion", "sd"],
             command_description: "generate images using Stable Diffusion",
             model: "stable_diffusion",
-            size: 512,
+            size: (512, 512),
+            resize_to: None,
         }
     }
 
@@ -56,7 +60,8 @@ impl StableHorde {
             command_names: &["waifu_diffusion", "wd"],
             command_description: "generate images using Waifu Diffusion",
             model: "waifu_diffusion",
-            size: 512,
+            size: (512, 512),
+            resize_to: None,
         }
     }
 
@@ -65,7 +70,8 @@ impl StableHorde {
             command_names: &["furry_diffusion", "fd"],
             command_description: "generate images using Furry Epoch",
             model: "Furry Epoch",
-            size: 512,
+            size: (512, 512),
+            resize_to: None,
         }
     }
 }
@@ -84,7 +90,6 @@ impl CommandTrait for StableHorde {
         RateLimiter::new(3, 300)
     }
 
-    #[allow(clippy::too_many_lines)]
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let prompt = arguments.ok_or(MissingArgument("prompt to generate"))?;
 
@@ -95,89 +100,20 @@ impl CommandTrait for StableHorde {
 
         ctx.send_typing().await?;
 
-        let request_id =
-            stablehorde::generate(ctx.http_client.clone(), self.model, &prompt, self.size)
-                .await??;
-
-        let mut status_msg: Option<Message> = None;
-        let escaped_prompt = escape_markdown(prompt);
-        let start = Instant::now();
-        let mut show_volunteer_notice = false;
-        let mut last_edit: Option<Instant> = None;
-        let mut last_status = None;
-        loop {
-            let status = stablehorde::check(ctx.http_client.clone(), &request_id).await??;
-
-            if status.done {
-                break;
-            };
-
-            if status.wait_time >= 30 {
-                show_volunteer_notice = true;
-            }
-
-            if last_status.as_ref() != Some(&status) {
-                // the message doesn't exist yet or was edited more than 12 seconds ago
-                if last_edit
-                    .map_or(true, |last_edit| last_edit.elapsed() >= Duration::from_secs(12))
-                {
-                    let text = format_status(&status, &escaped_prompt, show_volunteer_notice);
-                    status_msg = Some(match status_msg {
-                        None => {
-                            ctx.message_queue
-                                .wait_for_message(ctx.reply_markdown(text).await?.id)
-                                .await?
-                        }
-                        Some(status_msg) => ctx.edit_message_markdown(status_msg.id, text).await?,
-                    });
-
-                    last_edit = Some(Instant::now());
-                    last_status = Some(status);
-                }
-            };
-
-            tokio::time::sleep(Duration::from_secs(2)).await;
-        }
-
-        let duration = start.elapsed();
-        let results = stablehorde::results(ctx.http_client.clone(), &request_id).await??;
-        let mut workers = Counter::<String>::new();
-        let images = results
-            .into_iter()
-            .flat_map(|generation| {
-                workers[&generation.worker_name] += 1;
-                base64::decode(generation.img)
-            })
-            .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
-            .collect::<Vec<_>>();
-
-        let image = image_collage(images, (self.size, self.size), 2, 8);
+        let generation = self.generate(ctx.clone(), prompt).await?;
         let mut temp_file = NamedTempFile::new().unwrap();
-        image.write_to(temp_file.as_file_mut(), ImageFormat::Png).unwrap();
+        generation.image.write_to(&mut temp_file, ImageFormat::Png).unwrap();
 
         let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
-            format!(
-                "generated *{}* in {} by {}\\.",
-                escaped_prompt,
-                format_duration(duration.as_secs()),
-                workers
-                    .most_common()
-                    .into_iter()
-                    .map(|(mut k, v)| {
-                        k.truncate_with_ellipsis(64);
-                        if v > 1 {
-                            write!(k, " ({v})").unwrap();
-                        }
-                        escape_markdown(k)
-                    })
-                    .collect::<Vec<_>>()
-                    .join(", ")
+            format_result_text(
+                generation.time_taken,
+                &generation.workers,
+                &generation.escaped_prompt,
             ),
             TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
             ctx.client_id,
         )
-        .await
-        .unwrap();
+        .await?;
 
         let message = ctx
             .reply_custom(
@@ -187,8 +123,8 @@ impl CommandTrait for StableHorde {
                     }),
                     thumbnail: None,
                     added_sticker_file_ids: Vec::new(),
-                    width: image.width().try_into().unwrap(),
-                    height: image.height().try_into().unwrap(),
+                    width: generation.image.width().try_into().unwrap(),
+                    height: generation.image.height().try_into().unwrap(),
                     caption: Some(formatted_text),
                     ttl: 0,
                 }),
@@ -205,15 +141,112 @@ impl CommandTrait for StableHorde {
 
         ctx.message_queue.wait_for_message(message.id).await?;
 
-        if let Some(status_msg) = status_msg {
+        if let Some(status_msg) = generation.status_msg {
             ctx.delete_message(status_msg.id).await.ok();
         }
+
+        temp_file.close().unwrap();
 
         Ok(())
     }
 }
 
-fn format_status(status: &Status, escaped_prompt: &str, volunteer_notice: bool) -> String {
+struct GenerationResult {
+    image: DynamicImage,
+    time_taken: Duration,
+    escaped_prompt: String,
+    workers: Counter<String>,
+    status_msg: Option<Message>,
+}
+
+impl StableHorde {
+    async fn generate(
+        &self,
+        ctx: Arc<CommandContext>,
+        prompt: String,
+    ) -> Result<GenerationResult, CommandError> {
+        let request_id =
+            stablehorde::generate(ctx.http_client.clone(), &prompt, self.model, self.size)
+                .await??;
+        let escaped_prompt = escape_markdown(&prompt);
+        let (status_msg, time_taken) =
+            wait_for_generation(ctx.clone(), &request_id, &escaped_prompt).await?;
+        let (image, workers) = process_result(ctx, &request_id, self.size, self.resize_to).await?;
+
+        Ok(GenerationResult { image, time_taken, escaped_prompt, workers, status_msg })
+    }
+}
+
+async fn wait_for_generation(
+    ctx: Arc<CommandContext>,
+    request_id: &str,
+    escaped_prompt: &str,
+) -> Result<(Option<Message>, Duration), CommandError> {
+    let start_time = Instant::now();
+    let mut status_msg: Option<Message> = None;
+    let mut last_edit: Option<Instant> = None;
+    let mut last_status = None;
+    let mut show_volunteer_notice = false;
+    loop {
+        let status = stablehorde::check(ctx.http_client.clone(), request_id).await??;
+
+        if status.done {
+            break Ok((status_msg, start_time.elapsed()));
+        };
+
+        if status.wait_time >= 30 {
+            show_volunteer_notice = true;
+        }
+
+        if last_status.as_ref() != Some(&status) {
+            // the message doesn't exist yet or was edited more than 12 seconds ago
+            if last_edit.map_or(true, |last_edit| last_edit.elapsed() >= Duration::from_secs(12)) {
+                let text = format_status_text(&status, escaped_prompt, show_volunteer_notice);
+                status_msg = Some(match status_msg {
+                    None => {
+                        ctx.message_queue
+                            .wait_for_message(ctx.reply_markdown(text).await?.id)
+                            .await?
+                    }
+                    Some(status_msg) => ctx.edit_message_markdown(status_msg.id, text).await?,
+                });
+
+                last_edit = Some(Instant::now());
+                last_status = Some(status);
+            }
+        };
+
+        tokio::time::sleep(Duration::from_secs(2)).await;
+    }
+}
+
+async fn process_result(
+    ctx: Arc<CommandContext>,
+    request_id: &str,
+    size: (u32, u32),
+    resize_to: Option<(u32, u32)>,
+) -> Result<(DynamicImage, Counter<String>), CommandError> {
+    let results = stablehorde::results(ctx.http_client.clone(), request_id).await??;
+    let mut workers = Counter::<String>::new();
+    let images = results
+        .into_iter()
+        .flat_map(|generation| {
+            workers[&generation.worker_name] += 1;
+            base64::decode(generation.img)
+        })
+        .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
+        .map(|image| {
+            if let Some(resize_to) = resize_to {
+                image.resize_exact(resize_to.0, resize_to.1, FilterType::Lanczos3)
+            } else {
+                image
+            }
+        });
+
+    Ok((image_collage(images.collect(), resize_to.unwrap_or(size), 2, 8), workers))
+}
+
+fn format_status_text(status: &Status, escaped_prompt: &str, volunteer_notice: bool) -> String {
     let queue_info = if status.queue_position > 0 {
         format!("queue position: {}\n", status.queue_position)
     } else {
@@ -239,6 +272,30 @@ fn format_status(status: &Status, escaped_prompt: &str, volunteer_notice: bool) 
     };
 
     text
+}
+
+fn format_result_text(
+    time_taken: Duration,
+    workers: &Counter<String>,
+    escaped_prompt: &str,
+) -> String {
+    format!(
+        "generated *{}* in {} by {}\\.",
+        escaped_prompt,
+        format_duration(time_taken.as_secs()),
+        workers
+            .most_common()
+            .into_iter()
+            .map(|(mut k, v)| {
+                k.truncate_with_ellipsis(64);
+                if v > 1 {
+                    write!(k, " ({v})").unwrap();
+                }
+                escape_markdown(k)
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+    )
 }
 
 fn progress_bar(waiting: usize, processing: usize, finished: usize) -> String {
