@@ -19,7 +19,7 @@ use tempfile::NamedTempFile;
 
 use super::CommandError::{self, MissingArgument};
 use super::{CommandResult, CommandTrait};
-use crate::apis::stablehorde::{self, Status};
+use crate::apis::stablehorde::{self, Generation, Status};
 use crate::command_context::CommandContext;
 use crate::ratelimit::RateLimiter;
 use crate::utils::{
@@ -169,9 +169,9 @@ impl StableHorde {
             stablehorde::generate(ctx.http_client.clone(), &prompt, self.model, self.size)
                 .await??;
         let escaped_prompt = escape_markdown(&prompt);
-        let (status_msg, time_taken) =
+        let (results, status_msg, time_taken) =
             wait_for_generation(ctx.clone(), &request_id, &escaped_prompt).await?;
-        let (image, workers) = process_result(ctx, &request_id, self.size, self.resize_to).await?;
+        let (image, workers) = process_result(results, self.size, self.resize_to);
 
         Ok(GenerationResult { image, time_taken, escaped_prompt, workers, status_msg })
     }
@@ -181,17 +181,17 @@ async fn wait_for_generation(
     ctx: Arc<CommandContext>,
     request_id: &str,
     escaped_prompt: &str,
-) -> Result<(Option<Message>, Duration), CommandError> {
+) -> Result<(Vec<Generation>, Option<Message>, Duration), CommandError> {
     let start_time = Instant::now();
     let mut status_msg: Option<Message> = None;
     let mut last_edit: Option<Instant> = None;
     let mut last_status = None;
     let mut show_volunteer_notice = false;
-    loop {
+    let time_taken = loop {
         let status = stablehorde::check(ctx.http_client.clone(), request_id).await??;
 
         if status.done {
-            break Ok((status_msg, start_time.elapsed()));
+            break start_time.elapsed();
         };
 
         if status.wait_time >= 30 {
@@ -217,16 +217,17 @@ async fn wait_for_generation(
         };
 
         tokio::time::sleep(Duration::from_secs(2)).await;
-    }
+    };
+
+    let results = stablehorde::results(ctx.http_client.clone(), request_id).await??;
+    Ok((results, status_msg, time_taken))
 }
 
-async fn process_result(
-    ctx: Arc<CommandContext>,
-    request_id: &str,
+fn process_result(
+    results: Vec<Generation>,
     size: (u32, u32),
     resize_to: Option<(u32, u32)>,
-) -> Result<(DynamicImage, Counter<String>), CommandError> {
-    let results = stablehorde::results(ctx.http_client.clone(), request_id).await??;
+) -> (DynamicImage, Counter<String>) {
     let mut workers = Counter::<String>::new();
     let images = results
         .into_iter()
@@ -243,7 +244,7 @@ async fn process_result(
             }
         });
 
-    Ok((image_collage(images.collect(), resize_to.unwrap_or(size), 2, 8), workers))
+    (image_collage(images.collect(), resize_to.unwrap_or(size), 2, 8), workers)
 }
 
 fn format_status_text(status: &Status, escaped_prompt: &str, volunteer_notice: bool) -> String {
