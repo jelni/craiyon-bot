@@ -71,27 +71,24 @@ impl CommandTrait for Generate {
         .await
         .unwrap();
 
-        ctx.message_queue
-            .wait_for_message(
-                ctx.reply_custom(
-                    InputMessageContent::InputMessagePhoto(InputMessagePhoto {
-                        photo: InputFile::Local(InputFileLocal {
-                            path: temp_file.path().to_str().unwrap().into(),
-                        }),
-                        thumbnail: None,
-                        added_sticker_file_ids: Vec::new(),
-                        width: image.width().try_into().unwrap(),
-                        height: image.height().try_into().unwrap(),
-                        caption: Some(formatted_text),
-                        ttl: 0,
+        let message = ctx
+            .reply_custom(
+                InputMessageContent::InputMessagePhoto(InputMessagePhoto {
+                    photo: InputFile::Local(InputFileLocal {
+                        path: temp_file.path().to_str().unwrap().into(),
                     }),
-                    Some(donate_markup("🖍️ Craiyon", "https://craiyon.com/donate")),
-                )
-                .await?
-                .id,
+                    thumbnail: None,
+                    added_sticker_file_ids: Vec::new(),
+                    width: image.width().try_into().unwrap(),
+                    height: image.height().try_into().unwrap(),
+                    caption: Some(formatted_text),
+                    ttl: 0,
+                }),
+                Some(donate_markup("🖍️ Craiyon", "https://craiyon.com/donate")),
             )
             .await?;
 
+        ctx.message_queue.wait_for_message(message.id).await?;
         ctx.delete_message(status_msg.id).await.ok();
         temp_file.close().unwrap();
 

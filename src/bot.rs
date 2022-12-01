@@ -215,6 +215,8 @@ impl Bot {
         };
         let text = match &message.content {
             MessageContent::MessageText(text) => &text.text,
+            MessageContent::MessageDocument(document) => &document.caption,
+            MessageContent::MessagePhoto(photo) => &photo.caption,
             MessageContent::MessageDice(_) => {
                 self.run_task(not_commands::accurate(message, self.client_id));
                 return;
