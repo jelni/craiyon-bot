@@ -1,7 +1,11 @@
 use image::{imageops, DynamicImage};
-use tdlib::enums::{ChatMemberStatus, ChatType, InlineKeyboardButtonType, ReplyMarkup};
+use tdlib::enums::{
+    self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, ReplyMarkup,
+};
+use tdlib::functions;
 use tdlib::types::{
-    InlineKeyboardButton, InlineKeyboardButtonTypeUrl, ReplyMarkupInlineKeyboard, UpdateChatMember,
+    File, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message, ReplyMarkupInlineKeyboard,
+    UpdateChatMember,
 };
 
 use crate::cache::CompactChat;
@@ -88,6 +92,35 @@ pub fn escape_markdown<S: AsRef<str>>(text: S) -> String {
         escaped.push(ch);
     }
     escaped
+}
+
+pub fn get_message_image(message: &Message) -> Option<File> {
+    match &message.content {
+        MessageContent::MessagePhoto(photo) => {
+            photo.photo.sizes.last().map(|photo_size| photo_size.photo.clone())
+        }
+        MessageContent::MessageDocument(document) => Some(document.document.document.clone()),
+        _ => None,
+    }
+}
+
+pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Option<File> {
+    if let Some(file) = get_message_image(message) {
+        return Some(file);
+    }
+
+    if message.reply_to_message_id != 0 {
+        let enums::Message::Message(message) = functions::get_message(
+            message.reply_in_chat_id,
+            message.reply_to_message_id,
+            client_id,
+        )
+        .await
+        .ok()?;
+        return get_message_image(&message);
+    }
+
+    None
 }
 
 pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMarkup {

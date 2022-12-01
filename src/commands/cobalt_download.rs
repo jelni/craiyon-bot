@@ -54,24 +54,21 @@ impl CommandTrait for CobaltDownload {
             let mut temp_file = NamedTempFile::new().unwrap();
             temp_file.write_all(&download.media).unwrap();
 
-            ctx.message_queue
-                .wait_for_message(
-                    ctx.reply_custom(
-                        InputMessageContent::InputMessageDocument(InputMessageDocument {
-                            document: InputFile::Local(InputFileLocal {
-                                path: temp_file.path().to_str().unwrap().into(),
-                            }),
-                            thumbnail: None,
-                            disable_content_type_detection: false,
-                            caption: None,
+            let message = ctx
+                .reply_custom(
+                    InputMessageContent::InputMessageDocument(InputMessageDocument {
+                        document: InputFile::Local(InputFileLocal {
+                            path: temp_file.path().to_str().unwrap().into(),
                         }),
-                        Some(donate_markup("≫ cobalt", "https://boosty.to/wukko")),
-                    )
-                    .await?
-                    .id,
+                        thumbnail: None,
+                        disable_content_type_detection: false,
+                        caption: None,
+                    }),
+                    Some(donate_markup("≫ cobalt", "https://boosty.to/wukko")),
                 )
                 .await?;
 
+            ctx.message_queue.wait_for_message(message.id).await?;
             temp_file.close().unwrap();
         }
 

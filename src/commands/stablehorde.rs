@@ -140,11 +140,9 @@ impl CommandTrait for StableHorde {
             .await?;
 
         ctx.message_queue.wait_for_message(message.id).await?;
-
         if let Some(status_msg) = generation.status_msg {
             ctx.delete_message(status_msg.id).await.ok();
         }
-
         temp_file.close().unwrap();
 
         Ok(())

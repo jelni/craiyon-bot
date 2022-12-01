@@ -11,6 +11,7 @@ pub mod badtranslate;
 pub mod charinfo;
 pub mod cobalt_download;
 pub mod delete;
+pub mod different_dimension_me;
 pub mod generate;
 pub mod kebab;
 pub mod kiwifarms;

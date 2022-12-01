@@ -28,6 +28,7 @@ async fn main() {
     bot.add_command(Box::new(commands::stablehorde::StableHorde::stable_diffusion()));
     bot.add_command(Box::new(commands::stablehorde::StableHorde::waifu_diffusion()));
     bot.add_command(Box::new(commands::stablehorde::StableHorde::furry_diffusion()));
+    bot.add_command(Box::<commands::different_dimension_me::DifferentDimensionMe>::default());
     bot.add_command(Box::<commands::translate::Translate>::default());
     bot.add_command(Box::<commands::badtranslate::BadTranslate>::default());
     bot.add_command(Box::<commands::urbandictionary::UrbanDictionary>::default());
