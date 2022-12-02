@@ -50,7 +50,16 @@ impl CommandTrait for DifferentDimensionMe {
         )
         .await?;
 
-        let media = result.map_err(|err| CustomError(err.to_string()))?;
+        let media = result.map_err(|err| {
+            CustomError(if err.message == "IMG_ILLEGAL" {
+                format!(
+                    "Xi Jinping does not approve of this image and has censored it (error {}: {})",
+                    err.code, err.message
+                )
+            } else {
+                err.to_string()
+            })
+        })?;
         let response = ctx
             .http_client
             .get(
