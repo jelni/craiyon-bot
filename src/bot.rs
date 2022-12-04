@@ -82,6 +82,7 @@ impl Bot {
             *state.lock().unwrap() = BotState::WaitingToClose;
         });
 
+        let mut last_task_count = 0;
         loop {
             if let Some((update, _)) = tdlib::receive() {
                 self.on_update(update);
@@ -93,7 +94,11 @@ impl Bot {
                     if self.tasks.is_empty() {
                         self.close();
                     } else {
-                        log::info!("waiting for {} task(s) to finish…", self.tasks.len());
+                        let task_count = self.tasks.len();
+                        if task_count != last_task_count {
+                            log::info!("waiting for {task_count} task(s) to finish…");
+                            last_task_count = task_count;
+                        }
                     }
                 }
                 BotState::Closed => break,
@@ -141,8 +146,8 @@ impl Bot {
                             ".data".into(),
                             String::new(),
                             env::var("DB_ENCRYPTION_KEY").unwrap(),
-                            false,
-                            false,
+                            true,
+                            true,
                             false,
                             false,
                             env::var("API_ID").unwrap().parse().unwrap(),
@@ -193,9 +198,6 @@ impl Bot {
     }
 
     fn on_message(&mut self, message: Message) {
-        let BotState::Running = *self.state.lock().unwrap() else {
-            return; // ignore when closing
-        };
         if message.forward_info.is_some() {
             return; // ignore forwarded messages
         }
