@@ -96,10 +96,10 @@ pub fn escape_markdown<S: AsRef<str>>(text: S) -> String {
 
 pub fn get_message_image(message: &Message) -> Option<File> {
     match &message.content {
+        MessageContent::MessageDocument(document) => Some(document.document.document.clone()),
         MessageContent::MessagePhoto(photo) => {
             photo.photo.sizes.last().map(|photo_size| photo_size.photo.clone())
         }
-        MessageContent::MessageDocument(document) => Some(document.document.document.clone()),
         _ => None,
     }
 }

@@ -1,8 +1,8 @@
 use std::fs::{self};
-use std::io::Write;
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use image::{DynamicImage, ImageFormat};
 use tdlib::enums::{File, InputFile, InputMessageContent};
 use tdlib::functions;
 use tdlib::types::{InputFileLocal, InputMessagePhoto};
@@ -22,7 +22,7 @@ pub struct DifferentDimensionMe;
 #[async_trait]
 impl CommandTrait for DifferentDimensionMe {
     fn command_names(&self) -> &[&str] {
-        &["different_dimension_me", "ai2d"]
+        &["different_dimension_me", "ai2d", "2d"]
     }
 
     fn description(&self) -> Option<&'static str> {
@@ -34,13 +34,11 @@ impl CommandTrait for DifferentDimensionMe {
             .await
             .ok_or(CustomError("send or reply to an image.".into()))?;
 
-        if !file.local.is_downloading_completed {
-            if file.expected_size > 4 * MEBIBYTE {
-                Err("the image cannot be larger than 4 MiB.")?;
-            }
-            File::File(file) =
-                functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
+        if file.expected_size > 4 * MEBIBYTE {
+            Err("the image cannot be larger than 4 MiB.")?;
         }
+
+        File::File(file) = functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
 
         ctx.send_typing().await?;
 
@@ -66,13 +64,18 @@ impl CommandTrait for DifferentDimensionMe {
                 media
                     .img_urls
                     .into_iter()
-                    .nth(2)
+                    .next()
                     .ok_or(CustomError("the generation failed.".into()))?,
             )
             .send()
             .await?;
+
+        let image =
+            image::load_from_memory_with_format(&response.bytes().await?, ImageFormat::Jpeg)
+                .map_err(|err| err.to_string())?;
+        let image = crop_result_image(image);
         let mut temp_file = NamedTempFile::new().unwrap();
-        temp_file.write_all(&response.bytes().await?).unwrap();
+        image.write_to(&mut temp_file, ImageFormat::Png).unwrap();
 
         let message = ctx
             .reply_custom(
@@ -95,5 +98,13 @@ impl CommandTrait for DifferentDimensionMe {
         temp_file.close().unwrap();
 
         Ok(())
+    }
+}
+
+fn crop_result_image(mut image: DynamicImage) -> DynamicImage {
+    match (image.width(), image.height()) {
+        (800, 1257) => image.crop(20, 543, 758, 504),
+        (1000, 930) => image.crop(508, 24, 471, 705),
+        _ => image,
     }
 }

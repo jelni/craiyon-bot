@@ -40,7 +40,7 @@ pub async fn process(
         let result = http_client
             .post("https://ai.tu.qq.com/trpc.shadow_cv.ai_processor_cgi.AIProcessorCgi/Process")
             .json(&InputData {
-                busi_id: "ai_painting_anime_entry",
+                busi_id: "ai_painting_anime_img_entry",
                 images: vec![base64::encode(&image)],
             })
             .send()
