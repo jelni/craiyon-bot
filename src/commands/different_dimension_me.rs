@@ -3,9 +3,9 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use image::{DynamicImage, ImageFormat};
-use tdlib::enums::{File, InputFile, InputMessageContent};
+use tdlib::enums::{File, FormattedText, InputFile, InputMessageContent, TextParseMode};
 use tdlib::functions;
-use tdlib::types::{InputFileLocal, InputMessagePhoto};
+use tdlib::types::{InputFileLocal, InputMessagePhoto, TextParseModeMarkdown};
 use tempfile::NamedTempFile;
 
 use super::CommandError::CustomError;
@@ -58,17 +58,14 @@ impl CommandTrait for DifferentDimensionMe {
                 err.to_string()
             })
         })?;
-        let response = ctx
-            .http_client
-            .get(
-                media
-                    .img_urls
-                    .into_iter()
-                    .next()
-                    .ok_or(CustomError("the generation failed.".into()))?,
-            )
-            .send()
-            .await?;
+
+        let image_url = media
+            .img_urls
+            .into_iter()
+            .next()
+            .ok_or(CustomError("the generation failed.".into()))?;
+
+        let response = ctx.http_client.get(&image_url).send().await?;
 
         let image =
             image::load_from_memory_with_format(&response.bytes().await?, ImageFormat::Jpeg)
@@ -76,6 +73,13 @@ impl CommandTrait for DifferentDimensionMe {
         let image = crop_result_image(image);
         let mut temp_file = NamedTempFile::new().unwrap();
         image.write_to(&mut temp_file, ImageFormat::Png).unwrap();
+
+        let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
+            format!("[open full image]({image_url})"),
+            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
+            ctx.client_id,
+        )
+        .await?;
 
         let message = ctx
             .reply_custom(
@@ -87,7 +91,7 @@ impl CommandTrait for DifferentDimensionMe {
                     added_sticker_file_ids: Vec::new(),
                     width: 0,
                     height: 0,
-                    caption: None,
+                    caption: Some(formatted_text),
                     ttl: 0,
                 }),
                 None,
