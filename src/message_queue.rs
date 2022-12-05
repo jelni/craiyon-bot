@@ -11,7 +11,7 @@ pub struct MessageQueue {
 }
 
 impl MessageQueue {
-    pub async fn wait_for_message(&self, message_id: i64) -> Result<Message, tdlib::types::Error> {
+    pub async fn wait_for_message(&self, message_id: i64) -> Result<Message, TdError> {
         let (tx, rx) = oneshot::channel();
         self.queue.lock().unwrap().insert(message_id, tx);
         rx.await.unwrap()
