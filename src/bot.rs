@@ -135,50 +135,48 @@ impl Bot {
     }
 
     fn on_authorization_state_update(&mut self, authorization_state: &AuthorizationState) {
-        {
-            log::info!("authorization: {authorization_state:?}");
-            match authorization_state {
-                AuthorizationState::WaitTdlibParameters => {
-                    let client_id = self.client_id;
-                    self.run_task(async move {
-                        functions::set_tdlib_parameters(
-                            false,
-                            ".data".into(),
-                            String::new(),
-                            env::var("DB_ENCRYPTION_KEY").unwrap(),
-                            true,
-                            true,
-                            false,
-                            false,
-                            env::var("API_ID").unwrap().parse().unwrap(),
-                            env::var("API_HASH").unwrap(),
-                            "en".into(),
-                            env!("CARGO_PKG_NAME").into(),
-                            String::new(),
-                            env!("CARGO_PKG_VERSION").into(),
-                            true,
-                            true,
-                            client_id,
-                        )
-                        .await
-                        .unwrap();
-                    });
-                }
-                AuthorizationState::WaitPhoneNumber => {
-                    let client_id = self.client_id;
-                    self.run_task(async move {
-                        functions::check_authentication_bot_token(
-                            env::var("TELEGRAM_TOKEN").unwrap(),
-                            client_id,
-                        )
-                        .await
-                        .unwrap();
-                    });
-                }
-                AuthorizationState::Ready => self.on_ready(),
-                AuthorizationState::Closed => *self.state.lock().unwrap() = BotState::Closed,
-                _ => (),
+        log::info!("authorization: {authorization_state:?}");
+        match authorization_state {
+            AuthorizationState::WaitTdlibParameters => {
+                let client_id = self.client_id;
+                self.run_task(async move {
+                    functions::set_tdlib_parameters(
+                        false,
+                        ".data".into(),
+                        String::new(),
+                        env::var("DB_ENCRYPTION_KEY").unwrap(),
+                        true,
+                        true,
+                        false,
+                        false,
+                        env::var("API_ID").unwrap().parse().unwrap(),
+                        env::var("API_HASH").unwrap(),
+                        "en".into(),
+                        env!("CARGO_PKG_NAME").into(),
+                        String::new(),
+                        env!("CARGO_PKG_VERSION").into(),
+                        true,
+                        true,
+                        client_id,
+                    )
+                    .await
+                    .unwrap();
+                });
             }
+            AuthorizationState::WaitPhoneNumber => {
+                let client_id = self.client_id;
+                self.run_task(async move {
+                    functions::check_authentication_bot_token(
+                        env::var("TELEGRAM_TOKEN").unwrap(),
+                        client_id,
+                    )
+                    .await
+                    .unwrap();
+                });
+            }
+            AuthorizationState::Ready => self.on_ready(),
+            AuthorizationState::Closed => *self.state.lock().unwrap() = BotState::Closed,
+            _ => (),
         }
     }
 
