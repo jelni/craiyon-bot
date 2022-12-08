@@ -38,8 +38,8 @@ impl StableHorde {
     pub fn stable_diffusion_2() -> Self {
         Self {
             command_names: &["stable_diffusion_2", "sd2"],
-            command_description: "generate images using Stable Diffusion 2.0",
-            model: "stable_diffusion_2.0",
+            command_description: "generate images using Stable Diffusion v2.1",
+            model: "stable_diffusion_2.1",
             size: (768, 768),
             resize_to: Some((512, 512)),
         }
@@ -48,7 +48,7 @@ impl StableHorde {
     pub fn stable_diffusion() -> Self {
         Self {
             command_names: &["stable_diffusion", "sd"],
-            command_description: "generate images using Stable Diffusion",
+            command_description: "generate images using Stable Diffusion v1.5",
             model: "stable_diffusion",
             size: (512, 512),
             resize_to: None,
