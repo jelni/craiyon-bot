@@ -1,11 +1,13 @@
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::sync::Arc;
 
 use async_trait::async_trait;
 use reqwest::StatusCode;
-use tdlib::enums::{InputFile, InputMessageContent};
+use tdlib::enums::{InputFile, InputMessageContent, Text};
+use tdlib::functions;
 use tdlib::types::{InputFileLocal, InputMessageDocument};
-use tempfile::NamedTempFile;
+use tempfile::TempDir;
 
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
@@ -50,15 +52,20 @@ impl CommandTrait for CobaltDownload {
             }
         }
 
+        let temp_dir = TempDir::new().unwrap();
+
         for download in downloads {
-            let mut temp_file = NamedTempFile::new().unwrap();
-            temp_file.write_all(&download.media).unwrap();
+            let Text::Text(file_name) =
+                functions::clean_file_name(download.filename, ctx.client_id).await?;
+            let path = temp_dir.path().join(file_name.text);
+            let mut file = OpenOptions::new().write(true).create(true).open(&path).unwrap();
+            file.write_all(&download.media).unwrap();
 
             let message = ctx
                 .reply_custom(
                     InputMessageContent::InputMessageDocument(InputMessageDocument {
                         document: InputFile::Local(InputFileLocal {
-                            path: temp_file.path().to_str().unwrap().into(),
+                            path: path.to_str().unwrap().into(),
                         }),
                         thumbnail: None,
                         disable_content_type_detection: false,
@@ -69,10 +76,10 @@ impl CommandTrait for CobaltDownload {
                 .await?;
 
             ctx.message_queue.wait_for_message(message.id).await?;
-            temp_file.close().unwrap();
         }
 
         ctx.delete_message(status_msg.id).await.ok();
+        temp_dir.close().unwrap();
 
         Ok(())
     }
