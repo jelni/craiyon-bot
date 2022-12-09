@@ -26,6 +26,7 @@ image = { version = "0.24", default-features = false, features = [
     "webp",
 ] }
 base64 = "0.20.0-alpha"
+md5 = "0.7"
 time = { version = "0.3", features = ["serde", "serde-well-known", "macros"] }
 dotenv = "0.15"
 tempfile = "3.3"
