@@ -1,5 +1,7 @@
 use core::fmt;
 
+use md5::Digest;
+use reqwest::header::{CONTENT_TYPE, ORIGIN};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
@@ -36,13 +38,22 @@ pub async fn process(
     http_client: reqwest::Client,
     image: Vec<u8>,
 ) -> reqwest::Result<Result<Media, ProcessingError>> {
+    let json = serde_json::ser::to_string(&InputData {
+        busi_id: "ai_painting_anime_img_entry",
+        images: vec![base64::encode(&image)],
+    })
+    .unwrap();
+
+    let signature = format!("{:x}", sign(&json));
+
     loop {
         let result = http_client
             .post("https://ai.tu.qq.com/trpc.shadow_cv.ai_processor_cgi.AIProcessorCgi/Process")
-            .json(&InputData {
-                busi_id: "ai_painting_anime_img_entry",
-                images: vec![base64::encode(&image)],
-            })
+            .body(json.clone())
+            .header(CONTENT_TYPE, "application/json")
+            .header(ORIGIN, "https://h5.tu.qq.com")
+            .header("x-sign-value", &signature)
+            .header("x-sign-version", "v1")
             .send()
             .await?
             .json::<ProcessingResult>()
@@ -59,4 +70,8 @@ pub async fn process(
             Err(err)
         });
     }
+}
+
+fn sign(data: &str) -> Digest {
+    md5::compute(format!("https://h5.tu.qq.com{}HQ31X02e", data.len()))
 }
