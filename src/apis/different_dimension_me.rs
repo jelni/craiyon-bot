@@ -39,7 +39,7 @@ pub async fn process(
     image: Vec<u8>,
 ) -> reqwest::Result<Result<Media, ProcessingError>> {
     let json = serde_json::ser::to_string(&InputData {
-        busi_id: "ai_painting_anime_img_entry",
+        busi_id: "different_dimension_me_img_entry",
         images: vec![base64::encode(&image)],
     })
     .unwrap();
