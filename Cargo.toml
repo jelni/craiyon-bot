@@ -4,7 +4,7 @@ version = "1.0.0"
 edition = "2021"
 
 [dependencies]
-tdlib = { git = "https://github.com/melix99/tdlib-rs" }
+tdlib = "0.3.1"
 tokio = { version = "1.22", features = [
     "rt-multi-thread",
     "macros",
