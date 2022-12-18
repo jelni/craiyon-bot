@@ -169,7 +169,11 @@ impl StableHorde {
         let escaped_prompt = escape_markdown(&prompt);
         let (results, status_msg, time_taken) =
             wait_for_generation(ctx.clone(), &request_id, &escaped_prompt).await?;
-        let (image, workers) = process_result(results, self.size, self.resize_to);
+        let workers =
+            results.iter().map(|generation| generation.worker_name.clone()).collect::<Counter<_>>();
+        let urls = results.into_iter().map(|generation| generation.img).collect::<Vec<_>>();
+        let images = download_images(ctx.http_client.clone(), urls).await?;
+        let image = process_images(images, self.size, self.resize_to);
 
         Ok(GenerationResult { image, time_taken, escaped_prompt, workers, status_msg })
     }
@@ -221,18 +225,34 @@ async fn wait_for_generation(
     Ok((results, status_msg, time_taken))
 }
 
-fn process_result(
-    results: Vec<Generation>,
+async fn download_images(
+    http_client: reqwest::Client,
+    urls: Vec<String>,
+) -> Result<Vec<Vec<u8>>, CommandError> {
+    let mut images = Vec::with_capacity(urls.len());
+    let tasks = urls.into_iter().map(|url| tokio::spawn(http_client.get(url).send()));
+    for task in tasks {
+        images.push(
+            task.await
+                .unwrap()
+                .map_err(|_| "failed to download generated images.")?
+                .bytes()
+                .await
+                .unwrap()
+                .to_vec(),
+        );
+    }
+
+    Ok(images)
+}
+
+fn process_images(
+    images: Vec<Vec<u8>>,
     size: (u32, u32),
     resize_to: Option<(u32, u32)>,
-) -> (DynamicImage, Counter<String>) {
-    let mut workers = Counter::<String>::new();
-    let images = results
+) -> DynamicImage {
+    let images = images
         .into_iter()
-        .flat_map(|generation| {
-            workers[&generation.worker_name] += 1;
-            base64::decode(generation.img)
-        })
         .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
         .map(|image| {
             if let Some(resize_to) = resize_to {
@@ -242,7 +262,7 @@ fn process_result(
             }
         });
 
-    (image_collage(images.collect(), resize_to.unwrap_or(size), 2, 8), workers)
+    image_collage(images.collect(), resize_to.unwrap_or(size), 2, 8)
 }
 
 fn format_status_text(status: &Status, escaped_prompt: &str, volunteer_notice: bool) -> String {
