@@ -11,6 +11,7 @@ struct GenerationInput {
     models: Vec<&'static str>,
     params: Params,
     nsfw: bool,
+    r2: bool,
 }
 
 #[derive(Serialize)]
@@ -75,6 +76,7 @@ pub async fn generate<S: Into<String>>(
                 karras: true,
             },
             nsfw: true,
+            r2: true,
         })
         .header("apikey", env::var("STABLEHORDE_TOKEN").unwrap())
         .send()
