@@ -232,15 +232,7 @@ async fn download_images(
     let mut images = Vec::with_capacity(urls.len());
     let tasks = urls.into_iter().map(|url| tokio::spawn(http_client.get(url).send()));
     for task in tasks {
-        images.push(
-            task.await
-                .unwrap()
-                .map_err(|_| "failed to download generated images.")?
-                .bytes()
-                .await
-                .unwrap()
-                .to_vec(),
-        );
+        images.push(task.await.unwrap()?.bytes().await.unwrap().to_vec());
     }
 
     Ok(images)
