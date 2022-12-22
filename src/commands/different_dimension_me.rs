@@ -8,7 +8,6 @@ use tdlib::functions;
 use tdlib::types::{InputFileLocal, InputMessagePhoto, TextParseModeMarkdown};
 use tempfile::NamedTempFile;
 
-use super::CommandError::CustomError;
 use super::{CommandResult, CommandTrait};
 use crate::apis::different_dimension_me;
 use crate::command_context::CommandContext;
@@ -32,7 +31,7 @@ impl CommandTrait for DifferentDimensionMe {
     async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
         let mut file = utils::get_message_or_reply_image(&ctx.message, ctx.client_id)
             .await
-            .ok_or(CustomError("send or reply to an image.".into()))?;
+            .ok_or("send or reply to an image.")?;
 
         if file.expected_size > 4 * MEBIBYTE {
             Err("the image cannot be larger than 4 MiB.")?;
@@ -49,24 +48,18 @@ impl CommandTrait for DifferentDimensionMe {
         .await?;
 
         let media = result.map_err(|err| {
-            CustomError(if err.message == "IMG_ILLEGAL" {
+            if err.message == "IMG_ILLEGAL" {
                 format!(
                     "Xi Jinping does not approve of this image and has censored it (error {}: {})",
                     err.code, err.message
                 )
             } else {
                 err.to_string()
-            })
+            }
         })?;
 
-        let image_url = media
-            .img_urls
-            .into_iter()
-            .next()
-            .ok_or(CustomError("the generation failed.".into()))?;
-
+        let image_url = media.img_urls.into_iter().next().ok_or("the generation failed.")?;
         let response = ctx.http_client.get(&image_url).send().await?;
-
         let image =
             image::load_from_memory_with_format(&response.bytes().await?, ImageFormat::Jpeg)
                 .map_err(|err| err.to_string())?;
