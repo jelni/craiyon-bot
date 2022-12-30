@@ -22,27 +22,31 @@ impl CommandTrait for CharInfo {
 
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let chars = arguments.ok_or(MissingArgument("characters"))?;
+        let mut chars = chars.chars();
 
         let mut lines = chars
-            .chars()
+            .by_ref()
             .take(10)
-            .into_iter()
-            .map(|c| {
-                if c.is_ascii_whitespace() {
+            .map(|char| {
+                if char.is_ascii_whitespace() {
                     String::new()
                 } else {
-                    let cu32 = c as u32;
+                    let value = char as u32;
                     format!(
                         "`{}` `U\\+{:04X}` – `{}`",
-                        if MARKDOWN_CHARS.contains(&c) { format!("\\{c}") } else { c.into() },
-                        cu32,
-                        escape_markdown(charname::get_name(cu32))
+                        if MARKDOWN_CHARS.contains(&char) {
+                            format!("\\{char}")
+                        } else {
+                            char.into()
+                        },
+                        value,
+                        escape_markdown(charname::get_name(value))
                     )
                 }
             })
             .collect::<Vec<_>>();
 
-        if chars.chars().count() > 10 {
+        if chars.next().is_some() {
             lines.push("…".into());
         }
 
