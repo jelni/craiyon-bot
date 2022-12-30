@@ -36,3 +36,7 @@ impl<K: Eq + Hash> RateLimiter<K> {
         }
     }
 }
+
+pub struct RateLimits {
+    pub ratelimit_exceeded: RateLimiter<i64>,
+}

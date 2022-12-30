@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::translate;
-use crate::command_context::CommandContext;
+use crate::utilities::command_context::CommandContext;
 
 #[derive(Default)]
 pub struct BadTranslate;
@@ -23,9 +23,13 @@ impl CommandTrait for BadTranslate {
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let text = arguments.ok_or(MissingArgument("text to translate"))?;
 
-        let translations =
-            translate::multiple(ctx.http_client.clone(), text.split_ascii_whitespace(), None, "en")
-                .await?;
+        let translations = translate::multiple(
+            ctx.http_client.clone(),
+            text.split_ascii_whitespace(),
+            None,
+            &ctx.user.language_code,
+        )
+        .await?;
         ctx.reply(translations.join(" ")).await?;
 
         Ok(())

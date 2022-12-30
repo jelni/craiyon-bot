@@ -11,9 +11,9 @@ use tempfile::NamedTempFile;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::craiyon;
-use crate::command_context::CommandContext;
-use crate::ratelimit::RateLimiter;
-use crate::utils::{check_prompt, donate_markup, escape_markdown, format_duration, image_collage};
+use crate::utilities::command_context::CommandContext;
+use crate::utilities::ratelimit::RateLimiter;
+use crate::utilities::{image_utils, telegram_utils, text_utils};
 
 #[derive(Default)]
 pub struct Generate;
@@ -35,7 +35,7 @@ impl CommandTrait for Generate {
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let prompt = arguments.ok_or(MissingArgument("prompt to generate"))?;
 
-        if let Some(issue) = check_prompt(&prompt) {
+        if let Some(issue) = text_utils::check_prompt(&prompt) {
             log::info!("prompt rejected: {issue:?}");
             Err(issue)?;
         }
@@ -55,15 +55,15 @@ impl CommandTrait for Generate {
             .map(|image| image.resize_exact(256, 256, FilterType::Lanczos3))
             .collect::<Vec<_>>();
 
-        let image = image_collage(images, (256, 256), 3, 8);
+        let image = image_utils::collage(images, (256, 256), 3, 8);
         let mut temp_file = NamedTempFile::new().unwrap();
         image.write_to(&mut temp_file, ImageFormat::Png).unwrap();
 
         let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
             format!(
                 "generated *{}* in {}\\.",
-                escape_markdown(prompt),
-                format_duration(result.duration.as_secs())
+                text_utils::escape_markdown(prompt),
+                text_utils::format_duration(result.duration.as_secs())
             ),
             TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
             ctx.client_id,
@@ -84,7 +84,7 @@ impl CommandTrait for Generate {
                     caption: Some(formatted_text),
                     ttl: 0,
                 }),
-                Some(donate_markup("🖍️ Craiyon", "https://craiyon.com/donate")),
+                Some(telegram_utils::donate_markup("🖍️ Craiyon", "https://craiyon.com/donate")),
             )
             .await?;
 

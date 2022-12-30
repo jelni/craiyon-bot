@@ -12,8 +12,8 @@ use tempfile::TempDir;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::cobalt;
-use crate::command_context::CommandContext;
-use crate::utils::donate_markup;
+use crate::utilities::command_context::CommandContext;
+use crate::utilities::telegram_utils;
 
 #[derive(Default)]
 pub struct CobaltDownload;
@@ -71,7 +71,7 @@ impl CommandTrait for CobaltDownload {
                         disable_content_type_detection: false,
                         caption: None,
                     }),
-                    Some(donate_markup("≫ cobalt", "https://boosty.to/wukko")),
+                    Some(telegram_utils::donate_markup("≫ cobalt", "https://boosty.to/wukko")),
                 )
                 .await?;
 

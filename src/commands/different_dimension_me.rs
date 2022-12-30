@@ -10,8 +10,8 @@ use tempfile::NamedTempFile;
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::different_dimension_me;
-use crate::command_context::CommandContext;
-use crate::utils;
+use crate::utilities::command_context::CommandContext;
+use crate::utilities::telegram_utils;
 
 const MEBIBYTE: i64 = 1024 * 1024;
 
@@ -29,7 +29,7 @@ impl CommandTrait for DifferentDimensionMe {
     }
 
     async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
-        let mut file = utils::get_message_or_reply_image(&ctx.message, ctx.client_id)
+        let mut file = telegram_utils::get_message_or_reply_image(&ctx.message, ctx.client_id)
             .await
             .ok_or("send or reply to an image.")?;
 

@@ -6,7 +6,7 @@ use reqwest::StatusCode;
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::kiwifarms;
-use crate::command_context::CommandContext;
+use crate::utilities::command_context::CommandContext;
 
 #[derive(Default)]
 pub struct KiwiFarms;

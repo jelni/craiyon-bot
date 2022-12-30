@@ -8,8 +8,8 @@ use rand::SeedableRng;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::google;
-use crate::command_context::CommandContext;
-use crate::ratelimit::RateLimiter;
+use crate::utilities::command_context::CommandContext;
+use crate::utilities::ratelimit::RateLimiter;
 
 #[derive(Default)]
 pub struct Autocomplete;

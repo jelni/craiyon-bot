@@ -20,11 +20,10 @@ use tempfile::NamedTempFile;
 use super::CommandError::{self, MissingArgument};
 use super::{CommandResult, CommandTrait};
 use crate::apis::stablehorde::{self, Generation, Status};
-use crate::command_context::CommandContext;
-use crate::ratelimit::RateLimiter;
-use crate::utils::{
-    check_prompt, escape_markdown, format_duration, image_collage, TruncateWithEllipsis,
-};
+use crate::utilities::command_context::CommandContext;
+use crate::utilities::ratelimit::RateLimiter;
+use crate::utilities::text_utils::TruncateWithEllipsis;
+use crate::utilities::{image_utils, text_utils};
 
 pub struct StableHorde {
     command_names: &'static [&'static str],
@@ -93,7 +92,7 @@ impl CommandTrait for StableHorde {
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let prompt = arguments.ok_or(MissingArgument("prompt to generate"))?;
 
-        if let Some(issue) = check_prompt(&prompt) {
+        if let Some(issue) = text_utils::check_prompt(&prompt) {
             log::info!("prompt rejected: {issue:?}");
             Err(issue)?;
         }
@@ -166,7 +165,7 @@ impl StableHorde {
         let request_id =
             stablehorde::generate(ctx.http_client.clone(), &prompt, self.model, self.size)
                 .await??;
-        let escaped_prompt = escape_markdown(&prompt);
+        let escaped_prompt = text_utils::escape_markdown(&prompt);
         let (results, status_msg, time_taken) =
             wait_for_generation(ctx.clone(), &request_id, &escaped_prompt).await?;
         let workers =
@@ -254,7 +253,7 @@ fn process_images(
             }
         });
 
-    image_collage(images.collect(), resize_to.unwrap_or(size), 2, 8)
+    image_utils::collage(images.collect(), resize_to.unwrap_or(size), 2, 8)
 }
 
 fn format_status_text(status: &Status, escaped_prompt: &str, volunteer_notice: bool) -> String {
@@ -271,7 +270,7 @@ fn format_status_text(status: &Status, escaped_prompt: &str, volunteer_notice: b
             status.processing.unsigned_abs() as usize,
             status.finished.unsigned_abs() as usize
         ),
-        format_duration(status.wait_time.try_into().unwrap())
+        text_utils::format_duration(status.wait_time.try_into().unwrap())
     );
 
     if volunteer_notice {
@@ -293,16 +292,16 @@ fn format_result_text(
     format!(
         "generated *{}* in {} by {}\\.",
         escaped_prompt,
-        format_duration(time_taken.as_secs()),
+        text_utils::format_duration(time_taken.as_secs()),
         workers
             .most_common()
             .into_iter()
-            .map(|(mut k, v)| {
-                k.truncate_with_ellipsis(64);
-                if v > 1 {
-                    write!(k, " ({v})").unwrap();
+            .map(|(worker_name, generated_images)| {
+                let mut worker_name = worker_name.truncate_with_ellipsis(64);
+                if generated_images > 1 {
+                    write!(worker_name, " ({generated_images})").unwrap();
                 }
-                escape_markdown(k)
+                text_utils::escape_markdown(worker_name)
             })
             .collect::<Vec<_>>()
             .join(", ")

@@ -4,8 +4,8 @@ use async_trait::async_trait;
 
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
-use crate::command_context::CommandContext;
-use crate::utils::{escape_markdown, MARKDOWN_CHARS};
+use crate::utilities::command_context::CommandContext;
+use crate::utilities::text_utils;
 
 #[derive(Default)]
 pub struct CharInfo;
@@ -34,13 +34,13 @@ impl CommandTrait for CharInfo {
                     let value = char as u32;
                     format!(
                         "`{}` `U\\+{:04X}` – `{}`",
-                        if MARKDOWN_CHARS.contains(&char) {
+                        if text_utils::MARKDOWN_CHARS.contains(&char) {
                             format!("\\{char}")
                         } else {
                             char.into()
                         },
                         value,
-                        escape_markdown(charname::get_name(value))
+                        text_utils::escape_markdown(charname::get_name(value))
                     )
                 }
             })

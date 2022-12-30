@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rand::seq::SliceRandom;
 
 use super::{CommandResult, CommandTrait};
-use crate::command_context::CommandContext;
-use crate::ratelimit::RateLimiter;
+use crate::utilities::command_context::CommandContext;
+use crate::utilities::ratelimit::RateLimiter;
 
 const WORDS: [&str; 7] = ["kebab", "king", "house", "super", "arab", "hot", "sauce"];
 
