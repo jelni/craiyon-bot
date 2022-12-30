@@ -9,7 +9,7 @@ pub async fn accurate(message: Message, client_id: i32) {
     if let MessageContent::MessageDice(dice) = message.content {
         let text = if dice_success(&dice) {
             "accurate"
-        } else if rand::thread_rng().gen_bool(1. / 20.) {
+        } else if rand::thread_rng().gen_bool(1. / 10.) {
             "skill issue"
         } else {
             return;
