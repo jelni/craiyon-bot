@@ -15,15 +15,14 @@ use tdlib::types::{
 use tokio::signal;
 use tokio::task::JoinHandle;
 
-use crate::cache::Cache;
-use crate::command_context::CommandContext;
-use crate::command_manager::{CommandInstance, CommandManager, CommandRef};
-use crate::commands::CommandError;
-use crate::message_queue::MessageQueue;
-use crate::parsed_command::ParsedCommand;
-use crate::ratelimit::RateLimiter;
-use crate::utils::{format_duration, RateLimits};
-use crate::{not_commands, utils};
+use crate::commands::{calculate_inline, dice_reply, CommandError};
+use crate::utilities::cache::Cache;
+use crate::utilities::command_context::CommandContext;
+use crate::utilities::command_manager::{CommandInstance, CommandManager, CommandRef};
+use crate::utilities::message_queue::MessageQueue;
+use crate::utilities::parsed_command::ParsedCommand;
+use crate::utilities::ratelimit::{RateLimiter, RateLimits};
+use crate::utilities::{telegram_utils, text_utils};
 
 pub type TdError = tdlib::types::Error;
 
@@ -218,7 +217,7 @@ impl Bot {
             MessageContent::MessageDocument(document) => &document.caption,
             MessageContent::MessagePhoto(photo) => &photo.caption,
             MessageContent::MessageDice(_) => {
-                self.run_task(not_commands::accurate(message, self.client_id));
+                self.run_task(dice_reply::execute(message, self.client_id));
                 return;
             }
             _ => return, // ignore other message types
@@ -258,16 +257,12 @@ impl Bot {
     }
 
     fn on_inline_query(&mut self, query: UpdateNewInlineQuery) {
-        self.run_task(not_commands::calculate_inline(
-            query,
-            self.http_client.clone(),
-            self.client_id,
-        ));
+        self.run_task(calculate_inline::execute(query, self.http_client.clone(), self.client_id));
     }
 
     fn on_chat_member_update(&mut self, update: UpdateChatMember) {
         if let Some(chat) = self.cache.get_chat(update.chat_id) {
-            utils::log_status_update(update, &chat);
+            telegram_utils::log_status_update(update, &chat);
         };
     }
 
@@ -291,7 +286,7 @@ impl Bot {
             .update_rate_limit(context.user.id, context.message.date);
 
         if let Some(cooldown) = cooldown {
-            let cooldown_str = format_duration(cooldown.try_into().unwrap());
+            let cooldown_str = text_utils::format_duration(cooldown.try_into().unwrap());
             log::info!("{command} ratelimit exceeded by {cooldown_str} by {}", context.user);
             if context
                 .ratelimits

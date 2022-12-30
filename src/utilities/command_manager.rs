@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 
 use tdlib::types::BotCommand;
 
+use super::ratelimit::RateLimiter;
 use crate::commands::CommandTrait;
-use crate::ratelimit::RateLimiter;
 
 pub type CommandRef = Box<dyn CommandTrait + Send + Sync>;
 

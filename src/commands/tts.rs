@@ -9,7 +9,7 @@ use tempfile::NamedTempFile;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::ivona;
-use crate::command_context::CommandContext;
+use crate::utilities::command_context::CommandContext;
 
 #[derive(Default)]
 pub struct Tts;

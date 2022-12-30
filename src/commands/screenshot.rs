@@ -11,9 +11,9 @@ use url::ParseError;
 use super::CommandError::{CustomMarkdownError, MissingArgument};
 use super::{CommandResult, CommandTrait};
 use crate::apis::microlink;
-use crate::command_context::CommandContext;
-use crate::ratelimit::RateLimiter;
-use crate::utils::escape_markdown;
+use crate::utilities::command_context::CommandContext;
+use crate::utilities::ratelimit::RateLimiter;
+use crate::utilities::text_utils;
 
 #[derive(Default)]
 pub struct Screenshot;
@@ -48,9 +48,9 @@ impl CommandTrait for Screenshot {
                 .map_err(|err| {
                     CustomMarkdownError(format!(
                         "[{}]({}): {}",
-                        escape_markdown(err.code),
+                        text_utils::escape_markdown(err.code),
                         err.more,
-                        escape_markdown(err.message)
+                        text_utils::escape_markdown(err.message)
                     ))
                 })?;
 

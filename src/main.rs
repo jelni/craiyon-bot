@@ -1,19 +1,12 @@
 #![warn(clippy::pedantic)]
 
 use bot::Bot;
+use utilities::logchamp;
 
 mod apis;
 mod bot;
-mod cache;
-mod command_context;
-mod command_manager;
 mod commands;
-mod logchamp;
-mod message_queue;
-mod not_commands;
-mod parsed_command;
-mod ratelimit;
-mod utils;
+mod utilities;
 
 #[tokio::main]
 async fn main() {

@@ -5,7 +5,7 @@ use tdlib::enums::{InputFile, InputMessageContent};
 use tdlib::types::{InputFileRemote, InputMessageSticker};
 
 use super::{CommandResult, CommandTrait};
-use crate::command_context::CommandContext;
+use crate::utilities::command_context::CommandContext;
 
 const SEX: [&str; 2] = [
     "CAACAgQAAxkBAAIHfGOBPouzDkVHO9WAvBrBcMShtX5PAAKxDAACEpVpUwgV5MV2yef8JAQ",

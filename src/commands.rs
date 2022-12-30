@@ -3,14 +3,16 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::bot::TdError;
-use crate::command_context::CommandContext;
-use crate::ratelimit::RateLimiter;
+use crate::utilities::command_context::CommandContext;
+use crate::utilities::ratelimit::RateLimiter;
 
 pub mod autocomplete;
 pub mod badtranslate;
+pub mod calculate_inline;
 pub mod charinfo;
 pub mod cobalt_download;
 pub mod delete;
+pub mod dice_reply;
 pub mod different_dimension_me;
 pub mod generate;
 pub mod kebab;

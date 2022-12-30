@@ -4,10 +4,10 @@ use tdlib::enums::{self, ChatAction, InputMessageContent, TextParseMode};
 use tdlib::functions;
 use tdlib::types::{FormattedText, InputMessageText, Message, TextParseModeMarkdown};
 
+use super::cache::{CompactChat, CompactUser};
+use super::message_queue::MessageQueue;
+use super::ratelimit::RateLimits;
 use crate::bot::TdError;
-use crate::cache::{CompactChat, CompactUser};
-use crate::message_queue::MessageQueue;
-use crate::utils::RateLimits;
 
 pub struct CommandContext {
     pub chat: CompactChat,
@@ -44,7 +44,7 @@ impl CommandContext {
             InputMessageContent::InputMessageText(InputMessageText {
                 text,
                 disable_web_page_preview: true,
-                clear_draft: true,
+                ..Default::default()
             }),
             None,
         )
@@ -78,7 +78,7 @@ impl CommandContext {
             InputMessageContent::InputMessageText(InputMessageText {
                 text,
                 disable_web_page_preview: true,
-                clear_draft: true,
+                ..Default::default()
             }),
             self.client_id,
         )

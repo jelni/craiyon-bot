@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::urbandictionary;
-use crate::command_context::CommandContext;
+use crate::utilities::command_context::CommandContext;
 
 #[derive(Default)]
 pub struct UrbanDictionary;

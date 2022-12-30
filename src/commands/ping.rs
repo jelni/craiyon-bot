@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use tdlib::functions;
 
 use super::{CommandResult, CommandTrait};
-use crate::command_context::CommandContext;
+use crate::utilities::command_context::CommandContext;
 
 #[derive(Default)]
 pub struct Ping;

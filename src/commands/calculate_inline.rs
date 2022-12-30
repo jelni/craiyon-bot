@@ -6,11 +6,7 @@ use tdlib::types::{
 
 use crate::apis::mathjs;
 
-pub async fn calculate_inline(
-    query: UpdateNewInlineQuery,
-    http_client: reqwest::Client,
-    client_id: i32,
-) {
+pub async fn execute(query: UpdateNewInlineQuery, http_client: reqwest::Client, client_id: i32) {
     let (query_id, query) = (query.id, query.query);
 
     if query.is_empty() {
@@ -55,7 +51,7 @@ pub async fn calculate_inline(
             input_message_content: InputMessageContent::InputMessageText(InputMessageText {
                 text: FormattedText { text: message_text, ..Default::default() },
                 disable_web_page_preview: true,
-                clear_draft: true,
+                ..Default::default()
             }),
         })],
         3600,
