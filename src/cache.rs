@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 
 use tdlib::enums::{ChatType, Update, UserType};
-use tdlib::types::{Chat, ChatPermissions, UpdateNewChat, UpdateUser, User, Usernames};
+use tdlib::types::{Chat, ChatPermissions, UpdateNewChat, UpdateUser, User};
 
 #[derive(Default)]
 pub struct Cache {
@@ -69,8 +69,9 @@ pub struct CompactUser {
     pub id: i64,
     pub first_name: String,
     pub last_name: String,
-    pub usernames: Option<Usernames>,
+    pub username: Option<String>,
     pub r#type: UserType,
+    pub language_code: String,
 }
 
 impl From<User> for CompactUser {
@@ -79,16 +80,19 @@ impl From<User> for CompactUser {
             id: value.id,
             first_name: value.first_name,
             last_name: value.last_name,
-            usernames: value.usernames,
+            username: value
+                .usernames
+                .and_then(|usernames| usernames.active_usernames.into_iter().next()),
             r#type: value.r#type,
+            language_code: value.language_code,
         }
     }
 }
 
 impl fmt::Display for CompactUser {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(usernames) = &self.usernames {
-            write!(f, "@{}", usernames.editable_username)?;
+        if let Some(username) = &self.username {
+            write!(f, "@{username}")?;
         } else {
             write!(f, "{}", self.first_name)?;
             if !self.last_name.is_empty() {
