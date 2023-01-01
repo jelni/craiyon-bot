@@ -10,13 +10,13 @@ use tdlib::enums::{
 use tdlib::functions;
 use tdlib::types::{
     BotCommand, Message, MessageSenderUser, UpdateChatMember, UpdateMessageSendFailed,
-    UpdateMessageSendSucceeded, UpdateNewInlineQuery, User,
+    UpdateMessageSendSucceeded, UpdateNewInlineQuery,
 };
 use tokio::signal;
 use tokio::task::JoinHandle;
 
 use crate::commands::{calculate_inline, dice_reply, CommandError};
-use crate::utilities::cache::Cache;
+use crate::utilities::cache::{Cache, CompactUser};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::command_manager::{CommandInstance, CommandManager, CommandRef};
 use crate::utilities::message_queue::MessageQueue;
@@ -37,7 +37,7 @@ enum BotState {
 pub struct Bot {
     client_id: i32,
     state: Arc<Mutex<BotState>>,
-    me: Arc<Mutex<Option<User>>>,
+    me: Arc<Mutex<Option<CompactUser>>>,
     cache: Cache,
     http_client: reqwest::Client,
     command_manager: CommandManager,
@@ -185,10 +185,8 @@ impl Bot {
         let commands = self.command_manager.public_command_list();
         self.run_task(async move {
             let enums::User::User(user) = functions::get_me(client_id).await.unwrap();
-            log::info!(
-                "running as @{}",
-                user.usernames.as_ref().map(|u| u.editable_username.as_str()).unwrap_or_default()
-            );
+            let user = (user).into();
+            log::info!("running as {user}");
             *me.lock().unwrap() = Some(user);
             Bot::sync_commands(commands, client_id).await.unwrap();
         });
@@ -226,13 +224,8 @@ impl Bot {
             return; // ignore messages without commands
         };
         if let Some(bot_username) = &parsed_command.bot_username {
-            if Some(bot_username.to_ascii_lowercase())
-                != self.me.lock().unwrap().as_ref().map(|me| {
-                    me.usernames
-                        .as_ref()
-                        .map(|u| u.editable_username.to_ascii_lowercase())
-                        .unwrap_or_default()
-                })
+            if Some(&bot_username.to_ascii_lowercase())
+                != self.me.lock().unwrap().as_ref().and_then(|user| user.username.as_ref())
             {
                 return; // ignore commands sent to other bots
             }
@@ -261,9 +254,15 @@ impl Bot {
     }
 
     fn on_chat_member_update(&mut self, update: UpdateChatMember) {
-        if let Some(chat) = self.cache.get_chat(update.chat_id) {
-            telegram_utils::log_status_update(update, &chat);
-        };
+        if let MessageSender::User(user) = &update.new_chat_member.member_id {
+            if let Some(me) = self.me.lock().unwrap().as_ref() {
+                if user.user_id == me.id {
+                    if let Some(chat) = self.cache.get_chat(update.chat_id) {
+                        telegram_utils::log_status_update(update, &chat);
+                    };
+                }
+            }
+        }
     }
 
     fn on_message_sent(
