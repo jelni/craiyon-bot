@@ -4,10 +4,20 @@ use tdlib::enums::{
 use tdlib::functions;
 use tdlib::types::{
     File, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message, ReplyMarkupInlineKeyboard,
-    UpdateChatMember,
+    UpdateChatMember, User,
 };
 
 use super::cache::CompactChat;
+
+pub trait MainUsername {
+    fn main_username(&self) -> Option<&str>;
+}
+
+impl MainUsername for User {
+    fn main_username(&self) -> Option<&str> {
+        Some(self.usernames.as_ref()?.active_usernames.first()?.as_str())
+    }
+}
 
 pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMarkup {
     ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
@@ -52,9 +62,6 @@ pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Op
 }
 
 pub fn log_status_update(update: UpdateChatMember, chat: &CompactChat) {
-    print!("{chat}: ");
-    dbg!(&update);
-
     if let ChatType::Private(_) = chat.r#type {
         return;
     }
