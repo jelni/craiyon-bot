@@ -76,7 +76,8 @@ impl CommandTrait for Screenshot {
                     width: 0,
                     height: 0,
                     caption: data.title.map(|t| FormattedText { text: t, ..Default::default() }),
-                    ttl: 0,
+                    self_destruct_time: 0,
+                    has_spoiler: false,
                 }),
                 None,
             )
