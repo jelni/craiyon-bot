@@ -125,7 +125,8 @@ impl CommandTrait for StableHorde {
                     width: generation.image.width().try_into().unwrap(),
                     height: generation.image.height().try_into().unwrap(),
                     caption: Some(formatted_text),
-                    ttl: 0,
+                    self_destruct_time: 0,
+                    has_spoiler: false,
                 }),
                 Some(ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
                     rows: vec![vec![InlineKeyboardButton {

@@ -82,7 +82,8 @@ impl CommandTrait for Generate {
                     width: image.width().try_into().unwrap(),
                     height: image.height().try_into().unwrap(),
                     caption: Some(formatted_text),
-                    ttl: 0,
+                    self_destruct_time: 0,
+                    has_spoiler: false,
                 }),
                 Some(telegram_utils::donate_markup("🖍️ Craiyon", "https://craiyon.com/donate")),
             )
