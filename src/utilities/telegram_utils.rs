@@ -28,6 +28,21 @@ pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMa
     })
 }
 
+pub fn get_message_text(message: &Message) -> Option<String> {
+    let content = match &message.content {
+        MessageContent::MessageText(text) => &text.text,
+        MessageContent::MessageAnimation(animation) => &animation.caption,
+        MessageContent::MessageAudio(audio) => &audio.caption,
+        MessageContent::MessageDocument(document) => &document.caption,
+        MessageContent::MessagePhoto(photo) => &photo.caption,
+        MessageContent::MessageVideo(video) => &video.caption,
+        MessageContent::MessageVoiceNote(voice_note) => &voice_note.caption,
+        _ => return None,
+    };
+
+    Some(content.text.clone())
+}
+
 pub fn get_message_image(message: &Message) -> Option<File> {
     match &message.content {
         MessageContent::MessageDocument(document) => Some(document.document.document.clone()),
