@@ -52,10 +52,10 @@ impl CommandTrait for Generate {
             .images
             .into_iter()
             .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
-            .map(|image| image.resize_exact(256, 256, FilterType::Lanczos3))
+            .map(|image| image.resize_exact(512, 512, FilterType::Lanczos3))
             .collect::<Vec<_>>();
 
-        let image = image_utils::collage(images, (256, 256), 3, 8);
+        let image = image_utils::collage(images, (512, 512), 3, 8);
         let mut temp_file = NamedTempFile::new().unwrap();
         image.write_to(&mut temp_file, ImageFormat::Png).unwrap();
 
