@@ -200,14 +200,12 @@ impl Bot {
             return; // ignore messages not sent by users
         };
         let Some(user) = self.cache.get_user(user_id) else {
-            log::warn!("user {user_id} not cached");
             return; // ignore users not in cache
         };
         let UserType::Regular = user.r#type else {
             return; // ignore bots
         };
         let Some(chat) = self.cache.get_chat(message.chat_id) else {
-            log::warn!("chat {user_id} not cached");
             return; // ignore chats not in cache
         };
         let text = match &message.content {
@@ -224,8 +222,10 @@ impl Bot {
             return; // ignore messages without commands
         };
         if let Some(bot_username) = &parsed_command.bot_username {
-            if Some(&bot_username.to_ascii_lowercase())
-                != self.me.lock().unwrap().as_ref().and_then(|user| user.username.as_ref())
+            if Some(bot_username.to_ascii_lowercase())
+                != self.me.lock().unwrap().as_ref().and_then(|user| {
+                    user.username.as_ref().map(|username| username.to_ascii_lowercase())
+                })
             {
                 return; // ignore commands sent to other bots
             }
