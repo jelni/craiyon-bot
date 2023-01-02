@@ -1,11 +1,14 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use tdlib::enums::Message;
+use tdlib::functions;
 
-use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::translate;
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::google_translate::{self, MissingTextToTranslate};
+use crate::utilities::telegram_utils;
 
 #[derive(Default)]
 pub struct BadTranslate;
@@ -17,19 +20,39 @@ impl CommandTrait for BadTranslate {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("badly translate text to English")
+        Some("badly translate text by translating every word separately")
     }
 
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
-        let text = arguments.ok_or(MissingArgument("text to translate"))?;
+        let text = arguments.ok_or(MissingTextToTranslate)?;
+
+        let (source_language, target_language, text) = google_translate::parse_command(&text);
+        let target_language = target_language.unwrap_or(&ctx.user.language_code);
+        let mut text = text.to_owned();
+
+        if text.is_empty() {
+            if ctx.message.reply_to_message_id == 0 {
+                Err(MissingTextToTranslate)?;
+            }
+
+            let Message::Message(message) = functions::get_message(
+                ctx.message.chat_id,
+                ctx.message.reply_to_message_id,
+                ctx.client_id,
+            )
+            .await?;
+
+            text = telegram_utils::get_message_text(&message).ok_or(MissingTextToTranslate)?;
+        }
 
         let translations = translate::multiple(
             ctx.http_client.clone(),
             text.split_ascii_whitespace(),
-            None,
-            &ctx.user.language_code,
+            source_language,
+            target_language,
         )
         .await?;
+
         ctx.reply(translations.join(" ")).await?;
 
         Ok(())

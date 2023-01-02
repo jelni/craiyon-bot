@@ -21,7 +21,7 @@ pub async fn single<S: AsRef<str>>(
     http_client: reqwest::Client,
     query: S,
     source_language: Option<&str>,
-    translation_language: &str,
+    target_language: &str,
 ) -> reqwest::Result<Translation> {
     let response = http_client
         .get(
@@ -30,7 +30,7 @@ pub async fn single<S: AsRef<str>>(
                 [
                     ("client", "gtx"),
                     ("sl", source_language.unwrap_or("auto")),
-                    ("tl", translation_language),
+                    ("tl", target_language),
                     ("dt", "t"),
                     ("dj", "1"),
                     ("q", query.as_ref()),
@@ -54,12 +54,12 @@ pub async fn multiple<'a, I: IntoIterator<Item = &'a str>>(
     http_client: reqwest::Client,
     queries: I,
     source_language: Option<&str>,
-    translation_language: &str,
+    target_language: &str,
 ) -> reqwest::Result<Vec<String>> {
     let mut params = vec![
         ("client", "dict-chrome-ex"),
         ("sl", source_language.unwrap_or("auto")),
-        ("tl", translation_language),
+        ("tl", target_language),
     ];
     for query in queries {
         params.push(("q", query));

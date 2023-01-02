@@ -1,3 +1,5 @@
+use crate::commands::CommandError;
+
 const LANGUAGES: [(&str, &str); 137] = [
     ("af", "Afrikaans"),
     ("sq", "Albanian"),
@@ -169,4 +171,12 @@ pub fn parse_command(text: &str) -> (Option<&str>, Option<&str>, &str) {
     };
 
     (Some(first_language), Some(second_language), text)
+}
+
+pub struct MissingTextToTranslate;
+
+impl From<MissingTextToTranslate> for CommandError {
+    fn from(_: MissingTextToTranslate) -> Self {
+        CommandError::MissingArgument("text to translate")
+    }
 }
