@@ -4,7 +4,6 @@ use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
 use counter::Counter;
-use image::imageops::FilterType;
 use image::{DynamicImage, ImageFormat};
 use tdlib::enums::{
     FormattedText, InlineKeyboardButtonType, InputFile, InputMessageContent, ReplyMarkup,
@@ -30,7 +29,6 @@ pub struct StableHorde {
     command_description: &'static str,
     model: &'static str,
     size: (u32, u32),
-    resize_to: Option<(u32, u32)>,
 }
 
 impl StableHorde {
@@ -40,7 +38,6 @@ impl StableHorde {
             command_description: "generate images using Stable Diffusion v2.1",
             model: "stable_diffusion_2.1",
             size: (768, 768),
-            resize_to: Some((512, 512)),
         }
     }
 
@@ -50,7 +47,6 @@ impl StableHorde {
             command_description: "generate images using Stable Diffusion v1.5",
             model: "stable_diffusion",
             size: (512, 512),
-            resize_to: None,
         }
     }
 
@@ -60,7 +56,6 @@ impl StableHorde {
             command_description: "generate images using Waifu Diffusion",
             model: "waifu_diffusion",
             size: (512, 512),
-            resize_to: None,
         }
     }
 
@@ -70,7 +65,6 @@ impl StableHorde {
             command_description: "generate images using Furry Epoch",
             model: "Furry Epoch",
             size: (512, 512),
-            resize_to: None,
         }
     }
 }
@@ -173,7 +167,7 @@ impl StableHorde {
             results.iter().map(|generation| generation.worker_name.clone()).collect::<Counter<_>>();
         let urls = results.into_iter().map(|generation| generation.img).collect::<Vec<_>>();
         let images = download_images(ctx.http_client.clone(), urls).await?;
-        let image = process_images(images, self.size, self.resize_to);
+        let image = process_images(images, self.size);
 
         Ok(GenerationResult { image, time_taken, escaped_prompt, workers, status_msg })
     }
@@ -196,7 +190,7 @@ async fn wait_for_generation(
             break start_time.elapsed();
         };
 
-        if status.wait_time >= 30 {
+        if status.wait_time >= 60 {
             show_volunteer_notice = true;
         }
 
@@ -238,23 +232,13 @@ async fn download_images(
     Ok(images)
 }
 
-fn process_images(
-    images: Vec<Vec<u8>>,
-    size: (u32, u32),
-    resize_to: Option<(u32, u32)>,
-) -> DynamicImage {
+fn process_images(images: Vec<Vec<u8>>, size: (u32, u32)) -> DynamicImage {
     let images = images
         .into_iter()
         .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
-        .map(|image| {
-            if let Some(resize_to) = resize_to {
-                image.resize_exact(resize_to.0, resize_to.1, FilterType::Lanczos3)
-            } else {
-                image
-            }
-        });
+        .collect();
 
-    image_utils::collage(images.collect(), resize_to.unwrap_or(size), 2, 8)
+    image_utils::collage(images, size, 2, 8)
 }
 
 fn format_status_text(status: &Status, escaped_prompt: &str, volunteer_notice: bool) -> String {
