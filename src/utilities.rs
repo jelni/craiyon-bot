@@ -1,6 +1,7 @@
 pub mod cache;
 pub mod command_context;
 pub mod command_manager;
+pub mod google_translate;
 pub mod image_utils;
 pub mod logchamp;
 pub mod message_queue;
