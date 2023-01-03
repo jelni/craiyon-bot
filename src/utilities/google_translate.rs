@@ -140,10 +140,6 @@ const LANGUAGES: [(&str, &str); 137] = [
     ("zu", "Zulu"),
 ];
 
-pub fn language_supported(language_code: &str) -> bool {
-    LANGUAGES.into_iter().any(|language| language.0 == language_code)
-}
-
 pub fn get_language_name(language_code: &str) -> Option<&str> {
     Some(LANGUAGES.into_iter().find(|language| language.0 == language_code)?.1)
 }

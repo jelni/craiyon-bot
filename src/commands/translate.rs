@@ -29,12 +29,10 @@ impl CommandTrait for Translate {
 
         let (source_language, target_language, mut text) = google_translate::parse_command(text);
 
-        let target_language = target_language.unwrap_or_else(|| {
-            if google_translate::language_supported(&ctx.user.language_code) {
-                &ctx.user.language_code
-            } else {
-                "en"
-            }
+        let target_language = target_language.unwrap_or(if ctx.user.language_code.is_empty() {
+            "en"
+        } else {
+            &ctx.user.language_code
         });
 
         if text.is_empty() {
