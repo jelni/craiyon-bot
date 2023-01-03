@@ -26,9 +26,15 @@ impl CommandTrait for Translate {
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let text = arguments.ok_or(MissingTextToTranslate)?;
 
-        let (source_language, target_language, text) = google_translate::parse_command(&text);
-        let target_language = target_language.unwrap_or(&ctx.user.language_code);
-        let mut text = text.to_owned();
+        let (source_language, target_language, mut text) = google_translate::parse_command(text);
+
+        let target_language = target_language.unwrap_or_else(|| {
+            if google_translate::language_supported(&ctx.user.language_code) {
+                &ctx.user.language_code
+            } else {
+                "en"
+            }
+        });
 
         if text.is_empty() {
             if ctx.message.reply_to_message_id == 0 {
@@ -49,10 +55,14 @@ impl CommandTrait for Translate {
             translate::single(ctx.http_client.clone(), text, source_language, target_language)
                 .await?;
 
-        let source_language = google_translate::get_language_name(&translation.source_language)
-            .unwrap_or(&translation.source_language);
-        let target_language =
-            google_translate::get_language_name(target_language).unwrap_or(target_language);
+        let source_language = text_utils::escape_markdown(
+            google_translate::get_language_name(&translation.source_language)
+                .unwrap_or(&translation.source_language),
+        );
+
+        let target_language = text_utils::escape_markdown(
+            google_translate::get_language_name(target_language).unwrap_or(target_language),
+        );
 
         ctx.reply_markdown(format!(
             "*{source_language}* ➜ *{target_language}*\n{}",

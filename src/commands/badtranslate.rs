@@ -26,9 +26,15 @@ impl CommandTrait for BadTranslate {
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
         let text = arguments.ok_or(MissingTextToTranslate)?;
 
-        let (source_language, target_language, text) = google_translate::parse_command(&text);
-        let target_language = target_language.unwrap_or(&ctx.user.language_code);
-        let mut text = text.to_owned();
+        let (source_language, target_language, mut text) = google_translate::parse_command(text);
+
+        let target_language = target_language.unwrap_or_else(|| {
+            if google_translate::language_supported(&ctx.user.language_code) {
+                &ctx.user.language_code
+            } else {
+                "en"
+            }
+        });
 
         if text.is_empty() {
             if ctx.message.reply_to_message_id == 0 {

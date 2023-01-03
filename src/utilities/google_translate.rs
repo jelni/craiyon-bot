@@ -140,11 +140,15 @@ const LANGUAGES: [(&str, &str); 137] = [
     ("zu", "Zulu"),
 ];
 
+pub fn language_supported(language_code: &str) -> bool {
+    LANGUAGES.into_iter().any(|language| language.0 == language_code)
+}
+
 pub fn get_language_name(language_code: &str) -> Option<&str> {
     Some(LANGUAGES.into_iter().find(|language| language.0 == language_code)?.1)
 }
 
-fn parse_language(text: &str) -> Option<(&str, &str)> {
+fn parse_language(text: &str) -> Option<(&'static str, String)> {
     let text_lowercase = text.to_ascii_lowercase();
     let text_split = text_lowercase.split_ascii_whitespace().collect::<Vec<_>>();
 
@@ -153,7 +157,7 @@ fn parse_language(text: &str) -> Option<(&str, &str)> {
             if text_split.starts_with(
                 &prefix.to_ascii_lowercase().split_ascii_whitespace().collect::<Vec<_>>(),
             ) {
-                return Some((language_code, text.split_at(prefix.len()).1.trim_start()));
+                return Some((language_code, text[prefix.len()..].trim_start().to_owned()));
             }
         }
     }
@@ -161,12 +165,12 @@ fn parse_language(text: &str) -> Option<(&str, &str)> {
     None
 }
 
-pub fn parse_command(text: &str) -> (Option<&str>, Option<&str>, &str) {
-    let Some((first_language, text)) = parse_language(text) else {
+pub fn parse_command(text: String) -> (Option<&'static str>, Option<&'static str>, String) {
+    let Some((first_language, text)) = parse_language(&text) else {
         return (None, None, text);
     };
 
-    let Some((second_language, text)) = parse_language(text) else {
+    let Some((second_language, text)) = parse_language(&text) else {
         return (None, Some(first_language), text);
     };
 
