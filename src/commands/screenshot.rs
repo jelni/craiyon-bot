@@ -13,7 +13,7 @@ use super::{CommandResult, CommandTrait};
 use crate::apis::microlink;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::ratelimit::RateLimiter;
-use crate::utilities::text_utils;
+use crate::utilities::text_utils::EscapeMarkdown;
 
 #[derive(Default)]
 pub struct Screenshot;
@@ -48,9 +48,9 @@ impl CommandTrait for Screenshot {
                 .map_err(|err| {
                     CustomMarkdownError(format!(
                         "[{}]({}): {}",
-                        text_utils::escape_markdown(err.code),
+                        EscapeMarkdown(&err.code),
                         err.more,
-                        text_utils::escape_markdown(err.message)
+                        EscapeMarkdown(&err.message)
                     ))
                 })?;
 

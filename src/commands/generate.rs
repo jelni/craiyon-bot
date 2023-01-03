@@ -13,6 +13,7 @@ use super::{CommandResult, CommandTrait};
 use crate::apis::craiyon;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::ratelimit::RateLimiter;
+use crate::utilities::text_utils::EscapeMarkdown;
 use crate::utilities::{image_utils, telegram_utils, text_utils};
 
 #[derive(Default)]
@@ -62,7 +63,7 @@ impl CommandTrait for Generate {
         let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
             format!(
                 "generated *{}* in {}\\.",
-                text_utils::escape_markdown(prompt),
+                EscapeMarkdown(&prompt),
                 text_utils::format_duration(result.duration.as_secs())
             ),
             TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),

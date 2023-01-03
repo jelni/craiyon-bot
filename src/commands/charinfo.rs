@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::text_utils;
+use crate::utilities::text_utils::{self, EscapeMarkdown};
 
 #[derive(Default)]
 pub struct CharInfo;
@@ -40,7 +40,7 @@ impl CommandTrait for CharInfo {
                             char.into()
                         },
                         value,
-                        text_utils::escape_markdown(charname::get_name(value))
+                        EscapeMarkdown(charname::get_name(value))
                     )
                 }
             })

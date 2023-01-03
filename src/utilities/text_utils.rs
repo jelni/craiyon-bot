@@ -1,3 +1,5 @@
+use std::fmt::{self, Write};
+
 pub const MARKDOWN_CHARS: [char; 20] = [
     '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!', '`',
     '\\',
@@ -18,16 +20,19 @@ impl TruncateWithEllipsis for String {
     }
 }
 
-pub fn escape_markdown<S: AsRef<str>>(text: S) -> String {
-    let text = text.as_ref();
-    let mut escaped = String::with_capacity(text.len());
-    for ch in text.chars() {
-        if MARKDOWN_CHARS.contains(&ch) {
-            escaped.push('\\');
+pub struct EscapeMarkdown<'a>(pub &'a str);
+
+impl fmt::Display for EscapeMarkdown<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for ch in self.0.chars() {
+            if MARKDOWN_CHARS.contains(&ch) {
+                f.write_char('\\')?;
+            }
+            f.write_char(ch)?;
         }
-        escaped.push(ch);
+
+        Ok(())
     }
-    escaped
 }
 
 pub fn format_duration(duration: u64) -> String {

@@ -8,7 +8,8 @@ use super::{CommandResult, CommandTrait};
 use crate::apis::translate;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::google_translate::MissingTextToTranslate;
-use crate::utilities::{google_translate, telegram_utils, text_utils};
+use crate::utilities::text_utils::EscapeMarkdown;
+use crate::utilities::{google_translate, telegram_utils};
 
 #[derive(Default)]
 pub struct Translate;
@@ -55,18 +56,18 @@ impl CommandTrait for Translate {
             translate::single(ctx.http_client.clone(), text, source_language, target_language)
                 .await?;
 
-        let source_language = text_utils::escape_markdown(
+        let source_language = EscapeMarkdown(
             google_translate::get_language_name(&translation.source_language)
                 .unwrap_or(&translation.source_language),
         );
 
-        let target_language = text_utils::escape_markdown(
+        let target_language = EscapeMarkdown(
             google_translate::get_language_name(target_language).unwrap_or(target_language),
         );
 
         ctx.reply_markdown(format!(
             "*{source_language}* ➜ *{target_language}*\n{}",
-            text_utils::escape_markdown(translation.text)
+            EscapeMarkdown(&translation.text)
         ))
         .await?;
 

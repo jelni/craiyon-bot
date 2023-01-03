@@ -6,7 +6,7 @@ use serde::Deserialize;
 use time::macros::format_description;
 use time::OffsetDateTime;
 
-use crate::utilities::text_utils;
+use crate::utilities::text_utils::EscapeMarkdown;
 
 #[derive(Deserialize)]
 struct Response {
@@ -84,23 +84,22 @@ impl Definition {
         self.example.retain(|c| !['[', ']'].contains(&c));
 
         let mut result = String::new();
-        writeln!(result, "[*{}*]({})", text_utils::escape_markdown(self.word), self.permalink)
-            .unwrap();
-        writeln!(result, "{}\n", text_utils::escape_markdown(self.definition)).unwrap();
+        writeln!(result, "[*{}*]({})", EscapeMarkdown(&self.word), self.permalink).unwrap();
+        writeln!(result, "{}\n", EscapeMarkdown(&self.definition)).unwrap();
         if !self.example.is_empty() {
-            writeln!(result, "_{}_\n", text_utils::escape_markdown(self.example)).unwrap();
+            writeln!(result, "_{}_\n", EscapeMarkdown(&self.example)).unwrap();
         }
         writeln!(
             result,
             "by [{}]({}), {}",
-            text_utils::escape_markdown(&self.author),
+            EscapeMarkdown(&self.author),
             Url::parse_with_params(
                 "https://urbandictionary.com/author.php",
                 [("author", &self.author)]
             )
             .unwrap(),
-            text_utils::escape_markdown(
-                self.written_on.format(format_description!("[year]-[month]-[day]")).unwrap()
+            EscapeMarkdown(
+                &self.written_on.format(format_description!("[year]-[month]-[day]")).unwrap()
             )
         )
         .unwrap();
