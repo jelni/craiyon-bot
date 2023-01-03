@@ -21,7 +21,7 @@ use super::{CommandResult, CommandTrait};
 use crate::apis::stablehorde::{self, Generation, Status};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::ratelimit::RateLimiter;
-use crate::utilities::text_utils::TruncateWithEllipsis;
+use crate::utilities::text_utils::{EscapeMarkdown, TruncateWithEllipsis};
 use crate::utilities::{image_utils, text_utils};
 
 pub struct StableHorde {
@@ -160,7 +160,7 @@ impl StableHorde {
         let request_id =
             stablehorde::generate(ctx.http_client.clone(), &prompt, self.model, self.size)
                 .await??;
-        let escaped_prompt = text_utils::escape_markdown(&prompt);
+        let escaped_prompt = EscapeMarkdown(&prompt).to_string();
         let (results, status_msg, time_taken) =
             wait_for_generation(ctx.clone(), &request_id, &escaped_prompt).await?;
         let workers =
@@ -282,11 +282,12 @@ fn format_result_text(
             .most_common()
             .into_iter()
             .map(|(worker_name, generated_images)| {
-                let mut worker_name = worker_name.truncate_with_ellipsis(64);
+                let mut worker_name =
+                    EscapeMarkdown(&worker_name.truncate_with_ellipsis(64)).to_string();
                 if generated_images > 1 {
-                    write!(worker_name, " ({generated_images})").unwrap();
+                    write!(worker_name, " \\({generated_images}\\)").unwrap();
                 }
-                text_utils::escape_markdown(worker_name)
+                worker_name
             })
             .collect::<Vec<_>>()
             .join(", ")
