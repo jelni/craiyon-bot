@@ -208,15 +208,12 @@ impl Bot {
         let Some(chat) = self.cache.get_chat(message.chat_id) else {
             return; // ignore chats not in cache
         };
-        let text = match &message.content {
-            MessageContent::MessageText(text) => &text.text,
-            MessageContent::MessageDocument(document) => &document.caption,
-            MessageContent::MessagePhoto(photo) => &photo.caption,
-            MessageContent::MessageDice(_) => {
-                self.run_task(dice_reply::execute(message, self.client_id));
-                return;
-            }
-            _ => return, // ignore other message types
+        if let MessageContent::MessageDice(_) = message.content {
+            self.run_task(dice_reply::execute(message, self.client_id));
+            return;
+        }
+        let Some(text) = telegram_utils::get_message_text(&message) else {
+            return; // ignore message without text
         };
         let Some(parsed_command) = ParsedCommand::parse(text) else {
             return; // ignore messages without commands
@@ -322,11 +319,7 @@ impl Bot {
                     {
                         Ok(message) => {
                             let enums::Message::Message(message) = message;
-                            if let MessageContent::MessageText(text) = message.content {
-                                Some(text.text.text)
-                            } else {
-                                None
-                            }
+                            telegram_utils::get_message_text(&message).map(|text| text.text.clone())
                         }
                         Err(_) => None,
                     }

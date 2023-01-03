@@ -46,7 +46,10 @@ impl CommandTrait for BadTranslate {
             )
             .await?;
 
-            text = telegram_utils::get_message_text(&message).ok_or(MissingTextToTranslate)?;
+            text = telegram_utils::get_message_text(&message)
+                .ok_or(MissingTextToTranslate)?
+                .text
+                .clone();
         }
 
         let translations = translate::multiple(

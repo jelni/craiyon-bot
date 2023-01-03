@@ -3,8 +3,8 @@ use tdlib::enums::{
 };
 use tdlib::functions;
 use tdlib::types::{
-    File, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message, ReplyMarkupInlineKeyboard,
-    UpdateChatMember, User,
+    File, FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message,
+    ReplyMarkupInlineKeyboard, UpdateChatMember, User,
 };
 
 use super::cache::CompactChat;
@@ -28,8 +28,8 @@ pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMa
     })
 }
 
-pub fn get_message_text(message: &Message) -> Option<String> {
-    let content = match &message.content {
+pub fn get_message_text(message: &Message) -> Option<&FormattedText> {
+    let formatted_text = match &message.content {
         MessageContent::MessageText(text) => &text.text,
         MessageContent::MessageAnimation(animation) => &animation.caption,
         MessageContent::MessageAudio(audio) => &audio.caption,
@@ -40,7 +40,7 @@ pub fn get_message_text(message: &Message) -> Option<String> {
         _ => return None,
     };
 
-    Some(content.text.clone())
+    Some(formatted_text)
 }
 
 pub fn get_message_image(message: &Message) -> Option<File> {
