@@ -41,7 +41,7 @@ impl CommandTrait for Translate {
             }
 
             let Message::Message(message) = functions::get_message(
-                ctx.message.chat_id,
+                ctx.message.reply_in_chat_id,
                 ctx.message.reply_to_message_id,
                 ctx.client_id,
             )

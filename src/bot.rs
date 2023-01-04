@@ -311,7 +311,7 @@ impl Bot {
                     None
                 } else {
                     match functions::get_message(
-                        context.message.chat_id,
+                        context.message.reply_in_chat_id,
                         context.message.reply_to_message_id,
                         context.client_id,
                     )

@@ -63,17 +63,15 @@ pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Op
     }
 
     if message.reply_to_message_id != 0 {
-        let enums::Message::Message(message) = functions::get_message(
-            message.reply_in_chat_id,
-            message.reply_to_message_id,
-            client_id,
-        )
-        .await
-        .ok()?;
-        return get_message_image(&message);
+        return None;
     }
 
-    None
+    let enums::Message::Message(message) =
+        functions::get_message(message.reply_in_chat_id, message.reply_to_message_id, client_id)
+            .await
+            .ok()?;
+
+    get_message_image(&message)
 }
 
 pub fn log_status_update(update: UpdateChatMember, chat: &CompactChat) {
