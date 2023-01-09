@@ -12,7 +12,7 @@ use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::craiyon;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::ratelimit::RateLimiter;
+use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::EscapeMarkdown;
 use crate::utilities::{image_utils, telegram_utils, text_utils};
 

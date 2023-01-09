@@ -1,11 +1,12 @@
 pub mod cache;
 pub mod command_context;
+pub mod command_dispatcher;
 pub mod command_manager;
 pub mod google_translate;
 pub mod image_utils;
 pub mod logchamp;
 pub mod message_queue;
 pub mod parsed_command;
-pub mod ratelimit;
+pub mod rate_limit;
 pub mod telegram_utils;
 pub mod text_utils;

@@ -3,14 +3,14 @@ use std::sync::{Arc, Mutex};
 
 use tdlib::types::BotCommand;
 
-use super::ratelimit::RateLimiter;
+use super::rate_limit::RateLimiter;
 use crate::commands::CommandTrait;
 
 pub type CommandRef = Box<dyn CommandTrait + Send + Sync>;
 
 pub struct CommandInstance {
     pub command: CommandRef,
-    pub ratelimiter: Mutex<RateLimiter<i64>>,
+    pub rate_limiter: Mutex<RateLimiter<i64>>,
 }
 
 impl fmt::Display for CommandInstance {
@@ -30,7 +30,7 @@ impl CommandManager {
 
     pub fn add_command(&mut self, command: CommandRef) {
         self.commands.push(Arc::new(CommandInstance {
-            ratelimiter: Mutex::new(command.rate_limit()),
+            rate_limiter: Mutex::new(command.rate_limit()),
             command,
         }));
     }

@@ -3,15 +3,15 @@ use std::sync::Mutex;
 
 use tdlib::types::{Message, UpdateMessageSendFailed, UpdateMessageSendSucceeded};
 
-use crate::bot::TdError;
+use crate::bot::{TdError, TdResult};
 
 #[derive(Default)]
 pub struct MessageQueue {
-    queue: Mutex<HashMap<i64, oneshot::Sender<Result<Message, TdError>>>>,
+    queue: Mutex<HashMap<i64, oneshot::Sender<TdResult<Message>>>>,
 }
 
 impl MessageQueue {
-    pub async fn wait_for_message(&self, message_id: i64) -> Result<Message, TdError> {
+    pub async fn wait_for_message(&self, message_id: i64) -> TdResult<Message> {
         let (tx, rx) = oneshot::channel();
         self.queue.lock().unwrap().insert(message_id, tx);
         rx.await.unwrap()

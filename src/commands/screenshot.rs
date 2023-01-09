@@ -12,7 +12,7 @@ use super::CommandError::{CustomMarkdownError, MissingArgument};
 use super::{CommandResult, CommandTrait};
 use crate::apis::microlink;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::ratelimit::RateLimiter;
+use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::EscapeMarkdown;
 
 #[derive(Default)]

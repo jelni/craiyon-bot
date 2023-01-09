@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use crate::bot::TdError;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::ratelimit::RateLimiter;
+use crate::utilities::rate_limit::RateLimiter;
 
 pub mod autocomplete;
 pub mod badtranslate;
