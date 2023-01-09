@@ -12,6 +12,7 @@ struct GenerationInput {
     params: Params,
     nsfw: bool,
     r2: bool,
+    shared: bool,
 }
 
 #[derive(Serialize)]
@@ -77,6 +78,7 @@ pub async fn generate<S: Into<String>>(
             },
             nsfw: true,
             r2: true,
+            shared: true,
         })
         .header("apikey", env::var("STABLEHORDE_TOKEN").unwrap())
         .send()
