@@ -20,7 +20,7 @@ use super::CommandError::{self, MissingArgument};
 use super::{CommandResult, CommandTrait};
 use crate::apis::stablehorde::{self, Generation, Status};
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::ratelimit::RateLimiter;
+use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::{EscapeMarkdown, TruncateWithEllipsis};
 use crate::utilities::{image_utils, text_utils};
 

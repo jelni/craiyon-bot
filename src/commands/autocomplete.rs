@@ -9,7 +9,7 @@ use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::google;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::ratelimit::RateLimiter;
+use crate::utilities::rate_limit::RateLimiter;
 
 #[derive(Default)]
 pub struct Autocomplete;
