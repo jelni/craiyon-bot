@@ -1,6 +1,9 @@
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
 
+use crate::commands::CommandError;
+use crate::utilities::api_utils::DetectServerError;
+
 #[derive(Deserialize)]
 struct Response {
     data: Data,
@@ -27,7 +30,7 @@ pub struct Error {
 pub async fn screenshot(
     http_client: reqwest::Client,
     url: Url,
-) -> reqwest::Result<Result<Data, Error>> {
+) -> Result<Result<Data, Error>, CommandError> {
     let response = http_client
         .get(
             Url::parse_with_params(
@@ -48,7 +51,8 @@ pub async fn screenshot(
             .unwrap(),
         )
         .send()
-        .await?;
+        .await?
+        .server_error()?;
 
     match response.status() {
         StatusCode::OK => Ok(Ok(response.json::<Response>().await?.data)),

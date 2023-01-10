@@ -60,7 +60,7 @@ pub async fn process(
             .await?;
 
         break Ok(if let Some(extra) = result.extra {
-            Ok(serde_json::de::from_str::<Media>(&extra).unwrap())
+            Ok(serde_json::from_str::<Media>(&extra).unwrap())
         } else {
             let err = ProcessingError { code: result.code, message: result.msg };
             if err.message == "VOLUMN_LIMIT" {

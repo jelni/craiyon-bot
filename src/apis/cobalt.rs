@@ -1,6 +1,9 @@
 use reqwest::header::{ACCEPT, CONTENT_DISPOSITION};
 use serde::{Deserialize, Serialize};
 
+use crate::commands::CommandError;
+use crate::utilities::api_utils::DetectServerError;
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Payload<'a> {
@@ -44,7 +47,7 @@ pub struct Download {
 pub async fn query<S: AsRef<str>>(
     http_client: reqwest::Client,
     url: S,
-) -> reqwest::Result<Result<Vec<String>, String>> {
+) -> Result<Result<Vec<String>, String>, CommandError> {
     let response = http_client
         .post("https://co.wukko.me/api/json")
         .json(&Payload {
@@ -57,6 +60,7 @@ pub async fn query<S: AsRef<str>>(
         .header(ACCEPT, "application/json")
         .send()
         .await?
+        .server_error()?
         .json::<Response>()
         .await?;
 

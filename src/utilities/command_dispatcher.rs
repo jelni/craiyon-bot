@@ -121,22 +121,25 @@ async fn report_command_error(
     error: CommandError,
 ) -> TdResult<()> {
     match error {
-        CommandError::CustomError(text) => {
-            context.reply(text).await?;
-        }
-        CommandError::CustomMarkdownError(text) => {
-            context.reply_markdown(text).await?;
-        }
+        CommandError::CustomError(text) => context.reply(text).await?,
+        CommandError::CustomMarkdownError(text) => context.reply_markdown(text).await?,
         CommandError::MissingArgument(argument) => {
-            context.reply(format!("missing {argument}.")).await?;
+            context.reply(format!("missing {argument}.")).await?
         }
         CommandError::TelegramError(err) => {
             log::error!("TDLib error in the {command} command: {}: {}", err.code, err.message);
-            context.reply(format!("sending the message failed ({}) 😔", err.message)).await?;
+            context.reply(format!("sending the message failed ({}) 😔", err.message)).await?
+        }
+        CommandError::ServerError(status_code) => {
+            context
+                .reply(format!(
+                "an external service used by this command is currently offline ({status_code})."
+            ))
+                .await?
         }
         CommandError::ReqwestError(err) => {
             log::error!("HTTP error in the {command} command: {err}");
-            context.reply(err.without_url().to_string()).await?;
+            context.reply(err.without_url().to_string()).await?
         }
     };
 
