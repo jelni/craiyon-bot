@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use reqwest::StatusCode;
 
 use crate::bot::TdError;
+use crate::utilities::api_utils::ServerError;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::rate_limit::RateLimiter;
 
@@ -49,6 +51,7 @@ pub enum CommandError {
     CustomMarkdownError(String),
     MissingArgument(&'static str),
     TelegramError(TdError),
+    ServerError(StatusCode),
     ReqwestError(reqwest::Error),
 }
 
@@ -67,6 +70,12 @@ impl From<&str> for CommandError {
 impl From<TdError> for CommandError {
     fn from(value: TdError) -> Self {
         Self::TelegramError(value)
+    }
+}
+
+impl From<ServerError> for CommandError {
+    fn from(value: ServerError) -> Self {
+        CommandError::ServerError(value.0)
     }
 }
 

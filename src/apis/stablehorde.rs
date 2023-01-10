@@ -5,6 +5,9 @@ use reqwest::{StatusCode, Url};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
+use crate::commands::CommandError;
+use crate::utilities::api_utils::DetectServerError;
+
 #[derive(Serialize)]
 struct GenerationInput {
     prompt: String,
@@ -62,7 +65,7 @@ pub async fn generate<S: Into<String>>(
     prompt: S,
     model: &'static str,
     size: (u32, u32),
-) -> reqwest::Result<Result<String, String>> {
+) -> Result<Result<String, String>, CommandError> {
     let response = http_client
         .post("https://stablehorde.net/api/v2/generate/async")
         .json(&GenerationInput {
@@ -82,7 +85,8 @@ pub async fn generate<S: Into<String>>(
         })
         .header("apikey", env::var("STABLEHORDE_TOKEN").unwrap())
         .send()
-        .await?;
+        .await?
+        .server_error()?;
 
     match response.status() {
         StatusCode::ACCEPTED => Ok(Ok(response.json::<RequestId>().await?.id)),
@@ -100,7 +104,7 @@ async fn generation_info<O: DeserializeOwned>(
     http_client: reqwest::Client,
     action: &str,
     request_id: &str,
-) -> reqwest::Result<Result<O, String>> {
+) -> Result<Result<O, String>, CommandError> {
     let url = Url::parse(&format!("https://stablehorde.net/api/v2/generate/{action}/{request_id}"))
         .unwrap();
     let response = loop {
@@ -109,7 +113,7 @@ async fn generation_info<O: DeserializeOwned>(
                 log::warn!("{err}");
                 tokio::time::sleep(Duration::from_secs(1)).await;
             }
-            response => break response,
+            response => break response?.server_error(),
         }
     }?;
 
@@ -128,14 +132,14 @@ async fn generation_info<O: DeserializeOwned>(
 pub async fn check(
     http_client: reqwest::Client,
     request_id: &str,
-) -> reqwest::Result<Result<Status, String>> {
+) -> Result<Result<Status, String>, CommandError> {
     generation_info::<Status>(http_client, "check", request_id).await
 }
 
 pub async fn results(
     http_client: reqwest::Client,
     request_id: &str,
-) -> reqwest::Result<Result<Vec<Generation>, String>> {
+) -> Result<Result<Vec<Generation>, String>, CommandError> {
     match generation_info::<Generations>(http_client, "status", request_id).await? {
         Ok(status) => Ok(Ok(status.generations)),
         Err(err) => Ok(Err(err)),

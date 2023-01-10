@@ -1,3 +1,4 @@
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize)]
@@ -14,8 +15,6 @@ struct Response {
 struct Error {
     pub error: String,
 }
-
-use reqwest::StatusCode;
 
 pub async fn evaluate<S: Into<String>>(
     http_client: reqwest::Client,
