@@ -9,8 +9,8 @@ use crate::commands::CommandError;
 use crate::utilities::api_utils::DetectServerError;
 
 #[derive(Serialize)]
-struct GenerationInput {
-    prompt: String,
+struct GenerationInput<'a> {
+    prompt: &'a str,
     models: Vec<&'static str>,
     params: Params,
     nsfw: bool,
@@ -41,6 +41,8 @@ struct RequestError {
 #[derive(PartialEq, Deserialize)]
 pub struct Status {
     pub done: bool,
+    pub faulted: bool,
+    pub is_possible: bool,
     // use u32 for these fields once Stable Horde fixes the race condition
     pub waiting: i8,
     pub processing: i8,
@@ -60,9 +62,9 @@ pub struct Generation {
     pub worker_name: String,
 }
 
-pub async fn generate<S: Into<String>>(
+pub async fn generate(
     http_client: reqwest::Client,
-    prompt: S,
+    prompt: &str,
     model: &'static str,
     size: (u32, u32),
 ) -> Result<Result<String, String>, CommandError> {
@@ -70,7 +72,7 @@ pub async fn generate<S: Into<String>>(
         .post("https://stablehorde.net/api/v2/generate/async")
         .json(&GenerationInput {
             models: vec![model],
-            prompt: prompt.into(),
+            prompt,
             params: Params {
                 n: 4,
                 width: size.0,
@@ -144,4 +146,16 @@ pub async fn results(
         Ok(status) => Ok(Ok(status.generations)),
         Err(err) => Ok(Err(err)),
     }
+}
+
+pub async fn cancel_generation(
+    http_client: reqwest::Client,
+    request_id: &str,
+) -> reqwest::Result<()> {
+    http_client
+        .delete(format!("https://stablehorde.net/api/v2/generate/status/{request_id}"))
+        .send()
+        .await?;
+
+    Ok(())
 }

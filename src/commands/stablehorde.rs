@@ -190,6 +190,15 @@ async fn wait_for_generation(
             break start_time.elapsed();
         };
 
+        if status.faulted {
+            Err("the generation timed out.")?;
+        }
+
+        if status.is_possible {
+            stablehorde::cancel_generation(ctx.http_client.clone(), request_id).await?;
+            Err("there are no online workers for the requested model.")?;
+        }
+
         if status.wait_time >= 60 {
             show_volunteer_notice = true;
         }
