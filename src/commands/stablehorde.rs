@@ -24,6 +24,9 @@ use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::{EscapeMarkdown, TruncateWithEllipsis};
 use crate::utilities::{image_utils, text_utils};
 
+const STABLEHORDE_BUCKET: &str =
+    "https://edf800e28a742a836054658825faa135.r2.cloudflarestorage.com/";
+
 pub struct StableHorde {
     command_names: &'static [&'static str],
     command_description: &'static str,
@@ -165,7 +168,26 @@ impl StableHorde {
             wait_for_generation(ctx.clone(), &request_id, &escaped_prompt).await?;
         let workers =
             results.iter().map(|generation| generation.worker_name.clone()).collect::<Counter<_>>();
-        let urls = results.into_iter().map(|generation| generation.img).collect::<Vec<_>>();
+        let urls = results
+            .into_iter()
+            .filter(|generation| {
+                if generation.img.starts_with(STABLEHORDE_BUCKET) {
+                    true
+                } else {
+                    log::error!(
+                        "worker {} {:?} returned invalid image data: {}",
+                        generation.worker_id,
+                        generation.worker_name,
+                        generation.img.clone().truncate_with_ellipsis(256)
+                    );
+                    false
+                }
+            })
+            .map(|generation| generation.img)
+            .collect::<Vec<_>>();
+        if urls.is_empty() {
+            Err("no images were successfully generated.")?;
+        }
         let images = download_images(ctx.http_client.clone(), urls).await?;
         let image = process_images(images, self.size);
 

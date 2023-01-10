@@ -59,6 +59,7 @@ pub struct Generations {
 #[derive(Deserialize)]
 pub struct Generation {
     pub img: String,
+    pub worker_id: String,
     pub worker_name: String,
 }
 
