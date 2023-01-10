@@ -194,7 +194,7 @@ async fn wait_for_generation(
             Err("the generation timed out.")?;
         }
 
-        if status.is_possible {
+        if !status.is_possible {
             stablehorde::cancel_generation(ctx.http_client.clone(), request_id).await?;
             Err("there are no online workers for the requested model.")?;
         }
