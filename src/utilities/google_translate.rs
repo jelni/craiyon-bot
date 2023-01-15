@@ -141,7 +141,7 @@ const LANGUAGES: [(&str, &str); 137] = [
 ];
 
 pub fn get_language_name(language_code: &str) -> Option<&str> {
-    Some(LANGUAGES.into_iter().find(|language| language.0 == language_code)?.1)
+    Some(LANGUAGES.into_iter().find(|language| language.0 == language_code.to_ascii_lowercase())?.1)
 }
 
 fn parse_language(text: &str) -> Option<(&'static str, String)> {
