@@ -1,12 +1,22 @@
 use std::env;
 use std::time::Duration;
 
-use reqwest::{StatusCode, Url};
+use reqwest::{RequestBuilder, StatusCode, Url};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 
 use crate::commands::CommandError;
 use crate::utilities::api_utils::DetectServerError;
+
+trait StableHordeClientAgent {
+    fn client_agent_header(self) -> Self;
+}
+
+impl StableHordeClientAgent for RequestBuilder {
+    fn client_agent_header(self) -> Self {
+        self.header("Client-Agent", env::var("STABLEHORDE_CLIENT").unwrap())
+    }
+}
 
 #[derive(Serialize)]
 struct GenerationInput<'a> {
@@ -87,6 +97,7 @@ pub async fn generate(
             shared: true,
         })
         .header("apikey", env::var("STABLEHORDE_TOKEN").unwrap())
+        .client_agent_header()
         .send()
         .await?
         .server_error()?;
@@ -111,7 +122,7 @@ async fn generation_info<O: DeserializeOwned>(
     let url = Url::parse(&format!("https://stablehorde.net/api/v2/generate/{action}/{request_id}"))
         .unwrap();
     let response = loop {
-        match http_client.get(url.clone()).send().await {
+        match http_client.get(url.clone()).client_agent_header().send().await {
             Err(err) if err.is_request() => {
                 log::warn!("{err}");
                 tokio::time::sleep(Duration::from_secs(1)).await;
