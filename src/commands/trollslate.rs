@@ -1,4 +1,5 @@
 use std::fmt::Write;
+use std::iter;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -26,9 +27,12 @@ impl CommandTrait for Trollslate {
         let language =
             if ctx.user.language_code.is_empty() { "en" } else { &ctx.user.language_code };
 
-        let mut languages = vec!["ar", "hi", "ja", "ka", "ko", "ru", "xh", "zh-CN", "zu"];
-        languages.shuffle(&mut rand::thread_rng());
-        languages.push(language);
+        let languages = [
+            "am", "ar", "ca", "haw", "hi", "iw", "ja", "ka", "ko", "ru", "so", "sw", "xh", "zh-CN",
+            "zu",
+        ]
+        .choose_multiple(&mut rand::thread_rng(), 9)
+        .chain(iter::once(&language));
 
         let mut languages_str =
             format!("*{}*", google_translate::get_language_name(language).unwrap());
