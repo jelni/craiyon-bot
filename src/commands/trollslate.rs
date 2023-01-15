@@ -38,8 +38,8 @@ impl CommandTrait for Trollslate {
 
         let mut languages_str = format!(
             "*{}* ➜ *{}*",
-            google_translate::get_language_name(&source_language).unwrap(),
-            google_translate::get_language_name(next_language).unwrap()
+            EscapeMarkdown(google_translate::get_language_name(&source_language).unwrap()),
+            EscapeMarkdown(google_translate::get_language_name(next_language).unwrap())
         );
 
         for language in languages.chain(iter::once(&source_language.as_str())) {
