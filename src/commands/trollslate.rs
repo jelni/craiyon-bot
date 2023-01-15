@@ -22,22 +22,27 @@ impl CommandTrait for Trollslate {
     }
 
     async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
-        let mut text = arguments.ok_or(MissingTextToTranslate)?;
+        let text = arguments.ok_or(MissingTextToTranslate)?;
 
-        let language =
-            if ctx.user.language_code.is_empty() { "en" } else { &ctx.user.language_code };
-
-        let languages = [
+        let mut languages = [
             "am", "ar", "ca", "haw", "hi", "iw", "ja", "ka", "ko", "ru", "so", "sw", "xh", "zh-CN",
             "zu",
         ]
-        .choose_multiple(&mut rand::thread_rng(), 9)
-        .chain(iter::once(&language));
+        .choose_multiple(&mut rand::thread_rng(), 9);
 
-        let mut languages_str =
-            format!("*{}*", google_translate::get_language_name(language).unwrap());
+        let next_language = languages.next().unwrap();
+        let translation =
+            translate::single(ctx.http_client.clone(), text, None, next_language).await?;
+        let mut text = translation.text;
+        let source_language = translation.source_language;
 
-        for language in languages {
+        let mut languages_str = format!(
+            "*{}* ➜ *{}*",
+            google_translate::get_language_name(&source_language).unwrap(),
+            google_translate::get_language_name(next_language).unwrap()
+        );
+
+        for language in languages.chain(iter::once(&source_language.as_str())) {
             text = translate::single(ctx.http_client.clone(), text, None, language).await?.text;
             write!(
                 languages_str,
