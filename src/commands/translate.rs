@@ -58,13 +58,11 @@ impl CommandTrait for Translate {
                 .await?;
 
         let source_language = EscapeMarkdown(
-            google_translate::get_language_name(&translation.source_language)
-                .unwrap_or(&translation.source_language),
+            google_translate::get_language_name(&translation.source_language).unwrap(),
         );
 
-        let target_language = EscapeMarkdown(
-            google_translate::get_language_name(target_language).unwrap_or(target_language),
-        );
+        let target_language =
+            EscapeMarkdown(google_translate::get_language_name(target_language).unwrap());
 
         ctx.reply_markdown(format!(
             "*{source_language}* ➜ *{target_language}*\n{}",
