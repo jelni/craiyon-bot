@@ -30,7 +30,6 @@ async fn main() {
     bot.add_command(Box::<commands::cobalt_download::CobaltDownload>::default());
     bot.add_command(Box::<commands::charinfo::CharInfo>::default());
     bot.add_command(Box::<commands::autocomplete::Autocomplete>::default());
-    bot.add_command(Box::<commands::tts::Tts>::default());
     bot.add_command(Box::<commands::kiwifarms::KiwiFarms>::default());
     bot.add_command(Box::<commands::startit_joke::StartItJoke>::default());
     bot.add_command(Box::<commands::kebab::Kebab>::default());
