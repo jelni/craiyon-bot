@@ -27,7 +27,6 @@ pub mod start;
 pub mod startit_joke;
 pub mod translate;
 pub mod trollslate;
-pub mod tts;
 pub mod urbandictionary;
 
 pub type CommandResult = Result<(), CommandError>;
