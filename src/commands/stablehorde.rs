@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use async_trait::async_trait;
 use counter::Counter;
 use image::{DynamicImage, ImageFormat};
+use reqwest::Url;
 use tdlib::enums::{
     FormattedText, InlineKeyboardButtonType, InputFile, InputMessageContent, ReplyMarkup,
     TextParseMode,
@@ -22,10 +23,7 @@ use crate::apis::stablehorde::{self, Generation, Status};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::{EscapeMarkdown, TruncateWithEllipsis};
-use crate::utilities::{image_utils, text_utils};
-
-const STABLEHORDE_BUCKET: &str =
-    "https://edf800e28a742a836054658825faa135.r2.cloudflarestorage.com/";
+use crate::utilities::{api_utils, image_utils, text_utils};
 
 pub struct StableHorde {
     command_names: &'static [&'static str],
@@ -170,9 +168,9 @@ impl StableHorde {
             results.iter().map(|generation| generation.worker_name.clone()).collect::<Counter<_>>();
         let urls = results
             .into_iter()
-            .filter(|generation| {
-                if generation.img.starts_with(STABLEHORDE_BUCKET) {
-                    true
+            .filter_map(|generation| {
+                if let Ok(url) = api_utils::cloudflare_storage_url(&generation.img) {
+                    Some(url)
                 } else {
                     log::error!(
                         "worker {} {:?} returned invalid image data: {}",
@@ -180,10 +178,9 @@ impl StableHorde {
                         generation.worker_name,
                         generation.img.clone().truncate_with_ellipsis(256)
                     );
-                    false
+                    None
                 }
             })
-            .map(|generation| generation.img)
             .collect::<Vec<_>>();
         if urls.is_empty() {
             Err("no images were successfully generated.")?;
@@ -252,7 +249,7 @@ async fn wait_for_generation(
 
 async fn download_images(
     http_client: reqwest::Client,
-    urls: Vec<String>,
+    urls: Vec<Url>,
 ) -> Result<Vec<Vec<u8>>, CommandError> {
     let mut images = Vec::with_capacity(urls.len());
     let tasks = urls.into_iter().map(|url| tokio::spawn(http_client.get(url).send()));
