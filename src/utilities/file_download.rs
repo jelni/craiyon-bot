@@ -46,9 +46,6 @@ impl NetworkFile {
         let mut stream = response.bytes_stream();
         while let Some(bytes) = stream.next().await {
             let bytes = bytes.map_err(DownloadError::RequestError)?;
-
-            println!("Got {} bytes", bytes.len());
-
             file.write_all(&bytes).map_err(|_| DownloadError::FilesystemError)?;
         }
 
