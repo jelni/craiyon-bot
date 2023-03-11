@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::iter;
 use std::sync::Mutex;
 
 use tdlib::types::{Message, UpdateMessageSendFailed, UpdateMessageSendSucceeded};
@@ -12,9 +13,31 @@ pub struct MessageQueue {
 
 impl MessageQueue {
     pub async fn wait_for_message(&self, message_id: i64) -> TdResult<Message> {
-        let (tx, rx) = oneshot::channel();
-        self.queue.lock().unwrap().insert(message_id, tx);
-        rx.await.unwrap()
+        self.wait_for_messages(iter::once(message_id)).await.into_iter().next().unwrap()
+    }
+
+    pub async fn wait_for_messages(
+        &self,
+        message_ids: impl Iterator<Item = i64>,
+    ) -> Vec<TdResult<Message>> {
+        let receivers = {
+            let mut queue = self.queue.lock().unwrap();
+            message_ids
+                .into_iter()
+                .map(|message_id| {
+                    let (tx, rx) = oneshot::channel();
+                    queue.insert(message_id, tx);
+                    rx
+                })
+                .collect::<Vec<_>>()
+        };
+
+        let mut messages = Vec::with_capacity(receivers.len());
+        for rx in receivers {
+            messages.push(rx.await.unwrap());
+        }
+
+        messages
     }
 
     pub fn message_sent(

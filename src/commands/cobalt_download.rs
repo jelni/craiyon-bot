@@ -1,18 +1,15 @@
-use std::fs::OpenOptions;
-use std::io::Write;
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use reqwest::StatusCode;
-use tdlib::enums::{InputFile, InputMessageContent, Text};
+use tdlib::enums::{InputFile, InputMessageContent, Messages};
 use tdlib::functions;
 use tdlib::types::{InputFileLocal, InputMessageDocument};
-use tempfile::TempDir;
 
 use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::cobalt;
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::file_download::{DownloadError, NetworkFile};
 use crate::utilities::telegram_utils;
 
 #[derive(Default)]
@@ -32,54 +29,100 @@ impl CommandTrait for CobaltDownload {
         let media_url = arguments.ok_or(MissingArgument("URL to download"))?;
 
         ctx.send_typing().await?;
-        let mut urls = cobalt::query(ctx.http_client.clone(), media_url.clone()).await??;
+        let urls = cobalt::query(ctx.http_client.clone(), media_url.clone())
+            .await??
+            .into_iter()
+            .take(10)
+            .collect::<Vec<_>>();
 
         let status_msg =
             ctx.message_queue.wait_for_message(ctx.reply("downloading…").await?.id).await?;
 
-        urls.truncate(4);
-        let mut downloads = Vec::with_capacity(urls.len());
+        let mut files = Vec::with_capacity(urls.len());
 
         for url in urls {
-            match cobalt::download(ctx.http_client.clone(), url).await {
-                Ok(download) if download.media.is_empty() => {
-                    Err("≫ cobalt failed to download media. try again later.")?;
-                }
-                Ok(download) => downloads.push(download),
-                Err(err) => {
-                    Err(err.status().unwrap_or(StatusCode::INTERNAL_SERVER_ERROR).to_string())?;
-                }
+            match NetworkFile::download(ctx.http_client.clone(), &url, ctx.client_id).await {
+                Ok(file) => files.push(file),
+                Err(err) => match err {
+                    DownloadError::RequestError(err) => {
+                        log::warn!("cobalt download failed: {err}");
+                        Err("≫ cobalt download failed.")?;
+                    }
+                    DownloadError::FilesystemError => {
+                        Err("failed to save the file to the hard drive.")?;
+                    }
+                    DownloadError::InvalidResponse => {
+                        Err("got invalid HTTP response while downloading the file")?;
+                    }
+                },
             }
         }
 
-        let temp_dir = TempDir::new().unwrap();
+        ctx.edit_message(status_msg.id, "uploading…").await?;
 
-        for download in downloads {
-            let Text::Text(file_name) =
-                functions::clean_file_name(download.filename, ctx.client_id).await?;
-            let path = temp_dir.path().join(file_name.text);
-            let mut file = OpenOptions::new().write(true).create(true).open(&path).unwrap();
-            file.write_all(&download.media).unwrap();
+        if files.len() == 1 {
+            let file = files.into_iter().next().unwrap();
 
-            let message = ctx
-                .reply_custom(
-                    InputMessageContent::InputMessageDocument(InputMessageDocument {
-                        document: InputFile::Local(InputFileLocal {
-                            path: path.to_str().unwrap().into(),
+            ctx.message_queue
+                .wait_for_message(
+                    ctx.reply_custom(
+                        InputMessageContent::InputMessageDocument(InputMessageDocument {
+                            document: InputFile::Local(InputFileLocal {
+                                path: file.file_path.clone(),
+                            }),
+                            thumbnail: None,
+                            disable_content_type_detection: false,
+                            caption: None,
                         }),
-                        thumbnail: None,
-                        disable_content_type_detection: false,
-                        caption: None,
-                    }),
-                    Some(telegram_utils::donate_markup("≫ cobalt", "https://boosty.to/wukko")),
+                        Some(telegram_utils::donate_markup("≫ cobalt", "https://boosty.to/wukko")),
+                    )
+                    .await?
+                    .id,
                 )
                 .await?;
 
-            ctx.message_queue.wait_for_message(message.id).await?;
+            ctx.delete_message(status_msg.id).await.ok();
+            file.close().unwrap();
+
+            return Ok(());
+        }
+
+        let messages = files
+            .iter()
+            .map(|file| {
+                InputMessageContent::InputMessageDocument(InputMessageDocument {
+                    document: InputFile::Local(InputFileLocal { path: file.file_path.clone() }),
+                    thumbnail: None,
+                    disable_content_type_detection: false,
+                    caption: None,
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let Messages::Messages(messages) = functions::send_message_album(
+            ctx.message.chat_id,
+            ctx.message.message_thread_id,
+            ctx.message.id,
+            None,
+            messages,
+            false,
+            ctx.client_id,
+        )
+        .await?;
+
+        for result in ctx
+            .message_queue
+            .wait_for_messages(messages.messages.into_iter().flatten().map(|message| message.id))
+            .await
+        {
+            result?;
         }
 
         ctx.delete_message(status_msg.id).await.ok();
-        temp_dir.close().unwrap();
+
+        for file in files {
+            file.close().unwrap();
+        }
 
         Ok(())
     }

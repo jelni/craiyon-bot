@@ -2,7 +2,7 @@
 //! joe: call it logchamp
 //! joe: please
 
-use std::fs::{File, OpenOptions};
+use std::fs::File;
 use std::io::Write;
 use std::sync::Mutex;
 
@@ -17,11 +17,7 @@ struct Logger {
 impl Logger {
     fn new(filename: &str) -> Self {
         log::set_max_level(LevelFilter::Debug);
-        Self {
-            file: Mutex::new(
-                OpenOptions::new().write(true).truncate(true).create(true).open(filename).unwrap(),
-            ),
-        }
+        Self { file: Mutex::new(File::create(filename).unwrap()) }
     }
 }
 
