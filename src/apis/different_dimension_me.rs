@@ -1,5 +1,7 @@
 use core::fmt;
 
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 use md5::Digest;
 use reqwest::header::{CONTENT_TYPE, ORIGIN};
 use serde::{Deserialize, Serialize};
@@ -36,11 +38,11 @@ impl fmt::Display for ProcessingError {
 
 pub async fn process(
     http_client: reqwest::Client,
-    image: Vec<u8>,
+    image: &[u8],
 ) -> reqwest::Result<Result<Media, ProcessingError>> {
     let json = serde_json::ser::to_string(&InputData {
         busi_id: "different_dimension_me_img_entry",
-        images: vec![base64::encode(&image)],
+        images: vec![STANDARD.encode(image)],
     })
     .unwrap();
 

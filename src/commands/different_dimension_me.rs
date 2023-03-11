@@ -39,7 +39,7 @@ impl CommandTrait for DifferentDimensionMe {
 
         let result = different_dimension_me::process(
             ctx.http_client.clone(),
-            fs::read(file.local.path).unwrap(),
+            &fs::read(file.local.path).unwrap(),
         )
         .await?;
 
