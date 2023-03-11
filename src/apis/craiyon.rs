@@ -1,5 +1,7 @@
 use std::time::{Duration, Instant};
 
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 use serde::{Deserialize, Serialize};
 
 const RETRY_COUNT: usize = 3;
@@ -55,7 +57,7 @@ pub async fn generate<S: Into<String>>(
     let images = response
         .images
         .into_iter()
-        .map(|data| base64::decode(data.replace('\n', "")).unwrap())
+        .map(|data| STANDARD.decode(data.replace('\n', "")).unwrap())
         .collect();
 
     Ok(GenerationResult { images, duration })
