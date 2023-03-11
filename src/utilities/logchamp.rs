@@ -3,7 +3,7 @@
 //! joe: please
 
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufWriter, Write};
 use std::sync::Mutex;
 
 use colored::{Color, Colorize};
@@ -11,20 +11,20 @@ use log::{Level, LevelFilter, Log, Metadata, Record};
 use time::macros::format_description;
 
 struct Logger {
-    file: Mutex<File>,
+    file: Mutex<BufWriter<File>>,
 }
 
 impl Logger {
     fn new(filename: &str) -> Self {
         log::set_max_level(LevelFilter::Debug);
-        Self { file: Mutex::new(File::create(filename).unwrap()) }
+        Self { file: Mutex::new(BufWriter::new(File::create(filename).unwrap())) }
     }
 }
 
 impl Log for Logger {
     fn enabled(&self, metadata: &Metadata) -> bool {
         let max_level = match metadata.target().split("::").next().unwrap() {
-            "craiyon-bot" => Level::Debug,
+            env!("CARGO_PKG_NAME") => Level::Debug,
             _ => Level::Info,
         };
         metadata.level() <= max_level
@@ -54,7 +54,9 @@ impl Log for Logger {
         writeln!(self.file.lock().unwrap(), "{timestamp} [{target} {level}] {args}").unwrap();
     }
 
-    fn flush(&self) {}
+    fn flush(&self) {
+        self.file.lock().unwrap().flush().unwrap();
+    }
 }
 
 pub fn init() {
