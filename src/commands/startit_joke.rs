@@ -7,10 +7,10 @@ use crate::apis::poligon;
 use crate::utilities::command_context::CommandContext;
 
 #[derive(Default)]
-pub struct StartItJoke;
+pub struct StartitJoke;
 
 #[async_trait]
-impl CommandTrait for StartItJoke {
+impl CommandTrait for StartitJoke {
     fn command_names(&self) -> &[&str] {
         &["startit_joke", "startit"]
     }

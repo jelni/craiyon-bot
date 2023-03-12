@@ -20,6 +20,7 @@ pub mod generate;
 pub mod kebab;
 pub mod kiwifarms;
 pub mod ping;
+pub mod radio_poligon;
 pub mod screenshot;
 pub mod sex;
 pub mod stablehorde;
