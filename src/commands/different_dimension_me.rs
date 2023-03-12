@@ -1,4 +1,5 @@
 use std::fs::{self};
+use std::io::BufWriter;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -61,7 +62,7 @@ impl CommandTrait for DifferentDimensionMe {
                 .map_err(|err| err.to_string())?;
         let image = crop_result_image(image);
         let mut temp_file = NamedTempFile::new().unwrap();
-        image.write_to(&mut temp_file, ImageFormat::Png).unwrap();
+        image.write_to(&mut BufWriter::new(&mut temp_file), ImageFormat::Png).unwrap();
 
         let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
             format!("[open full image]({image_url})"),
