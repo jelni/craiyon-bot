@@ -8,6 +8,7 @@ pub mod google_translate;
 pub mod image_utils;
 pub mod logchamp;
 pub mod message_queue;
+pub mod parse_command;
 pub mod parsed_command;
 pub mod rate_limit;
 pub mod telegram_utils;
