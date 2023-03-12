@@ -182,6 +182,7 @@ dependencies = [
  "charname",
  "colored",
  "counter",
+ "craiyon-bot-derive",
  "dotenv",
  "futures-util",
  "image",
@@ -197,6 +198,14 @@ dependencies = [
  "time",
  "tokio",
  "url",
+]
+
+[[package]]
+name = "craiyon-bot-derive"
+version = "1.0.0"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]
