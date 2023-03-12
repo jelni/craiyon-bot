@@ -1,64 +1,47 @@
 use std::time::{Duration, Instant};
 
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
 use serde::{Deserialize, Serialize};
 
-const RETRY_COUNT: usize = 3;
+use crate::commands::CommandError;
+use crate::utilities::api_utils::DetectServerError;
+
+static CRAIYON_VERSION: &str = "35s5hfwn9n78gb06";
 
 #[derive(Serialize)]
-struct Payload {
-    pub prompt: String,
+struct Payload<'a> {
+    prompt: &'a str,
+    version: &'static str,
 }
 
 #[derive(Deserialize)]
 struct Response {
-    pub images: Vec<String>,
+    images: Vec<String>,
 }
 
 pub struct GenerationResult {
-    pub images: Vec<Vec<u8>>,
+    pub images: Vec<String>,
     pub duration: Duration,
 }
 
-pub async fn generate<S: Into<String>>(
+pub async fn draw(
     http_client: reqwest::Client,
-    prompt: S,
-) -> reqwest::Result<GenerationResult> {
-    let body = Payload { prompt: prompt.into() };
-    let mut retry = 0;
-    let (response, duration) = loop {
-        retry += 1;
-        let start = Instant::now();
-        match http_client
-            .post("https://backend.craiyon.com/generate")
-            .json(&body)
-            .send()
-            .await?
-            .error_for_status()
-        {
-            Ok(response) => {
-                break {
-                    let duration = start.elapsed();
-                    (response.json::<Response>().await?, duration)
-                }
-            }
-            Err(err) => {
-                log::warn!("{err}");
-                if retry < RETRY_COUNT {
-                    tokio::time::sleep(Duration::from_secs(5)).await;
-                    continue;
-                }
-                return Err(err);
-            }
-        };
-    };
+    prompt: &str,
+) -> Result<GenerationResult, CommandError> {
+    let start = Instant::now();
+    let response = http_client
+        .post("https://api.craiyon.com/draw")
+        .json(&Payload { prompt, version: CRAIYON_VERSION })
+        .send()
+        .await?
+        .server_error()?
+        .error_for_status()?
+        .json::<Response>()
+        .await?;
 
-    let images = response
-        .images
-        .into_iter()
-        .map(|data| STANDARD.decode(data.replace('\n', "")).unwrap())
-        .collect();
+    let duration = start.elapsed();
+
+    let images =
+        response.images.into_iter().map(|path| format!("https://img.craiyon.com/{path}")).collect();
 
     Ok(GenerationResult { images, duration })
 }

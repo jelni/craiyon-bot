@@ -1,4 +1,5 @@
 use std::fmt::Write;
+use std::io::BufWriter;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -96,7 +97,7 @@ impl CommandTrait for StableHorde {
 
         let generation = self.generate(ctx.clone(), prompt).await?;
         let mut temp_file = NamedTempFile::new().unwrap();
-        generation.image.write_to(&mut temp_file, ImageFormat::Png).unwrap();
+        generation.image.write_to(&mut BufWriter::new(&mut temp_file), ImageFormat::Png).unwrap();
 
         let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
             format_result_text(

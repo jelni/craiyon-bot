@@ -1,3 +1,4 @@
+use std::io::BufWriter;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -26,7 +27,7 @@ impl CommandTrait for Generate {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("generate images using 🖍 Craiyon")
+        Some("generate images using 🖍 Craiyon V2")
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
@@ -41,16 +42,35 @@ impl CommandTrait for Generate {
             Err(issue)?;
         }
 
-        ctx.send_typing().await?;
-
         let status_msg = ctx
             .message_queue
             .wait_for_message(ctx.reply(format!("generating {prompt}…")).await?.id)
             .await?;
-        let result = craiyon::generate(ctx.http_client.clone(), &prompt).await?;
 
-        let images = result
+        let result = craiyon::draw(ctx.http_client.clone(), &prompt).await?;
+
+        let tasks = result
             .images
+            .clone()
+            .into_iter()
+            .map(|url| {
+                let http_client = ctx.http_client.clone();
+                tokio::spawn(async move {
+                    let response = http_client.get(url).send().await;
+                    match response {
+                        Ok(response) => response.bytes().await,
+                        Err(err) => Err(err),
+                    }
+                })
+            })
+            .collect::<Vec<_>>();
+
+        let mut images = Vec::with_capacity(tasks.len());
+        for task in tasks {
+            images.push(task.await.unwrap()?);
+        }
+
+        let images = images
             .into_iter()
             .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
             .map(|image| image.resize_exact(512, 512, FilterType::Lanczos3))
@@ -58,13 +78,21 @@ impl CommandTrait for Generate {
 
         let image = image_utils::collage(images, (512, 512), 3, 8);
         let mut temp_file = NamedTempFile::new().unwrap();
-        image.write_to(&mut temp_file, ImageFormat::Png).unwrap();
+        image.write_to(&mut BufWriter::new(&mut temp_file), ImageFormat::Png).unwrap();
+
+        let download_urls = result
+            .images
+            .into_iter()
+            .enumerate()
+            .map(|(i, url)| format!("[{}]({url})", i + 1))
+            .collect::<Vec<_>>();
 
         let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
             format!(
-                "generated *{}* in {}\\.",
+                "generated *{}* in {}\\.\ndownload: {}",
                 EscapeMarkdown(&prompt),
-                text_utils::format_duration(result.duration.as_secs())
+                text_utils::format_duration(result.duration.as_secs()),
+                download_urls.join(" ")
             ),
             TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
             ctx.client_id,
