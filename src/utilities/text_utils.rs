@@ -49,6 +49,21 @@ pub fn format_duration(duration: u64) -> String {
     }
 }
 
+pub fn progress_bar(current: u32, max: u32) -> String {
+    #[allow(clippy::cast_precision_loss)]
+    let step = max as f32 / 20.;
+    #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss, clippy::cast_sign_loss)]
+    let char_count = (current as f32 / step) as usize;
+
+    let mut progress = String::with_capacity(22);
+    progress.push('[');
+    progress.push_str(&"=".repeat(char_count));
+    progress.push_str(&"-".repeat(20 - char_count));
+    progress.push(']');
+
+    progress
+}
+
 pub fn check_prompt<S: AsRef<str>>(prompt: S) -> Option<&'static str> {
     let prompt = prompt.as_ref();
     if prompt.chars().count() > 512 {
