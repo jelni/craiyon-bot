@@ -267,7 +267,7 @@ fn process_images(images: Vec<Vec<u8>>, size: (u32, u32)) -> DynamicImage {
         .flat_map(|image| image::load_from_memory_with_format(&image, ImageFormat::WebP))
         .collect();
 
-    image_utils::collage(images, size, 2, 8)
+    image_utils::collage(images, size, 8)
 }
 
 fn format_status_text(status: &Status, escaped_prompt: &str, volunteer_notice: bool) -> String {

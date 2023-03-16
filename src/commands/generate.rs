@@ -76,7 +76,7 @@ impl CommandTrait for Generate {
             .map(|image| image.resize_exact(512, 512, FilterType::Lanczos3))
             .collect::<Vec<_>>();
 
-        let image = image_utils::collage(images, (512, 512), 3, 8);
+        let image = image_utils::collage(images, (512, 512), 8);
         let mut temp_file = NamedTempFile::new().unwrap();
         image.write_to(&mut BufWriter::new(&mut temp_file), ImageFormat::Png).unwrap();
 
