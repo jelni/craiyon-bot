@@ -190,3 +190,26 @@ impl ConvertArgument for SourceTargetLanguages {
         Ok((SourceTargetLanguages(Some(first_language), Cow::Borrowed(second_language)), arguments))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::ConvertArgument;
+    use crate::utilities::test_fixtures;
+
+    #[tokio::test]
+    async fn test_string_converter() {
+        let ctx = test_fixtures::command_context();
+
+        let (argument, arguments) = String::convert(&ctx, "foo bar").await.unwrap();
+        assert_eq!(argument, "foo");
+        assert_eq!(arguments, "bar");
+
+        let (argument, arguments) = String::convert(&ctx, " foo bar ").await.unwrap();
+        assert_eq!(argument, "foo");
+        assert_eq!(arguments, "bar ");
+
+        let (argument, arguments) = String::convert(&ctx, "foo  bar").await.unwrap();
+        assert_eq!(argument, "foo");
+        assert_eq!(arguments, " bar");
+    }
+}
