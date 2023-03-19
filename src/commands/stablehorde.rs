@@ -20,8 +20,7 @@ use tempfile::NamedTempFile;
 use super::{CommandError, CommandResult, CommandTrait};
 use crate::apis::stablehorde::{self, Generation, Status};
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::StringGreedyOrReply;
-use crate::utilities::parse_arguments::ParseArguments;
+use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::{EscapeMarkdown, TruncateWithEllipsis};
 use crate::utilities::{api_utils, image_utils, text_utils};
@@ -86,8 +85,7 @@ impl CommandTrait for StableHorde {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let StringGreedyOrReply(prompt) =
-            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
+        let StringGreedyOrReply(prompt) = ConvertArgument::convert(ctx, &arguments).await?.0;
 
         if let Some(issue) = text_utils::check_prompt(&prompt) {
             log::info!("prompt rejected: {issue:?}");
@@ -96,7 +94,7 @@ impl CommandTrait for StableHorde {
 
         ctx.send_typing().await?;
 
-        let generation = self.generate(ctx.clone(), prompt).await?;
+        let generation = self.generate(ctx, prompt).await?;
         let mut temp_file = NamedTempFile::new().unwrap();
         generation.image.write_to(&mut BufWriter::new(&mut temp_file), ImageFormat::Png).unwrap();
 
@@ -165,7 +163,7 @@ impl StableHorde {
                 .await??;
         let escaped_prompt = EscapeMarkdown(&prompt).to_string();
         let (results, status_msg, time_taken) =
-            wait_for_generation(ctx.clone(), &request_id, &escaped_prompt).await?;
+            wait_for_generation(ctx, &request_id, &escaped_prompt).await?;
         let workers =
             results.iter().map(|generation| generation.worker_name.clone()).collect::<Counter<_>>();
         let urls = results

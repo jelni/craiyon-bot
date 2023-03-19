@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::str::Chars;
 
 use async_trait::async_trait;
 use tdlib::enums::Message;
@@ -11,19 +10,20 @@ use super::telegram_utils;
 use crate::commands::CommandError;
 
 #[async_trait]
-pub(super) trait ConvertArgument: Sized + Send {
+pub trait ConvertArgument: Sized + Send {
     async fn convert<'a>(
         ctx: &CommandContext,
-        arguments: Chars<'a>,
-    ) -> Result<(Self, Chars<'a>), CommandError>;
+        arguments: &'a str,
+    ) -> Result<(Self, &'a str), CommandError>;
 }
 
 #[async_trait]
 impl ConvertArgument for String {
     async fn convert<'a>(
         _: &CommandContext,
-        mut arguments: Chars<'a>,
-    ) -> Result<(Self, Chars<'a>), CommandError> {
+        arguments: &'a str,
+    ) -> Result<(Self, &'a str), CommandError> {
+        let mut arguments = arguments.chars();
         let argument = arguments
             .by_ref()
             .skip_while(char::is_ascii_whitespace)
@@ -34,7 +34,7 @@ impl ConvertArgument for String {
             Err(CommandError::MissingArgument)?;
         }
 
-        Ok((argument, arguments))
+        Ok((argument, arguments.as_str()))
     }
 }
 
@@ -42,12 +42,29 @@ impl ConvertArgument for String {
 impl<T: ConvertArgument> ConvertArgument for Option<T> {
     async fn convert<'a>(
         ctx: &CommandContext,
-        arguments: Chars<'a>,
-    ) -> Result<(Self, Chars<'a>), CommandError> {
-        match T::convert(ctx, arguments.clone()).await {
+        arguments: &'a str,
+    ) -> Result<(Self, &'a str), CommandError> {
+        match T::convert(ctx, arguments).await {
             Ok((argument, arguments)) => Ok((Some(argument), arguments)),
             Err(_) => Ok((None, arguments)),
         }
+    }
+}
+
+#[async_trait]
+impl<T1, T2> ConvertArgument for (T1, T2)
+where
+    T1: ConvertArgument,
+    T2: ConvertArgument,
+{
+    async fn convert<'a>(
+        ctx: &CommandContext,
+        arguments: &'a str,
+    ) -> Result<(Self, &'a str), CommandError> {
+        let (arg1, arguments) = T1::convert(ctx, arguments).await?;
+        let (arg2, arguments) = T2::convert(ctx, arguments).await?;
+
+        Ok(((arg1, arg2), arguments))
     }
 }
 
@@ -57,8 +74,8 @@ pub struct Reply(pub String);
 impl ConvertArgument for Reply {
     async fn convert<'a>(
         ctx: &CommandContext,
-        arguments: Chars<'a>,
-    ) -> Result<(Self, Chars<'a>), CommandError> {
+        arguments: &'a str,
+    ) -> Result<(Self, &'a str), CommandError> {
         if ctx.message.reply_to_message_id == 0 {
             Err(CommandError::MissingArgument)?;
         }
@@ -87,15 +104,15 @@ pub struct StringGreedy(pub String);
 impl ConvertArgument for StringGreedy {
     async fn convert<'a>(
         _: &CommandContext,
-        mut arguments: Chars<'a>,
-    ) -> Result<(Self, Chars<'a>), CommandError> {
-        let argument = arguments.by_ref().collect::<String>().trim_start().to_owned();
+        arguments: &'a str,
+    ) -> Result<(Self, &'a str), CommandError> {
+        let argument = arguments.trim_start().to_owned();
 
         if argument.is_empty() {
             Err(CommandError::MissingArgument)?;
         }
 
-        Ok((Self(argument), arguments))
+        Ok((Self(argument), ""))
     }
 }
 
@@ -105,9 +122,9 @@ pub struct StringGreedyOrReply(pub String);
 impl ConvertArgument for StringGreedyOrReply {
     async fn convert<'a>(
         ctx: &CommandContext,
-        arguments: Chars<'a>,
-    ) -> Result<(Self, Chars<'a>), CommandError> {
-        match Option::<StringGreedy>::convert(ctx.clone(), arguments).await? {
+        arguments: &'a str,
+    ) -> Result<(Self, &'a str), CommandError> {
+        match Option::<StringGreedy>::convert(ctx, arguments).await? {
             (Some(argument), arguments) => Ok((Self(argument.0), arguments)),
             (None, arguments) => {
                 let (Reply(argument), arguments) = ConvertArgument::convert(ctx, arguments).await?;
@@ -123,9 +140,9 @@ pub struct Language(pub &'static str);
 impl ConvertArgument for Language {
     async fn convert<'a>(
         _: &CommandContext,
-        arguments: Chars<'a>,
-    ) -> Result<(Self, Chars<'a>), CommandError> {
-        let lowercase = arguments.as_str().to_ascii_lowercase();
+        arguments: &'a str,
+    ) -> Result<(Self, &'a str), CommandError> {
+        let lowercase = arguments.to_ascii_lowercase();
         let words = lowercase.split_ascii_whitespace().collect::<Vec<_>>();
 
         if words.is_empty() {
@@ -135,7 +152,7 @@ impl ConvertArgument for Language {
         for (language_code, language) in LANGUAGES {
             for prefix in [language_code, &language.to_ascii_lowercase()] {
                 if words.starts_with(&prefix.split_ascii_whitespace().collect::<Vec<_>>()) {
-                    return Ok((Self(language_code), arguments.as_str()[prefix.len()..].chars()));
+                    return Ok((Self(language_code), &arguments[prefix.len()..]));
                 }
             }
         }
@@ -150,10 +167,10 @@ pub struct SourceTargetLanguages(pub Option<&'static str>, pub Cow<'static, str>
 impl ConvertArgument for SourceTargetLanguages {
     async fn convert<'a>(
         ctx: &CommandContext,
-        arguments: Chars<'a>,
-    ) -> Result<(Self, Chars<'a>), CommandError> {
+        arguments: &'a str,
+    ) -> Result<(Self, &'a str), CommandError> {
         let Some((Language(first_language), arguments)) =
-            Language::convert(ctx.clone(), arguments.clone()).await.ok()
+            Language::convert(ctx, arguments).await.ok()
         else {
             let target_language = if ctx.user.language_code.is_empty() {
                 Cow::Borrowed("en")
@@ -165,7 +182,7 @@ impl ConvertArgument for SourceTargetLanguages {
         };
 
         let Some((Language(second_language), arguments)) =
-            Language::convert(ctx, arguments.clone()).await.ok()
+            Language::convert(ctx, arguments).await.ok()
         else {
             return Ok((SourceTargetLanguages(None, Cow::Borrowed(first_language)), arguments));
         };

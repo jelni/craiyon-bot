@@ -4,8 +4,7 @@ use tdlib::types::{InputFileRemote, InputMessageSticker};
 
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::StringGreedy;
-use crate::utilities::parse_arguments::ParseArguments;
+use crate::utilities::convert_argument::{ConvertArgument, StringGreedy};
 
 const SEX: [&str; 2] = [
     "CAACAgQAAxkBAAIHfGOBPouzDkVHO9WAvBrBcMShtX5PAAKxDAACEpVpUwgV5MV2yef8JAQ",
@@ -21,8 +20,7 @@ impl CommandTrait for Sex {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let StringGreedy(argument) =
-            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
+        let StringGreedy(argument) = ConvertArgument::convert(ctx, &arguments).await?.0;
         let question_mark = argument.starts_with('?');
 
         ctx.reply_custom(

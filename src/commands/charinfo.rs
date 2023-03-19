@@ -2,8 +2,7 @@ use async_trait::async_trait;
 
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::StringGreedyOrReply;
-use crate::utilities::parse_arguments::ParseArguments;
+use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::text_utils::{self, EscapeMarkdown};
 
 pub struct CharInfo;
@@ -19,8 +18,7 @@ impl CommandTrait for CharInfo {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let StringGreedyOrReply(chars) =
-            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
+        let StringGreedyOrReply(chars) = ConvertArgument::convert(ctx, &arguments).await?.0;
         let mut chars = chars.chars();
 
         let mut lines = chars

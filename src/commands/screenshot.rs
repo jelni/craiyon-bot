@@ -11,8 +11,7 @@ use super::CommandError::CustomMarkdownError;
 use super::{CommandResult, CommandTrait};
 use crate::apis::microlink;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::StringGreedy;
-use crate::utilities::parse_arguments::ParseArguments;
+use crate::utilities::convert_argument::{ConvertArgument, StringGreedy};
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::EscapeMarkdown;
 
@@ -33,7 +32,7 @@ impl CommandTrait for Screenshot {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let StringGreedy(url) = ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
+        let StringGreedy(url) = ConvertArgument::convert(ctx, &arguments).await?.0;
 
         let url = match Url::parse(&url) {
             Err(ParseError::RelativeUrlWithoutBase) => Url::parse(&format!("http://{url}")),

@@ -3,9 +3,10 @@ use async_trait::async_trait;
 use super::{CommandResult, CommandTrait};
 use crate::apis::translate;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::{SourceTargetLanguages, StringGreedyOrReply};
+use crate::utilities::convert_argument::{
+    ConvertArgument, SourceTargetLanguages, StringGreedyOrReply,
+};
 use crate::utilities::google_translate;
-use crate::utilities::parse_arguments::ParseArguments;
 use crate::utilities::text_utils::EscapeMarkdown;
 
 pub struct Translate;
@@ -22,7 +23,7 @@ impl CommandTrait for Translate {
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let (SourceTargetLanguages(source_language, target_language), StringGreedyOrReply(text)) =
-            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
+            ConvertArgument::convert(ctx, &arguments).await?.0;
 
         let translation =
             translate::single(ctx.http_client.clone(), text, source_language, &target_language)
