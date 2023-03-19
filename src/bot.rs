@@ -15,10 +15,10 @@ use tdlib::types::{
 use tokio::signal;
 use tokio::task::JoinHandle;
 
-use crate::commands::{calculate_inline, dice_reply};
+use crate::commands::{calculate_inline, dice_reply, CommandTrait};
 use crate::utilities::cache::{Cache, CompactUser};
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::command_manager::{CommandManager, CommandRef};
+use crate::utilities::command_manager::CommandManager;
 use crate::utilities::message_queue::MessageQueue;
 use crate::utilities::parsed_command::ParsedCommand;
 use crate::utilities::rate_limit::{RateLimiter, RateLimits};
@@ -270,7 +270,7 @@ impl Bot {
         self.message_queue.message_sent(result);
     }
 
-    pub fn add_command(&mut self, command: CommandRef) {
+    pub fn add_command(&mut self, command: impl CommandTrait + Send + Sync + 'static) {
         self.command_manager.add_command(command);
     }
 

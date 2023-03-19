@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::urbandictionary;
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::convert_argument::StringGreedyOrReply;
+use crate::utilities::parse_arguments::ParseArguments;
 
-#[derive(Default)]
 pub struct UrbanDictionary;
 
 #[async_trait]
@@ -20,8 +20,9 @@ impl CommandTrait for UrbanDictionary {
         Some("get a word definition from Urban Dictionary")
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
-        let word = arguments.ok_or(MissingArgument("word to define"))?;
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+        let StringGreedyOrReply(word) =
+            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 
         ctx.send_typing().await?;
 

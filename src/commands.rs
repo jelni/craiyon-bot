@@ -44,13 +44,14 @@ pub trait CommandTrait {
         RateLimiter::new(3, 30)
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult;
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult;
 }
 
 pub enum CommandError {
     CustomError(String),
     CustomMarkdownError(String),
-    MissingArgument(&'static str),
+    ArgumentParseError(String),
+    MissingArgument,
     TelegramError(TdError),
     ServerError(StatusCode),
     ReqwestError(reqwest::Error),

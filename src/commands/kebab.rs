@@ -9,7 +9,6 @@ use crate::utilities::rate_limit::RateLimiter;
 
 const WORDS: [&str; 7] = ["kebab", "king", "house", "super", "arab", "hot", "sauce"];
 
-#[derive(Default)]
 pub struct Kebab;
 
 #[async_trait]
@@ -26,7 +25,7 @@ impl CommandTrait for Kebab {
         RateLimiter::new(10, 30)
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
         let random_name = WORDS
             .choose_multiple(&mut rand::thread_rng(), 2)
             .copied()

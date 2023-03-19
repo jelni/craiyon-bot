@@ -5,13 +5,13 @@ use rand::rngs::StdRng;
 use rand::seq::SliceRandom;
 use rand::SeedableRng;
 
-use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::google;
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::convert_argument::StringGreedyOrReply;
+use crate::utilities::parse_arguments::ParseArguments;
 use crate::utilities::rate_limit::RateLimiter;
 
-#[derive(Default)]
 pub struct Autocomplete;
 
 #[async_trait]
@@ -28,8 +28,9 @@ impl CommandTrait for Autocomplete {
         RateLimiter::new(10, 30)
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
-        let query = arguments.ok_or(MissingArgument("text to autocomplete"))?;
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+        let StringGreedyOrReply(query) =
+            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 
         let completions =
             google::complete(ctx.http_client.clone(), &query).await.unwrap_or_default();

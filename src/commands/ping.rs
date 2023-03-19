@@ -7,7 +7,6 @@ use tdlib::functions;
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
 
-#[derive(Default)]
 pub struct Ping;
 
 #[async_trait]
@@ -20,7 +19,7 @@ impl CommandTrait for Ping {
         Some("check if the bot is online")
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
         let start = Instant::now();
         functions::test_network(ctx.client_id).await?;
         let duration = start.elapsed();

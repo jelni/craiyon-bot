@@ -8,7 +8,6 @@ use crate::apis::poligon;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::text_utils::{self, EscapeMarkdown};
 
-#[derive(Default)]
 pub struct RadioPoligon;
 
 #[async_trait]
@@ -17,7 +16,7 @@ impl CommandTrait for RadioPoligon {
         &["radio_poligon", "radio", "poligon"]
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
         let now_playing = poligon::now_playing(ctx.http_client.clone(), 1).await?;
         let mut text = String::new();
 

@@ -8,14 +8,15 @@ use tdlib::types::{FormattedText, InputFileLocal, InputMessagePhoto};
 use tempfile::NamedTempFile;
 use url::ParseError;
 
-use super::CommandError::{CustomMarkdownError, MissingArgument};
+use super::CommandError::CustomMarkdownError;
 use super::{CommandResult, CommandTrait};
 use crate::apis::microlink;
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::convert_argument::StringGreedy;
+use crate::utilities::parse_arguments::ParseArguments;
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::EscapeMarkdown;
 
-#[derive(Default)]
 pub struct Screenshot;
 
 #[async_trait]
@@ -32,8 +33,8 @@ impl CommandTrait for Screenshot {
         RateLimiter::new(3, 120)
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
-        let url = arguments.ok_or(MissingArgument("URL to screenshot"))?;
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+        let StringGreedy(url) = ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 
         let url = match Url::parse(&url) {
             Err(ParseError::RelativeUrlWithoutBase) => Url::parse(&format!("http://{url}")),
