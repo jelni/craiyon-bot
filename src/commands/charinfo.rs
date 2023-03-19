@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 
-use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::convert_argument::StringGreedyOrReply;
+use crate::utilities::parse_arguments::ParseArguments;
 use crate::utilities::text_utils::{self, EscapeMarkdown};
 
-#[derive(Default)]
 pub struct CharInfo;
 
 #[async_trait]
@@ -20,8 +20,9 @@ impl CommandTrait for CharInfo {
         Some("get Unicode character names")
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
-        let chars = arguments.ok_or(MissingArgument("characters"))?;
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+        let StringGreedyOrReply(chars) =
+            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
         let mut chars = chars.chars();
 
         let mut lines = chars

@@ -6,13 +6,14 @@ use tdlib::types::{InputFileRemote, InputMessageSticker};
 
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::convert_argument::StringGreedy;
+use crate::utilities::parse_arguments::ParseArguments;
 
 const SEX: [&str; 2] = [
     "CAACAgQAAxkBAAIHfGOBPouzDkVHO9WAvBrBcMShtX5PAAKxDAACEpVpUwgV5MV2yef8JAQ",
     "CAACAgQAAxkBAAIHe2OBPolUMdfqvn_-38aWQ3bJ0NojAAJ_CwACFtZwU-fyDIVsfDCjJAQ",
 ];
 
-#[derive(Default)]
 pub struct Sex;
 
 #[async_trait]
@@ -21,8 +22,11 @@ impl CommandTrait for Sex {
         &["sex", "xes"]
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
-        let question_mark = arguments.map_or(false, |a| a.starts_with('?'));
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+        let StringGreedy(argument) =
+            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
+        let question_mark = argument.starts_with('?');
+
         ctx.reply_custom(
             InputMessageContent::InputMessageSticker(InputMessageSticker {
                 sticker: InputFile::Remote(InputFileRemote {

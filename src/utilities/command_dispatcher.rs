@@ -12,7 +12,7 @@ use crate::utilities::text_utils;
 
 pub async fn dispatch_command(
     command: Arc<CommandInstance>,
-    mut arguments: Option<String>,
+    mut arguments: String,
     context: Arc<CommandContext>,
 ) {
     if let Some(cooldown) = check_rate_limit(&command, &context) {
@@ -26,16 +26,11 @@ pub async fn dispatch_command(
         return;
     }
 
-    if arguments.is_none() {
-        arguments = get_reply_text(context.clone()).await;
+    if arguments.is_empty() {
+        arguments = get_reply_text(context.clone()).await.unwrap_or_default();
     }
 
-    log::info!(
-        "running {command} {:?} for {} in {}",
-        arguments.as_deref().unwrap_or_default(),
-        context.user,
-        context.chat
-    );
+    log::info!("running {command} {:?} for {} in {}", arguments, context.user, context.chat);
 
     if let Err(err) = command.command.execute(context.clone(), arguments).await {
         if let Err(err) = report_command_error(command, context, err).await {
@@ -123,9 +118,10 @@ async fn report_command_error(
     match error {
         CommandError::CustomError(text) => context.reply(text).await?,
         CommandError::CustomMarkdownError(text) => context.reply_markdown(text).await?,
-        CommandError::MissingArgument(argument) => {
-            context.reply(format!("missing {argument}.")).await?
+        CommandError::ArgumentParseError(text) => {
+            context.reply(format!("failed to parse command argument: {text}.")).await?
         }
+        CommandError::MissingArgument => context.reply("missing command argument.").await?,
         CommandError::TelegramError(err) => {
             log::error!("TDLib error in the {command} command: {}: {}", err.code, err.message);
             context.reply(format!("sending the message failed ({}) 😔", err.message)).await?

@@ -1,6 +1,4 @@
-use crate::commands::CommandError;
-
-const LANGUAGES: [(&str, &str); 137] = [
+pub const LANGUAGES: [(&str, &str); 137] = [
     ("af", "Afrikaans"),
     ("sq", "Albanian"),
     ("am", "Amharic"),
@@ -142,41 +140,4 @@ const LANGUAGES: [(&str, &str); 137] = [
 
 pub fn get_language_name(language_code: &str) -> Option<&str> {
     Some(LANGUAGES.into_iter().find(|language| language.0 == language_code.to_ascii_lowercase())?.1)
-}
-
-fn parse_language(text: &str) -> Option<(&'static str, String)> {
-    let text_lowercase = text.to_ascii_lowercase();
-    let text_split = text_lowercase.split_ascii_whitespace().collect::<Vec<_>>();
-
-    for (language_code, language) in LANGUAGES {
-        for prefix in [&language.to_ascii_lowercase(), language_code] {
-            if text_split.starts_with(
-                &prefix.to_ascii_lowercase().split_ascii_whitespace().collect::<Vec<_>>(),
-            ) {
-                return Some((language_code, text[prefix.len()..].trim_start().to_owned()));
-            }
-        }
-    }
-
-    None
-}
-
-pub fn parse_command(text: String) -> (Option<&'static str>, Option<&'static str>, String) {
-    let Some((first_language, text)) = parse_language(&text) else {
-        return (None, None, text);
-    };
-
-    let Some((second_language, text)) = parse_language(&text) else {
-        return (None, Some(first_language), text);
-    };
-
-    (Some(first_language), Some(second_language), text)
-}
-
-pub struct MissingTextToTranslate;
-
-impl From<MissingTextToTranslate> for CommandError {
-    fn from(_: MissingTextToTranslate) -> Self {
-        CommandError::MissingArgument("text to translate")
-    }
 }
