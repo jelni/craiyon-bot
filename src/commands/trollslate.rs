@@ -7,9 +7,8 @@ use rand::seq::SliceRandom;
 use super::{CommandResult, CommandTrait};
 use crate::apis::translate;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::StringGreedyOrReply;
+use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::google_translate;
-use crate::utilities::parse_arguments::ParseArguments;
 use crate::utilities::text_utils::EscapeMarkdown;
 
 pub struct Trollslate;
@@ -21,8 +20,7 @@ impl CommandTrait for Trollslate {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let StringGreedyOrReply(text) =
-            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
+        let StringGreedyOrReply(text) = ConvertArgument::convert(ctx, &arguments).await?.0;
 
         let mut languages = [
             "am", "ar", "ca", "haw", "hi", "iw", "ja", "ka", "ko", "ru", "so", "sw", "xh", "zh-CN",

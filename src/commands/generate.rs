@@ -11,8 +11,7 @@ use tempfile::NamedTempFile;
 use super::{CommandResult, CommandTrait};
 use crate::apis::craiyon;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::StringGreedyOrReply;
-use crate::utilities::parse_arguments::ParseArguments;
+use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::EscapeMarkdown;
 use crate::utilities::{image_utils, telegram_utils, text_utils};
@@ -34,8 +33,7 @@ impl CommandTrait for Generate {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let StringGreedyOrReply(prompt) =
-            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
+        let StringGreedyOrReply(prompt) = ConvertArgument::convert(ctx, &arguments).await?.0;
 
         if let Some(issue) = text_utils::check_prompt(&prompt) {
             log::info!("prompt rejected: {issue:?}");
