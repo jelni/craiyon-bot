@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 
 use super::{CommandResult, CommandTrait};
@@ -13,7 +11,7 @@ impl CommandTrait for Start {
         &["start"]
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         ctx.reply_markdown(concat!(
             "use the /generate command to generate images\\.\n",
             "*example:* `/generate crayons in a box`"

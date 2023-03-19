@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use std::time::Instant;
 
 use async_trait::async_trait;
@@ -19,7 +18,7 @@ impl CommandTrait for Ping {
         Some("check if the bot is online")
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         let start = Instant::now();
         functions::test_network(ctx.client_id).await?;
         let duration = start.elapsed();

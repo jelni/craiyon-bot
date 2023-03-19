@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use tdlib::enums::{InputFile, InputMessageContent};
 use tdlib::types::{InputFileRemote, InputMessageSticker};
@@ -22,7 +20,7 @@ impl CommandTrait for Sex {
         &["sex", "xes"]
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let StringGreedy(argument) =
             ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
         let question_mark = argument.starts_with('?');

@@ -1,5 +1,4 @@
 use std::fmt::Write;
-use std::sync::Arc;
 
 use async_trait::async_trait;
 
@@ -16,7 +15,7 @@ impl CommandTrait for RadioPoligon {
         &["radio_poligon", "radio", "poligon"]
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         let now_playing = poligon::now_playing(ctx.http_client.clone(), 1).await?;
         let mut text = String::new();
 

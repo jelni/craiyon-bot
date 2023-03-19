@@ -1,6 +1,5 @@
 use std::fs::{self};
 use std::io::BufWriter;
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use image::{DynamicImage, ImageFormat};
@@ -24,7 +23,7 @@ impl CommandTrait for DifferentDimensionMe {
         &["different_dimension_me", "ai2d", "2d"]
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         let mut file = telegram_utils::get_message_or_reply_image(&ctx.message, ctx.client_id)
             .await
             .ok_or("send or reply to an image.")?;

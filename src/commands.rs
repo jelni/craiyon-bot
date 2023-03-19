@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use reqwest::StatusCode;
 
@@ -44,7 +42,7 @@ pub trait CommandTrait {
         RateLimiter::new(3, 30)
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult;
+    async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult;
 }
 
 pub enum CommandError {

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 
 use super::{CommandResult, CommandTrait};
@@ -20,7 +18,7 @@ impl CommandTrait for UrbanDictionary {
         Some("get a word definition from Urban Dictionary")
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let StringGreedyOrReply(word) =
             ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 
