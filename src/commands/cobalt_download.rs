@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use tdlib::enums::{InputFile, InputMessageContent, Messages};
 use tdlib::functions;
@@ -25,7 +23,7 @@ impl CommandTrait for CobaltDownload {
         Some("download online media using ≫ cobalt")
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let StringGreedy(media_url) =
             ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 

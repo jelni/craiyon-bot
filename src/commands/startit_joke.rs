@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 
 use super::{CommandResult, CommandTrait};
@@ -14,7 +12,7 @@ impl CommandTrait for StartitJoke {
         &["startit_joke", "startit"]
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         let joke = poligon::startit_joke(ctx.http_client.clone()).await?;
         ctx.reply(format!("Kacper Podpora mówi: {joke}")).await?;
 

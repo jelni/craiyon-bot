@@ -1,6 +1,5 @@
 use std::fmt::Write;
 use std::io::BufWriter;
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use async_trait::async_trait;
@@ -86,7 +85,7 @@ impl CommandTrait for StableHorde {
         RateLimiter::new(3, 300)
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let StringGreedyOrReply(prompt) =
             ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 
@@ -158,7 +157,7 @@ struct GenerationResult {
 impl StableHorde {
     async fn generate(
         &self,
-        ctx: Arc<CommandContext>,
+        ctx: &CommandContext,
         prompt: String,
     ) -> Result<GenerationResult, CommandError> {
         let request_id =
@@ -196,7 +195,7 @@ impl StableHorde {
 }
 
 async fn wait_for_generation(
-    ctx: Arc<CommandContext>,
+    ctx: &CommandContext,
     request_id: &str,
     escaped_prompt: &str,
 ) -> Result<(Vec<Generation>, Option<Message>, Duration), CommandError> {

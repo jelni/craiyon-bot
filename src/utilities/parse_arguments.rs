@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 
 use super::command_context::CommandContext;
@@ -8,10 +6,7 @@ use crate::commands::CommandError;
 
 #[async_trait]
 pub trait ParseArguments: Sized {
-    async fn parse_arguments(
-        ctx: Arc<CommandContext>,
-        arguments: &str,
-    ) -> Result<Self, CommandError>;
+    async fn parse_arguments(ctx: &CommandContext, arguments: &str) -> Result<Self, CommandError>;
 }
 
 #[async_trait]
@@ -19,10 +14,7 @@ impl<T1> ParseArguments for T1
 where
     T1: ConvertArgument,
 {
-    async fn parse_arguments(
-        ctx: Arc<CommandContext>,
-        arguments: &str,
-    ) -> Result<Self, CommandError> {
+    async fn parse_arguments(ctx: &CommandContext, arguments: &str) -> Result<Self, CommandError> {
         let arguments = arguments.chars();
 
         let (arg1, _) = T1::convert(ctx, arguments).await?;
@@ -37,10 +29,7 @@ where
     T1: ConvertArgument,
     T2: ConvertArgument,
 {
-    async fn parse_arguments(
-        ctx: Arc<CommandContext>,
-        arguments: &str,
-    ) -> Result<Self, CommandError> {
+    async fn parse_arguments(ctx: &CommandContext, arguments: &str) -> Result<Self, CommandError> {
         let arguments = arguments.chars();
 
         let (arg1, arguments) = T1::convert(ctx.clone(), arguments).await?;
