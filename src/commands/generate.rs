@@ -9,15 +9,15 @@ use tdlib::functions;
 use tdlib::types::{InputFileLocal, InputMessagePhoto, TextParseModeMarkdown};
 use tempfile::NamedTempFile;
 
-use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::craiyon;
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::convert_argument::StringGreedyOrReply;
+use crate::utilities::parse_arguments::ParseArguments;
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::EscapeMarkdown;
 use crate::utilities::{image_utils, telegram_utils, text_utils};
 
-#[derive(Default)]
 pub struct Generate;
 
 #[async_trait]
@@ -34,8 +34,9 @@ impl CommandTrait for Generate {
         RateLimiter::new(3, 60)
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
-        let prompt = arguments.ok_or(MissingArgument("prompt to generate"))?;
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+        let StringGreedyOrReply(prompt) =
+            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 
         if let Some(issue) = text_utils::check_prompt(&prompt) {
             log::info!("prompt rejected: {issue:?}");

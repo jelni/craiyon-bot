@@ -62,7 +62,7 @@ pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Op
         return Some(file);
     }
 
-    if message.reply_to_message_id != 0 {
+    if message.reply_to_message_id == 0 {
         return None;
     }
 

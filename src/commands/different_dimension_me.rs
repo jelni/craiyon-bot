@@ -16,7 +16,6 @@ use crate::utilities::telegram_utils;
 
 const MEBIBYTE: i64 = 1024 * 1024;
 
-#[derive(Default)]
 pub struct DifferentDimensionMe;
 
 #[async_trait]
@@ -25,7 +24,7 @@ impl CommandTrait for DifferentDimensionMe {
         &["different_dimension_me", "ai2d", "2d"]
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
         let mut file = telegram_utils::get_message_or_reply_image(&ctx.message, ctx.client_id)
             .await
             .ok_or("send or reply to an image.")?;

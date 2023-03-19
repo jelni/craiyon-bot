@@ -18,10 +18,11 @@ use tdlib::types::{
 };
 use tempfile::NamedTempFile;
 
-use super::CommandError::{self, MissingArgument};
-use super::{CommandResult, CommandTrait};
+use super::{CommandError, CommandResult, CommandTrait};
 use crate::apis::stablehorde::{self, Generation, Status};
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::convert_argument::StringGreedyOrReply;
+use crate::utilities::parse_arguments::ParseArguments;
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::{EscapeMarkdown, TruncateWithEllipsis};
 use crate::utilities::{api_utils, image_utils, text_utils};
@@ -85,8 +86,9 @@ impl CommandTrait for StableHorde {
         RateLimiter::new(3, 300)
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
-        let prompt = arguments.ok_or(MissingArgument("prompt to generate"))?;
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+        let StringGreedyOrReply(prompt) =
+            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 
         if let Some(issue) = text_utils::check_prompt(&prompt) {
             log::info!("prompt rejected: {issue:?}");

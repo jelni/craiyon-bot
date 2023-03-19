@@ -1,17 +1,15 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use tdlib::enums::Message;
-use tdlib::functions;
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::translate;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::google_translate::MissingTextToTranslate;
+use crate::utilities::convert_argument::{SourceTargetLanguages, StringGreedyOrReply};
+use crate::utilities::google_translate;
+use crate::utilities::parse_arguments::ParseArguments;
 use crate::utilities::text_utils::EscapeMarkdown;
-use crate::utilities::{google_translate, telegram_utils};
 
-#[derive(Default)]
 pub struct Translate;
 
 #[async_trait]
@@ -24,37 +22,12 @@ impl CommandTrait for Translate {
         Some("translate text using Google Translate")
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
-        let text = arguments.ok_or(MissingTextToTranslate)?;
-
-        let (source_language, target_language, mut text) = google_translate::parse_command(text);
-
-        let target_language = target_language.unwrap_or(if ctx.user.language_code.is_empty() {
-            "en"
-        } else {
-            &ctx.user.language_code
-        });
-
-        if text.is_empty() {
-            if ctx.message.reply_to_message_id == 0 {
-                Err(MissingTextToTranslate)?;
-            }
-
-            let Message::Message(message) = functions::get_message(
-                ctx.message.reply_in_chat_id,
-                ctx.message.reply_to_message_id,
-                ctx.client_id,
-            )
-            .await?;
-
-            text = telegram_utils::get_message_text(&message)
-                .ok_or(MissingTextToTranslate)?
-                .text
-                .clone();
-        }
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+        let (SourceTargetLanguages(source_language, target_language), StringGreedyOrReply(text)) =
+            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 
         let translation =
-            translate::single(ctx.http_client.clone(), text, source_language, target_language)
+            translate::single(ctx.http_client.clone(), text, source_language, &target_language)
                 .await?;
 
         let source_language = EscapeMarkdown(
@@ -62,7 +35,7 @@ impl CommandTrait for Translate {
         );
 
         let target_language =
-            EscapeMarkdown(google_translate::get_language_name(target_language).unwrap());
+            EscapeMarkdown(google_translate::get_language_name(&target_language).unwrap());
 
         ctx.reply_markdown(format!(
             "*{source_language}* ➜ *{target_language}*\n{}",

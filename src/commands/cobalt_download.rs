@@ -5,14 +5,14 @@ use tdlib::enums::{InputFile, InputMessageContent, Messages};
 use tdlib::functions;
 use tdlib::types::{InputFileLocal, InputMessageDocument};
 
-use super::CommandError::MissingArgument;
 use super::{CommandResult, CommandTrait};
 use crate::apis::cobalt;
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::convert_argument::StringGreedy;
 use crate::utilities::file_download::{DownloadError, NetworkFile};
+use crate::utilities::parse_arguments::ParseArguments;
 use crate::utilities::telegram_utils;
 
-#[derive(Default)]
 pub struct CobaltDownload;
 
 #[async_trait]
@@ -25,8 +25,9 @@ impl CommandTrait for CobaltDownload {
         Some("download online media using ≫ cobalt")
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: Option<String>) -> CommandResult {
-        let media_url = arguments.ok_or(MissingArgument("URL to download"))?;
+    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+        let StringGreedy(media_url) =
+            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 
         ctx.send_typing().await?;
         let urls = cobalt::query(ctx.http_client.clone(), media_url.clone())

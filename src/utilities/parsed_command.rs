@@ -1,12 +1,10 @@
-use std::convert::TryInto;
-
 use tdlib::enums::TextEntityType;
 use tdlib::types::FormattedText;
 
 pub struct ParsedCommand {
     pub name: String,
     pub bot_username: Option<String>,
-    pub arguments: Option<String>,
+    pub arguments: String,
 }
 
 impl ParsedCommand {
@@ -16,26 +14,19 @@ impl ParsedCommand {
             .iter()
             .find(|e| e.r#type == TextEntityType::BotCommand && e.offset == 0)?;
 
-        let command = formatted_text
-            .text
-            .chars()
-            .skip((entity.offset + 1).try_into().ok()?)
-            .take((entity.length - 1).try_into().ok()?)
-            .collect::<String>();
+        let command_name_range = {
+            let start = entity.offset as usize + 1;
+            start..entity.length as usize
+        };
+
+        let command = &formatted_text.text[command_name_range.clone()];
 
         let (command_name, username) = match command.split_once('@') {
-            Some(parts) => (parts.0.into(), Some(parts.1)),
+            Some(parts) => (parts.0, Some(parts.1)),
             None => (command, None),
         };
 
-        let arguments = formatted_text
-            .text
-            .chars()
-            .skip(entity.length.try_into().unwrap_or_default())
-            .skip_while(char::is_ascii_whitespace)
-            .collect::<String>();
-
-        let arguments = if arguments.is_empty() { None } else { Some(arguments) };
+        let arguments = formatted_text.text[command_name_range.end..].trim_start().into();
 
         Some(ParsedCommand {
             name: command_name.to_lowercase(),

@@ -6,7 +6,6 @@ use super::{CommandResult, CommandTrait};
 use crate::apis::poligon;
 use crate::utilities::command_context::CommandContext;
 
-#[derive(Default)]
 pub struct StartitJoke;
 
 #[async_trait]
@@ -15,7 +14,7 @@ impl CommandTrait for StartitJoke {
         &["startit_joke", "startit"]
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: Option<String>) -> CommandResult {
+    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
         let joke = poligon::startit_joke(ctx.http_client.clone()).await?;
         ctx.reply(format!("Kacper Podpora mówi: {joke}")).await?;
 

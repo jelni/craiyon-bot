@@ -15,28 +15,28 @@ async fn main() {
 
     let mut bot = Bot::new();
 
-    bot.add_command(Box::<commands::start::Start>::default());
-    bot.add_command(Box::<commands::generate::Generate>::default());
-    bot.add_command(Box::new(commands::stablehorde::StableHorde::stable_diffusion_2()));
-    bot.add_command(Box::new(commands::stablehorde::StableHorde::stable_diffusion()));
-    bot.add_command(Box::new(commands::stablehorde::StableHorde::waifu_diffusion()));
-    bot.add_command(Box::new(commands::stablehorde::StableHorde::furry_diffusion()));
-    bot.add_command(Box::<commands::different_dimension_me::DifferentDimensionMe>::default());
-    bot.add_command(Box::<commands::translate::Translate>::default());
-    bot.add_command(Box::<commands::badtranslate::BadTranslate>::default());
-    bot.add_command(Box::<commands::trollslate::Trollslate>::default());
-    bot.add_command(Box::<commands::urbandictionary::UrbanDictionary>::default());
-    bot.add_command(Box::<commands::screenshot::Screenshot>::default());
-    bot.add_command(Box::<commands::cobalt_download::CobaltDownload>::default());
-    bot.add_command(Box::<commands::charinfo::CharInfo>::default());
-    bot.add_command(Box::<commands::radio_poligon::RadioPoligon>::default());
-    bot.add_command(Box::<commands::autocomplete::Autocomplete>::default());
-    bot.add_command(Box::<commands::kiwifarms::KiwiFarms>::default());
-    bot.add_command(Box::<commands::startit_joke::StartitJoke>::default());
-    bot.add_command(Box::<commands::kebab::Kebab>::default());
-    bot.add_command(Box::<commands::ping::Ping>::default());
-    bot.add_command(Box::<commands::delete::Delete>::default());
-    bot.add_command(Box::<commands::sex::Sex>::default());
+    // bot.add_command(commands::start::Start);
+    bot.add_command(commands::generate::Generate);
+    bot.add_command(commands::stablehorde::StableHorde::stable_diffusion_2());
+    bot.add_command(commands::stablehorde::StableHorde::stable_diffusion());
+    bot.add_command(commands::stablehorde::StableHorde::waifu_diffusion());
+    bot.add_command(commands::stablehorde::StableHorde::furry_diffusion());
+    // bot.add_command(commands::different_dimension_me::DifferentDimensionMe);
+    // bot.add_command(commands::translate::Translate);
+    // bot.add_command(commands::badtranslate::BadTranslate);
+    bot.add_command(commands::trollslate::Trollslate);
+    bot.add_command(commands::urbandictionary::UrbanDictionary);
+    bot.add_command(commands::screenshot::Screenshot);
+    bot.add_command(commands::cobalt_download::CobaltDownload);
+    bot.add_command(commands::charinfo::CharInfo);
+    bot.add_command(commands::radio_poligon::RadioPoligon);
+    bot.add_command(commands::autocomplete::Autocomplete);
+    bot.add_command(commands::kiwifarms::KiwiFarms);
+    bot.add_command(commands::startit_joke::StartitJoke);
+    bot.add_command(commands::kebab::Kebab);
+    bot.add_command(commands::ping::Ping);
+    bot.add_command(commands::delete::Delete);
+    bot.add_command(commands::sex::Sex);
 
     bot.run().await;
 }
