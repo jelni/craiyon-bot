@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 
 use super::{CommandResult, CommandTrait};
@@ -16,7 +14,7 @@ impl CommandTrait for Delete {
         &["delete", "del"]
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         if ctx.user.id != OWNER_ID {
             return Ok(());
         }

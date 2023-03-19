@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use rand::seq::SliceRandom;
 
@@ -25,7 +23,7 @@ impl CommandTrait for Kebab {
         RateLimiter::new(10, 30)
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         let random_name = WORDS
             .choose_multiple(&mut rand::thread_rng(), 2)
             .copied()

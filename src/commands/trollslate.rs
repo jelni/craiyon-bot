@@ -1,6 +1,5 @@
 use std::fmt::Write;
 use std::iter;
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use rand::seq::SliceRandom;
@@ -21,7 +20,7 @@ impl CommandTrait for Trollslate {
         &["trollslate", "troll"]
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let StringGreedyOrReply(text) =
             ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 

@@ -1,5 +1,4 @@
 use std::io::BufWriter;
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use image::imageops::FilterType;
@@ -34,7 +33,7 @@ impl CommandTrait for Generate {
         RateLimiter::new(3, 60)
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let StringGreedyOrReply(prompt) =
             ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 

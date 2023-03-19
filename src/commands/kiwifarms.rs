@@ -1,5 +1,4 @@
 use std::error::Error;
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use reqwest::StatusCode;
@@ -20,7 +19,7 @@ impl CommandTrait for KiwiFarms {
         Some("checks if The Kiwi Farms forum still works")
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, _: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         ctx.send_typing().await?;
 
         let text = match kiwifarms::status(ctx.http_client.clone()).await {

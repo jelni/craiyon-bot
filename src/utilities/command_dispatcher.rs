@@ -13,10 +13,10 @@ use crate::utilities::text_utils;
 pub async fn dispatch_command(
     command: Arc<CommandInstance>,
     mut arguments: String,
-    context: Arc<CommandContext>,
+    context: CommandContext,
 ) {
     if let Some(cooldown) = check_rate_limit(&command, &context) {
-        if let Err(err) = report_rate_limit(context, cooldown).await {
+        if let Err(err) = report_rate_limit(&context, cooldown).await {
             log::error!(
                 "TDLib error occurred while reporting a rate limit: {}: {}",
                 err.code,
@@ -27,13 +27,13 @@ pub async fn dispatch_command(
     }
 
     if arguments.is_empty() {
-        arguments = get_reply_text(context.clone()).await.unwrap_or_default();
+        arguments = get_reply_text(&context).await.unwrap_or_default();
     }
 
     log::info!("running {command} {:?} for {} in {}", arguments, context.user, context.chat);
 
-    if let Err(err) = command.command.execute(context.clone(), arguments).await {
-        if let Err(err) = report_command_error(command, context, err).await {
+    if let Err(err) = command.command.execute(&context, arguments).await {
+        if let Err(err) = report_command_error(command, &context, err).await {
             log::error!(
                 "TDLib error occurred while handling the previous error: {}: {}",
                 err.code,
@@ -43,7 +43,7 @@ pub async fn dispatch_command(
     }
 }
 
-fn check_rate_limit(command: &Arc<CommandInstance>, context: &Arc<CommandContext>) -> Option<u64> {
+fn check_rate_limit(command: &CommandInstance, context: &CommandContext) -> Option<u64> {
     let cooldown = command
         .rate_limiter
         .lock()
@@ -61,7 +61,7 @@ fn check_rate_limit(command: &Arc<CommandInstance>, context: &Arc<CommandContext
     Some(cooldown)
 }
 
-async fn get_reply_text(context: Arc<CommandContext>) -> Option<String> {
+async fn get_reply_text(context: &CommandContext) -> Option<String> {
     if context.message.reply_to_message_id == 0 {
         return None;
     }
@@ -77,7 +77,7 @@ async fn get_reply_text(context: Arc<CommandContext>) -> Option<String> {
     telegram_utils::get_message_text(&message).map(|text| text.text.clone())
 }
 
-async fn report_rate_limit(context: Arc<CommandContext>, cooldown: u64) -> TdResult<()> {
+async fn report_rate_limit(context: &CommandContext, cooldown: u64) -> TdResult<()> {
     if context
         .rate_limits
         .lock()
@@ -112,7 +112,7 @@ async fn report_rate_limit(context: Arc<CommandContext>, cooldown: u64) -> TdRes
 
 async fn report_command_error(
     command: Arc<CommandInstance>,
-    context: Arc<CommandContext>,
+    context: &CommandContext,
     error: CommandError,
 ) -> TdResult<()> {
     match error {

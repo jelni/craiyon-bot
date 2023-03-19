@@ -1,5 +1,4 @@
 use std::io::Write;
-use std::sync::Arc;
 
 use async_trait::async_trait;
 use reqwest::Url;
@@ -33,7 +32,7 @@ impl CommandTrait for Screenshot {
         RateLimiter::new(3, 120)
     }
 
-    async fn execute(&self, ctx: Arc<CommandContext>, arguments: String) -> CommandResult {
+    async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let StringGreedy(url) = ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
 
         let url = match Url::parse(&url) {

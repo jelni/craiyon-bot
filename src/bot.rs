@@ -235,7 +235,7 @@ impl Bot {
         self.run_task(command_dispatcher::dispatch_command(
             command,
             parsed_command.arguments,
-            Arc::new(CommandContext {
+            CommandContext {
                 chat,
                 user,
                 message,
@@ -243,7 +243,7 @@ impl Bot {
                 rate_limits: self.rate_limits.clone(),
                 message_queue: self.message_queue.clone(),
                 http_client: self.http_client.clone(),
-            }),
+            },
         ));
     }
 
