@@ -14,6 +14,7 @@ impl ParsedCommand {
             .iter()
             .find(|e| e.r#type == TextEntityType::BotCommand && e.offset == 0)?;
 
+        #[allow(clippy::cast_sign_loss)]
         let command_name_range = {
             let start = entity.offset as usize + 1;
             start..entity.length as usize

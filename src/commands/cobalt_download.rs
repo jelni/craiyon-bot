@@ -6,9 +6,8 @@ use tdlib::types::{InputFileLocal, InputMessageDocument};
 use super::{CommandResult, CommandTrait};
 use crate::apis::cobalt;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::StringGreedy;
+use crate::utilities::convert_argument::{ConvertArgument, StringGreedy};
 use crate::utilities::file_download::{DownloadError, NetworkFile};
-use crate::utilities::parse_arguments::ParseArguments;
 use crate::utilities::telegram_utils;
 
 pub struct CobaltDownload;
@@ -24,8 +23,7 @@ impl CommandTrait for CobaltDownload {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let StringGreedy(media_url) =
-            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
+        let StringGreedy(media_url) = ConvertArgument::convert(ctx, &arguments).await?.0;
 
         ctx.send_typing().await?;
         let urls = cobalt::query(ctx.http_client.clone(), media_url.clone())

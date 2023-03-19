@@ -3,8 +3,7 @@ use async_trait::async_trait;
 use super::{CommandResult, CommandTrait};
 use crate::apis::urbandictionary;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::StringGreedyOrReply;
-use crate::utilities::parse_arguments::ParseArguments;
+use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 
 pub struct UrbanDictionary;
 
@@ -19,8 +18,7 @@ impl CommandTrait for UrbanDictionary {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let StringGreedyOrReply(word) =
-            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
+        let StringGreedyOrReply(word) = ConvertArgument::convert(ctx, &arguments).await?.0;
 
         ctx.send_typing().await?;
 

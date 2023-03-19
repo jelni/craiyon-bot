@@ -45,6 +45,7 @@ pub trait CommandTrait {
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult;
 }
 
+#[derive(Debug)]
 pub enum CommandError {
     CustomError(String),
     CustomMarkdownError(String),

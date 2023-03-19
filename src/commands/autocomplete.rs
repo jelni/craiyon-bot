@@ -6,8 +6,7 @@ use rand::SeedableRng;
 use super::{CommandResult, CommandTrait};
 use crate::apis::google;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::StringGreedyOrReply;
-use crate::utilities::parse_arguments::ParseArguments;
+use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::rate_limit::RateLimiter;
 
 pub struct Autocomplete;
@@ -27,8 +26,7 @@ impl CommandTrait for Autocomplete {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let StringGreedyOrReply(query) =
-            ParseArguments::parse_arguments(ctx.clone(), &arguments).await?;
+        let StringGreedyOrReply(query) = ConvertArgument::convert(ctx, &arguments).await?.0;
 
         let completions =
             google::complete(ctx.http_client.clone(), &query).await.unwrap_or_default();
