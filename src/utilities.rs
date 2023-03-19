@@ -13,3 +13,6 @@ pub mod parsed_command;
 pub mod rate_limit;
 pub mod telegram_utils;
 pub mod text_utils;
+
+#[cfg(test)]
+pub mod test_fixtures;
