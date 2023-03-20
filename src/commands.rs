@@ -48,46 +48,46 @@ pub trait CommandTrait {
 
 #[derive(Debug)]
 pub enum CommandError {
-    CustomError(String),
-    CustomMarkdownError(String),
-    ArgumentConversionError(ConversionError),
-    TelegramError(TdError),
-    ServerError(StatusCode),
-    ReqwestError(reqwest::Error),
+    Custom(String),
+    CustomMarkdown(String),
+    ArgumentConversion(ConversionError),
+    Telegram(TdError),
+    Server(StatusCode),
+    Reqwest(reqwest::Error),
 }
 
 impl From<String> for CommandError {
     fn from(value: String) -> Self {
-        Self::CustomError(value)
+        Self::Custom(value)
     }
 }
 
 impl From<&str> for CommandError {
     fn from(value: &str) -> Self {
-        Self::CustomError(value.into())
+        Self::Custom(value.into())
     }
 }
 
 impl From<ConversionError> for CommandError {
     fn from(value: ConversionError) -> Self {
-        Self::ArgumentConversionError(value)
+        Self::ArgumentConversion(value)
     }
 }
 
 impl From<TdError> for CommandError {
     fn from(value: TdError) -> Self {
-        Self::TelegramError(value)
+        Self::Telegram(value)
     }
 }
 
 impl From<ServerError> for CommandError {
     fn from(value: ServerError) -> Self {
-        CommandError::ServerError(value.0)
+        CommandError::Server(value.0)
     }
 }
 
 impl From<reqwest::Error> for CommandError {
     fn from(value: reqwest::Error) -> Self {
-        Self::ReqwestError(value)
+        Self::Reqwest(value)
     }
 }
