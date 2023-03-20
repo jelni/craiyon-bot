@@ -118,10 +118,7 @@ async fn report_command_error(
     match error {
         CommandError::CustomError(text) => context.reply(text).await?,
         CommandError::CustomMarkdownError(text) => context.reply_markdown(text).await?,
-        CommandError::ArgumentParseError(text) => {
-            context.reply(format!("failed to parse command argument: {text}.")).await?
-        }
-        CommandError::MissingArgument => context.reply("missing command argument.").await?,
+        CommandError::ArgumentConversionError(err) => context.reply(err.to_string()).await?,
         CommandError::TelegramError(err) => {
             log::error!("TDLib error in the {command} command: {}: {}", err.code, err.message);
             context.reply(format!("sending the message failed ({}) 😔", err.message)).await?
