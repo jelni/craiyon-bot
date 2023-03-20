@@ -1,18 +1,15 @@
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use tdlib::{enums, functions};
-
 use super::command_context::CommandContext;
 use super::command_manager::CommandInstance;
-use super::telegram_utils;
 use crate::bot::TdResult;
 use crate::commands::CommandError;
 use crate::utilities::text_utils;
 
 pub async fn dispatch_command(
     command: Arc<CommandInstance>,
-    mut arguments: String,
+    arguments: String,
     context: CommandContext,
 ) {
     if let Some(cooldown) = check_rate_limit(&command, &context) {
@@ -24,10 +21,6 @@ pub async fn dispatch_command(
             );
         }
         return;
-    }
-
-    if arguments.is_empty() {
-        arguments = get_reply_text(&context).await.unwrap_or_default();
     }
 
     log::info!("running {command} {:?} for {} in {}", arguments, context.user, context.chat);
@@ -59,22 +52,6 @@ fn check_rate_limit(command: &CommandInstance, context: &CommandContext) -> Opti
     );
 
     Some(cooldown)
-}
-
-async fn get_reply_text(context: &CommandContext) -> Option<String> {
-    if context.message.reply_to_message_id == 0 {
-        return None;
-    }
-
-    let enums::Message::Message(message) = functions::get_message(
-        context.message.reply_in_chat_id,
-        context.message.reply_to_message_id,
-        context.client_id,
-    )
-    .await
-    .ok()?;
-
-    telegram_utils::get_message_text(&message).map(|text| text.text.clone())
 }
 
 async fn report_rate_limit(context: &CommandContext, cooldown: u64) -> TdResult<()> {
