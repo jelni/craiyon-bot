@@ -7,7 +7,7 @@ use tdlib::types::{FormattedText, InputFileLocal, InputMessagePhoto};
 use tempfile::NamedTempFile;
 use url::ParseError;
 
-use super::CommandError::CustomMarkdownError;
+use super::CommandError::CustomMarkdown;
 use super::{CommandResult, CommandTrait};
 use crate::apis::microlink;
 use crate::utilities::command_context::CommandContext;
@@ -45,7 +45,7 @@ impl CommandTrait for Screenshot {
             microlink::screenshot(ctx.http_client.clone(), url.map_err(|err| err.to_string())?)
                 .await?
                 .map_err(|err| {
-                    CustomMarkdownError(format!(
+                    CustomMarkdown(format!(
                         "[{}]({}): {}",
                         EscapeMarkdown(&err.code),
                         err.more,
