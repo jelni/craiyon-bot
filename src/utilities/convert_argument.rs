@@ -38,12 +38,9 @@ impl ConvertArgument for String {
         _: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        let mut arguments = arguments.chars();
-        let argument = arguments
-            .by_ref()
-            .skip_while(char::is_ascii_whitespace)
-            .take_while(|char| !char.is_ascii_whitespace())
-            .collect::<String>();
+        let mut arguments = arguments.trim_start().chars();
+        let argument =
+            arguments.by_ref().take_while(|char| !char.is_ascii_whitespace()).collect::<String>();
 
         if argument.is_empty() {
             Err(ConversionError::MissingArgument)?;
@@ -60,7 +57,7 @@ impl<T: ConvertArgument> ConvertArgument for Option<T> {
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
         match T::convert(ctx, arguments).await {
-            Ok((argument, arguments)) => Ok((Some(argument), arguments)),
+            Ok((argument, rest)) => Ok((Some(argument), rest)),
             Err(_) => Ok((None, arguments)),
         }
     }
@@ -76,10 +73,10 @@ where
         ctx: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        let (arg1, arguments) = T1::convert(ctx, arguments).await?;
-        let (arg2, arguments) = T2::convert(ctx, arguments).await?;
+        let (arg1, rest) = T1::convert(ctx, arguments).await?;
+        let (arg2, rest) = T2::convert(ctx, rest).await?;
 
-        Ok(((arg1, arg2), arguments))
+        Ok(((arg1, arg2), rest))
     }
 }
 
@@ -140,10 +137,10 @@ impl ConvertArgument for StringGreedyOrReply {
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
         match Option::<StringGreedy>::convert(ctx, arguments).await? {
-            (Some(argument), arguments) => Ok((Self(argument.0), arguments)),
-            (None, arguments) => {
-                let (Reply(argument), arguments) = ConvertArgument::convert(ctx, arguments).await?;
-                Ok((Self(argument), arguments))
+            (Some(argument), rest) => Ok((Self(argument.0), rest)),
+            (None, rest) => {
+                let (Reply(argument), rest) = ConvertArgument::convert(ctx, rest).await?;
+                Ok((Self(argument), rest))
             }
         }
     }
@@ -189,7 +186,7 @@ impl ConvertArgument for SourceTargetLanguages {
         ctx: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        let Some((Language(first_language), arguments)) =
+        let Some((Language(first_language), rest)) =
             Language::convert(ctx, arguments).await.ok()
         else {
             let target_language = if ctx.user.language_code.is_empty() {
@@ -201,13 +198,13 @@ impl ConvertArgument for SourceTargetLanguages {
             return Ok((SourceTargetLanguages(None, target_language), arguments));
         };
 
-        let Some((Language(second_language), arguments)) =
-            Language::convert(ctx, arguments).await.ok()
+        let Some((Language(second_language), rest)) =
+            Language::convert(ctx, rest).await.ok()
         else {
-            return Ok((SourceTargetLanguages(None, Cow::Borrowed(first_language)), arguments));
+            return Ok((SourceTargetLanguages(None, Cow::Borrowed(first_language)), rest));
         };
 
-        Ok((SourceTargetLanguages(Some(first_language), Cow::Borrowed(second_language)), arguments))
+        Ok((SourceTargetLanguages(Some(first_language), Cow::Borrowed(second_language)), rest))
     }
 }
 
@@ -223,34 +220,34 @@ mod test {
         let result = String::convert(&ctx, "").await;
         assert_eq!(result, Err(ConversionError::MissingArgument));
 
-        let (argument, arguments) = String::convert(&ctx, "foo").await.unwrap();
+        let (argument, rest) = String::convert(&ctx, "foo").await.unwrap();
         assert_eq!(argument, "foo");
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (argument, arguments) = String::convert(&ctx, "foo bar").await.unwrap();
+        let (argument, rest) = String::convert(&ctx, "foo bar").await.unwrap();
         assert_eq!(argument, "foo");
-        assert_eq!(arguments, "bar");
+        assert_eq!(rest, "bar");
 
-        let (argument, arguments) = String::convert(&ctx, " foo bar ").await.unwrap();
+        let (argument, rest) = String::convert(&ctx, " foo bar ").await.unwrap();
         assert_eq!(argument, "foo");
-        assert_eq!(arguments, "bar ");
+        assert_eq!(rest, "bar ");
 
-        let (argument, arguments) = String::convert(&ctx, "foo  bar").await.unwrap();
+        let (argument, rest) = String::convert(&ctx, "foo  bar").await.unwrap();
         assert_eq!(argument, "foo");
-        assert_eq!(arguments, " bar");
+        assert_eq!(rest, " bar");
     }
 
     #[tokio::test]
     async fn test_option_converter() {
         let ctx = test_fixtures::command_context();
 
-        let (argument, arguments) = Option::<String>::convert(&ctx, "").await.unwrap();
+        let (argument, rest) = Option::<String>::convert(&ctx, "").await.unwrap();
         assert_eq!(argument, None);
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (argument, arguments) = Option::<String>::convert(&ctx, "foo bar").await.unwrap();
+        let (argument, rest) = Option::<String>::convert(&ctx, "foo bar").await.unwrap();
         assert_eq!(argument, Some("foo".into()));
-        assert_eq!(arguments, "bar");
+        assert_eq!(rest, "bar");
     }
 
     #[tokio::test]
@@ -263,23 +260,22 @@ mod test {
         let result = <(String, String)>::convert(&ctx, "foo").await;
         assert_eq!(result, Err(ConversionError::MissingArgument));
 
-        let (argument, arguments) = <(String, String)>::convert(&ctx, "foo bar").await.unwrap();
+        let (argument, rest) = <(String, String)>::convert(&ctx, "foo bar").await.unwrap();
         assert_eq!(argument, ("foo".into(), "bar".into()));
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (argument, arguments) = <(String, String)>::convert(&ctx, "foo bar baz").await.unwrap();
+        let (argument, rest) = <(String, String)>::convert(&ctx, "foo bar baz").await.unwrap();
         assert_eq!(argument, ("foo".into(), "bar".into()));
-        assert_eq!(arguments, "baz");
+        assert_eq!(rest, "baz");
     }
 
     #[tokio::test]
     async fn test_multiple_option_converters() {
         let ctx = test_fixtures::command_context();
 
-        let (argument, arguments) =
-            <(Option<String>, Option<String>)>::convert(&ctx, "").await.unwrap();
+        let (argument, rest) = <(Option<String>, Option<String>)>::convert(&ctx, "").await.unwrap();
         assert_eq!(argument, (None, None));
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
         let result = <(Option<String>, String)>::convert(&ctx, "").await;
         assert_eq!(result, Err(ConversionError::MissingArgument));
@@ -290,24 +286,24 @@ mod test {
         let result = <(Option<String>, String)>::convert(&ctx, "foo").await;
         assert_eq!(result, Err(ConversionError::MissingArgument));
 
-        let (argument, arguments) = <(String, Option<String>)>::convert(&ctx, "foo").await.unwrap();
+        let (argument, rest) = <(String, Option<String>)>::convert(&ctx, "foo").await.unwrap();
         assert_eq!(argument, ("foo".into(), None));
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (argument, arguments) =
+        let (argument, rest) =
             <(Option<String>, Option<String>)>::convert(&ctx, "foo").await.unwrap();
         assert_eq!(argument, (Some("foo".into()), None));
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (argument, arguments) =
+        let (argument, rest) =
             <(Option<String>, Option<String>)>::convert(&ctx, "foo bar").await.unwrap();
         assert_eq!(argument, (Some("foo".into()), Some("bar".into())));
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (argument, arguments) =
+        let (argument, rest) =
             <(Option<String>, Option<String>)>::convert(&ctx, "foo bar baz").await.unwrap();
         assert_eq!(argument, (Some("foo".into()), Some("bar".into())));
-        assert_eq!(arguments, "baz");
+        assert_eq!(rest, "baz");
     }
 
     #[tokio::test]
@@ -317,25 +313,24 @@ mod test {
         let result = StringGreedy::convert(&ctx, "").await;
         assert_eq!(result, Err(ConversionError::MissingArgument));
 
-        let (StringGreedy(argument), arguments) =
-            ConvertArgument::convert(&ctx, "foo").await.unwrap();
+        let (StringGreedy(argument), rest) = ConvertArgument::convert(&ctx, "foo").await.unwrap();
         assert_eq!(argument, "foo");
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (StringGreedy(argument), arguments) =
+        let (StringGreedy(argument), rest) =
             ConvertArgument::convert(&ctx, "foo bar").await.unwrap();
         assert_eq!(argument, "foo bar");
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (StringGreedy(argument), arguments) =
+        let (StringGreedy(argument), rest) =
             ConvertArgument::convert(&ctx, " foo bar ").await.unwrap();
         assert_eq!(argument, "foo bar ");
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (StringGreedy(argument), arguments) =
+        let (StringGreedy(argument), rest) =
             ConvertArgument::convert(&ctx, "foo  bar").await.unwrap();
         assert_eq!(argument, "foo  bar");
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
     }
 
     #[tokio::test]
@@ -350,34 +345,32 @@ mod test {
             panic!("expected BadArgument error");
         };
 
-        let (Language(argument), arguments) = ConvertArgument::convert(&ctx, "en").await.unwrap();
+        let (Language(argument), rest) = ConvertArgument::convert(&ctx, "en").await.unwrap();
         assert_eq!(argument, "en");
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (Language(argument), arguments) =
-            ConvertArgument::convert(&ctx, "en foo").await.unwrap();
+        let (Language(argument), rest) = ConvertArgument::convert(&ctx, "en foo").await.unwrap();
         assert_eq!(argument, "en");
-        assert_eq!(arguments, " foo");
+        assert_eq!(rest, " foo");
 
-        let (Language(argument), arguments) =
-            ConvertArgument::convert(&ctx, "english").await.unwrap();
+        let (Language(argument), rest) = ConvertArgument::convert(&ctx, "english").await.unwrap();
         assert_eq!(argument, "en");
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (Language(argument), arguments) =
+        let (Language(argument), rest) =
             ConvertArgument::convert(&ctx, "english FOO").await.unwrap();
         assert_eq!(argument, "en");
-        assert_eq!(arguments, " FOO");
+        assert_eq!(rest, " FOO");
 
-        let (Language(argument), arguments) =
+        let (Language(argument), rest) =
             ConvertArgument::convert(&ctx, "ENGLISH foo").await.unwrap();
         assert_eq!(argument, "en");
-        assert_eq!(arguments, " foo");
+        assert_eq!(rest, " foo");
 
-        let (Language(argument), arguments) =
+        let (Language(argument), rest) =
             ConvertArgument::convert(&ctx, "chinese (simplified)").await.unwrap();
         assert_eq!(argument, "zh-cn");
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
         let result = <Language>::convert(&ctx, "chinese").await;
         let Err(ConversionError::BadArgument(_)) = result else {
@@ -389,49 +382,49 @@ mod test {
             panic!("expected BadArgument error");
         };
 
-        let (Language(argument), arguments) =
+        let (Language(argument), rest) =
             ConvertArgument::convert(&ctx, "chinese (simplified) FOO").await.unwrap();
         assert_eq!(argument, "zh-cn");
-        assert_eq!(arguments, " FOO");
+        assert_eq!(rest, " FOO");
 
-        let (Language(argument), arguments) =
+        let (Language(argument), rest) =
             ConvertArgument::convert(&ctx, "CHINESE (SIMPLIFIED) foo").await.unwrap();
         assert_eq!(argument, "zh-cn");
-        assert_eq!(arguments, " foo");
+        assert_eq!(rest, " foo");
     }
 
     #[tokio::test]
     async fn test_source_target_languages_converter() {
         let ctx = test_fixtures::command_context();
 
-        let (SourceTargetLanguages(source_language, target_language), arguments) =
+        let (SourceTargetLanguages(source_language, target_language), rest) =
             ConvertArgument::convert(&ctx, "").await.unwrap();
         assert_eq!(source_language, None);
         assert_eq!(target_language, "user_language_code");
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (SourceTargetLanguages(source_language, target_language), arguments) =
+        let (SourceTargetLanguages(source_language, target_language), rest) =
             ConvertArgument::convert(&ctx, "en").await.unwrap();
         assert_eq!(source_language, None);
         assert_eq!(target_language, "en");
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (SourceTargetLanguages(source_language, target_language), arguments) =
+        let (SourceTargetLanguages(source_language, target_language), rest) =
             ConvertArgument::convert(&ctx, "en foo").await.unwrap();
         assert_eq!(source_language, None);
         assert_eq!(target_language, "en");
-        assert_eq!(arguments, " foo");
+        assert_eq!(rest, " foo");
 
-        let (SourceTargetLanguages(source_language, target_language), arguments) =
+        let (SourceTargetLanguages(source_language, target_language), rest) =
             ConvertArgument::convert(&ctx, "chinese (simplified) english").await.unwrap();
         assert_eq!(source_language, Some("zh-cn"));
         assert_eq!(target_language, "en");
-        assert_eq!(arguments, "");
+        assert_eq!(rest, "");
 
-        let (SourceTargetLanguages(source_language, target_language), arguments) =
+        let (SourceTargetLanguages(source_language, target_language), rest) =
             ConvertArgument::convert(&ctx, "chinese (simplified) english foo").await.unwrap();
         assert_eq!(source_language, Some("zh-cn"));
         assert_eq!(target_language, "en");
-        assert_eq!(arguments, " foo");
+        assert_eq!(rest, " foo");
     }
 }
