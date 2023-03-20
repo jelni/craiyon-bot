@@ -14,16 +14,16 @@ pub fn command_context() -> CommandContext {
     CommandContext {
         chat: CompactChat {
             r#type: ChatType::Supergroup(ChatTypeSupergroup::default()),
-            title: String::new(),
+            title: "chat_title".into(),
             permissions: ChatPermissions::default(),
         },
         user: CompactUser {
             id: 0,
-            first_name: String::new(),
-            last_name: String::new(),
-            username: None,
+            first_name: "user_first_name".into(),
+            last_name: "user_last_name".into(),
+            username: Some("user_username".into()),
             r#type: UserType::Regular,
-            language_code: String::new(),
+            language_code: "user_language_code".into(),
         },
         message: Message {
             id: 0,
@@ -60,11 +60,11 @@ pub fn command_context() -> CommandContext {
             self_destruct_in: 0.,
             auto_delete_in: 0.,
             via_bot_user_id: 0,
-            author_signature: String::new(),
+            author_signature: "message_author_signature".into(),
             media_album_id: 0,
-            restriction_reason: String::new(),
+            restriction_reason: "message_restriction_reason".into(),
             content: MessageContent::MessageText(MessageText {
-                text: FormattedText { text: String::new(), entities: Vec::new() },
+                text: FormattedText { text: "message_content_text".into(), entities: Vec::new() },
                 web_page: None,
             }),
             reply_markup: None,
