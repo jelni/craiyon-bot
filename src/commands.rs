@@ -4,6 +4,7 @@ use reqwest::StatusCode;
 use crate::bot::TdError;
 use crate::utilities::api_utils::ServerError;
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::convert_argument::ConversionError;
 use crate::utilities::rate_limit::RateLimiter;
 
 pub mod autocomplete;
@@ -49,8 +50,7 @@ pub trait CommandTrait {
 pub enum CommandError {
     CustomError(String),
     CustomMarkdownError(String),
-    ArgumentParseError(String),
-    MissingArgument,
+    ArgumentConversionError(ConversionError),
     TelegramError(TdError),
     ServerError(StatusCode),
     ReqwestError(reqwest::Error),
@@ -65,6 +65,12 @@ impl From<String> for CommandError {
 impl From<&str> for CommandError {
     fn from(value: &str) -> Self {
         Self::CustomError(value.into())
+    }
+}
+
+impl From<ConversionError> for CommandError {
+    fn from(value: ConversionError) -> Self {
+        Self::ArgumentConversionError(value)
     }
 }
 
