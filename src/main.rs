@@ -15,15 +15,15 @@ async fn main() {
 
     let mut bot = Bot::new();
 
-    // bot.add_command(commands::start::Start);
+    bot.add_command(commands::start::Start);
     bot.add_command(commands::generate::Generate);
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion_2());
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion());
     bot.add_command(commands::stablehorde::StableHorde::waifu_diffusion());
     bot.add_command(commands::stablehorde::StableHorde::furry_diffusion());
-    // bot.add_command(commands::different_dimension_me::DifferentDimensionMe);
-    // bot.add_command(commands::translate::Translate);
-    // bot.add_command(commands::badtranslate::BadTranslate);
+    bot.add_command(commands::different_dimension_me::DifferentDimensionMe);
+    bot.add_command(commands::translate::Translate);
+    bot.add_command(commands::badtranslate::BadTranslate);
     bot.add_command(commands::trollslate::Trollslate);
     bot.add_command(commands::urbandictionary::UrbanDictionary);
     bot.add_command(commands::screenshot::Screenshot);
