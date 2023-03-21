@@ -12,13 +12,13 @@ use tdlib::enums::{
 };
 use tdlib::functions;
 use tdlib::types::{
-    InlineKeyboardButton, InlineKeyboardButtonTypeUrl, InputFileLocal, InputMessagePhoto, Message,
+    InlineKeyboardButton, InlineKeyboardButtonTypeUrl, InputFileLocal, InputMessagePhoto,
     ReplyMarkupInlineKeyboard, TextParseModeMarkdown,
 };
 use tempfile::NamedTempFile;
 
 use super::{CommandError, CommandResult, CommandTrait};
-use crate::apis::stablehorde::{self, Generation, Status};
+use crate::apis::stablehorde::{self, GeneratedImage, Status};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::rate_limit::RateLimiter;
@@ -95,15 +95,15 @@ impl CommandTrait for StableHorde {
         ctx.send_typing().await?;
 
         let generation = self.generate(ctx, prompt).await?;
+        let images = download_images(ctx.http_client.clone(), &generation.urls).await?;
+        let image = process_images(images, self.size);
         let mut temp_file = NamedTempFile::new().unwrap();
-        generation.image.write_to(&mut BufWriter::new(&mut temp_file), ImageFormat::Png).unwrap();
+        image.write_to(&mut BufWriter::new(&mut temp_file), ImageFormat::Png).unwrap();
+
+        let status_msg_id = generation.status_msg_id;
 
         let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
-            format_result_text(
-                generation.time_taken,
-                &generation.workers,
-                &generation.escaped_prompt,
-            ),
+            format_result_text(generation),
             TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
             ctx.client_id,
         )
@@ -117,8 +117,8 @@ impl CommandTrait for StableHorde {
                     }),
                     thumbnail: None,
                     added_sticker_file_ids: Vec::new(),
-                    width: generation.image.width().try_into().unwrap(),
-                    height: generation.image.height().try_into().unwrap(),
+                    width: image.width().try_into().unwrap(),
+                    height: image.height().try_into().unwrap(),
                     caption: Some(formatted_text),
                     self_destruct_time: 0,
                     has_spoiler: false,
@@ -135,8 +135,8 @@ impl CommandTrait for StableHorde {
             .await?;
 
         ctx.message_queue.wait_for_message(message.id).await?;
-        if let Some(status_msg) = generation.status_msg {
-            ctx.delete_message(status_msg.id).await.ok();
+        if let Some(status_msg_id) = status_msg_id {
+            ctx.delete_message(status_msg_id).await.ok();
         }
         temp_file.close().unwrap();
 
@@ -144,12 +144,12 @@ impl CommandTrait for StableHorde {
     }
 }
 
-struct GenerationResult {
-    image: DynamicImage,
+struct Generation {
+    urls: Vec<Url>,
     time_taken: Duration,
     escaped_prompt: String,
     workers: Counter<String>,
-    status_msg: Option<Message>,
+    status_msg_id: Option<i64>,
 }
 
 impl StableHorde {
@@ -157,12 +157,12 @@ impl StableHorde {
         &self,
         ctx: &CommandContext,
         prompt: String,
-    ) -> Result<GenerationResult, CommandError> {
+    ) -> Result<Generation, CommandError> {
         let request_id =
             stablehorde::generate(ctx.http_client.clone(), &prompt, self.model, self.size)
                 .await??;
         let escaped_prompt = EscapeMarkdown(&prompt).to_string();
-        let (results, status_msg, time_taken) =
+        let (results, status_msg_id, time_taken) =
             wait_for_generation(ctx, &request_id, &escaped_prompt).await?;
         let workers =
             results.iter().map(|generation| generation.worker_name.clone()).collect::<Counter<_>>();
@@ -182,13 +182,12 @@ impl StableHorde {
                 }
             })
             .collect::<Vec<_>>();
+
         if urls.is_empty() {
             Err("no images were successfully generated.")?;
         }
-        let images = download_images(ctx.http_client.clone(), urls).await?;
-        let image = process_images(images, self.size);
 
-        Ok(GenerationResult { image, time_taken, escaped_prompt, workers, status_msg })
+        Ok(Generation { urls, time_taken, escaped_prompt, workers, status_msg_id })
     }
 }
 
@@ -196,9 +195,9 @@ async fn wait_for_generation(
     ctx: &CommandContext,
     request_id: &str,
     escaped_prompt: &str,
-) -> Result<(Vec<Generation>, Option<Message>, Duration), CommandError> {
+) -> Result<(Vec<GeneratedImage>, Option<i64>, Duration), CommandError> {
     let start_time = Instant::now();
-    let mut status_msg: Option<Message> = None;
+    let mut status_msg_id: Option<i64> = None;
     let mut last_edit: Option<Instant> = None;
     let mut last_status = None;
     let mut show_volunteer_notice = false;
@@ -226,13 +225,14 @@ async fn wait_for_generation(
             // the message doesn't exist yet or was edited more than 12 seconds ago
             if last_edit.map_or(true, |last_edit| last_edit.elapsed() >= Duration::from_secs(12)) {
                 let text = format_status_text(&status, escaped_prompt, show_volunteer_notice);
-                status_msg = Some(match status_msg {
+                status_msg_id = Some(match status_msg_id {
                     None => {
                         ctx.message_queue
                             .wait_for_message(ctx.reply_markdown(text).await?.id)
                             .await?
+                            .id
                     }
-                    Some(status_msg) => ctx.edit_message_markdown(status_msg.id, text).await?,
+                    Some(status_msg) => ctx.edit_message_markdown(status_msg, text).await?.id,
                 });
 
                 last_edit = Some(Instant::now());
@@ -244,15 +244,16 @@ async fn wait_for_generation(
     };
 
     let results = stablehorde::results(ctx.http_client.clone(), request_id).await??;
-    Ok((results, status_msg, time_taken))
+    Ok((results, status_msg_id, time_taken))
 }
 
 async fn download_images(
     http_client: reqwest::Client,
-    urls: Vec<Url>,
+    urls: &[Url],
 ) -> Result<Vec<Vec<u8>>, CommandError> {
-    let mut images = Vec::with_capacity(urls.len());
-    let tasks = urls.into_iter().map(|url| tokio::spawn(http_client.get(url).send()));
+    let tasks = urls.iter().map(|url| tokio::spawn(http_client.get(url.clone()).send()));
+
+    let mut images = Vec::with_capacity(tasks.len());
     for task in tasks {
         images.push(task.await.unwrap()?.bytes().await.unwrap().to_vec());
     }
@@ -297,28 +298,34 @@ fn format_status_text(status: &Status, escaped_prompt: &str, volunteer_notice: b
     text
 }
 
-fn format_result_text(
-    time_taken: Duration,
-    workers: &Counter<String>,
-    escaped_prompt: &str,
-) -> String {
+fn format_result_text(generation: Generation) -> String {
+    let workers = generation
+        .workers
+        .most_common()
+        .into_iter()
+        .map(|(worker_name, generated_images)| {
+            let mut worker_name =
+                EscapeMarkdown(&worker_name.truncate_with_ellipsis(64)).to_string();
+            if generated_images > 1 {
+                write!(worker_name, " \\({generated_images}\\)").unwrap();
+            }
+            worker_name
+        })
+        .collect::<Vec<_>>();
+
+    let download_urls = generation
+        .urls
+        .into_iter()
+        .enumerate()
+        .map(|(i, url)| format!("[{}]({url})", i + 1))
+        .collect::<Vec<_>>();
+
     format!(
-        "generated *{}* in {} by {}\\.",
-        escaped_prompt,
-        text_utils::format_duration(time_taken.as_secs()),
-        workers
-            .most_common()
-            .into_iter()
-            .map(|(worker_name, generated_images)| {
-                let mut worker_name =
-                    EscapeMarkdown(&worker_name.truncate_with_ellipsis(64)).to_string();
-                if generated_images > 1 {
-                    write!(worker_name, " \\({generated_images}\\)").unwrap();
-                }
-                worker_name
-            })
-            .collect::<Vec<_>>()
-            .join(", ")
+        "generated *{}* in {} by {}\\.\ndownload: {}",
+        generation.escaped_prompt,
+        text_utils::format_duration(generation.time_taken.as_secs()),
+        workers.join(", "),
+        download_urls.join(" ")
     )
 }
 
