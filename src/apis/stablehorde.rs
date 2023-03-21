@@ -63,11 +63,11 @@ pub struct Status {
 
 #[derive(Deserialize)]
 pub struct Generations {
-    pub generations: Vec<Generation>,
+    pub generations: Vec<GeneratedImage>,
 }
 
 #[derive(Deserialize)]
-pub struct Generation {
+pub struct GeneratedImage {
     pub img: String,
     pub worker_id: String,
     pub worker_name: String,
@@ -153,7 +153,7 @@ pub async fn check(
 pub async fn results(
     http_client: reqwest::Client,
     request_id: &str,
-) -> Result<Result<Vec<Generation>, String>, CommandError> {
+) -> Result<Result<Vec<GeneratedImage>, String>, CommandError> {
     match generation_info::<Generations>(http_client, "status", request_id).await? {
         Ok(status) => Ok(Ok(status.generations)),
         Err(err) => Ok(Err(err)),
