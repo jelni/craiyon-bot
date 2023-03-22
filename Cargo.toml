@@ -11,6 +11,7 @@ reqwest = { version = "0.11", default-features = false, features = ["json", "str
 url = "2.3"
 serde = "1.0"
 serde_json = "1.0"
+bytes = "1.4"
 futures-util = "0.3"
 oneshot = "0.1"
 image = { version = "0.24", default-features = false, features = ["jpeg", "png", "webp"] }
