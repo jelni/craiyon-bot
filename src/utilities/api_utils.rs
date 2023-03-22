@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::{Response, StatusCode, Url};
 use url::ParseError;
@@ -41,4 +42,26 @@ pub fn cloudflare_storage_url(url: &str) -> Result<Url, InvalidCloudflareStorage
             Err(InvalidCloudflareStorageUrl::InvalidDomain)
         }
     })
+}
+
+pub async fn simultaneous_download(
+    http_client: reqwest::Client,
+    urls: impl Iterator<Item = Url>,
+) -> reqwest::Result<Vec<Bytes>> {
+    let tasks = urls
+        .map(|url| {
+            let http_client = http_client.clone();
+            tokio::spawn(async move {
+                let bytes = http_client.get(url).send().await?.bytes().await?;
+                reqwest::Result::Ok(bytes)
+            })
+        })
+        .collect::<Vec<_>>();
+
+    let mut downloads = Vec::with_capacity(tasks.len());
+    for task in tasks {
+        downloads.push(task.await.unwrap()?);
+    }
+
+    Ok(downloads)
 }

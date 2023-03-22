@@ -17,8 +17,9 @@ async fn main() {
 
     bot.add_command(commands::start::Start);
     bot.add_command(commands::generate::Generate);
-    bot.add_command(commands::stablehorde::StableHorde::stable_diffusion_2());
+    bot.add_command(commands::craiyon_search::CraiyonSearch);
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion());
+    bot.add_command(commands::stablehorde::StableHorde::stable_diffusion_2());
     bot.add_command(commands::stablehorde::StableHorde::waifu_diffusion());
     bot.add_command(commands::stablehorde::StableHorde::furry_diffusion());
     bot.add_command(commands::different_dimension_me::DifferentDimensionMe);
