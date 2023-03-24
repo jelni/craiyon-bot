@@ -19,10 +19,10 @@ impl MainUsername for User {
     }
 }
 
-pub fn donate_markup<N: AsRef<str>, U: Into<String>>(name: N, url: U) -> ReplyMarkup {
+pub fn donate_markup(name: &str, url: impl Into<String>) -> ReplyMarkup {
     ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
         rows: vec![vec![InlineKeyboardButton {
-            text: format!("donate to {}", name.as_ref()),
+            text: format!("donate to {name}"),
             r#type: InlineKeyboardButtonType::Url(InlineKeyboardButtonTypeUrl { url: url.into() }),
         }]],
     })

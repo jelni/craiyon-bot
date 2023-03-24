@@ -8,7 +8,7 @@ use crate::utilities::api_utils::DetectServerError;
 #[serde(rename_all = "camelCase")]
 struct Payload<'a> {
     url: &'a str,
-    v_format: &'a str,
+    v_codec: &'a str,
     v_quality: &'a str,
     a_format: &'a str,
     #[serde(rename = "isNoTTWatermark")]
@@ -39,16 +39,16 @@ struct PickerItem {
     url: String,
 }
 
-pub async fn query<S: AsRef<str>>(
+pub async fn query(
     http_client: reqwest::Client,
-    url: S,
+    url: &str,
 ) -> Result<Result<Vec<String>, String>, CommandError> {
     let response = http_client
         .post("https://co.wukko.me/api/json")
         .json(&Payload {
-            url: url.as_ref(),
-            v_format: "mp4",
-            v_quality: "max",
+            url,
+            v_codec: "h264",
+            v_quality: "1080",
             a_format: "best",
             is_no_ttwatermark: true,
         })

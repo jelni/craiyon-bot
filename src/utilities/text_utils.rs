@@ -64,8 +64,7 @@ pub fn progress_bar(current: u32, max: u32) -> String {
     progress
 }
 
-pub fn check_prompt<S: AsRef<str>>(prompt: S) -> Option<&'static str> {
-    let prompt = prompt.as_ref();
+pub fn check_prompt(prompt: &str) -> Option<&'static str> {
     if prompt.chars().count() > 512 {
         Some("this prompt is too long (>512).")
     } else if prompt.lines().count() > 4 {

@@ -26,7 +26,7 @@ impl CommandTrait for CobaltDownload {
         let StringGreedy(media_url) = ConvertArgument::convert(ctx, &arguments).await?.0;
 
         ctx.send_typing().await?;
-        let urls = cobalt::query(ctx.http_client.clone(), media_url.clone())
+        let urls = cobalt::query(ctx.http_client.clone(), &media_url)
             .await??
             .into_iter()
             .take(10)

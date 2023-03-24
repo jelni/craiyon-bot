@@ -17,9 +17,9 @@ pub struct Translation {
     pub source_language: String,
 }
 
-pub async fn single<S: AsRef<str>>(
+pub async fn single(
     http_client: reqwest::Client,
-    query: S,
+    query: &str,
     source_language: Option<&str>,
     target_language: &str,
 ) -> reqwest::Result<Translation> {
@@ -33,7 +33,7 @@ pub async fn single<S: AsRef<str>>(
                     ("tl", target_language),
                     ("dt", "t"),
                     ("dj", "1"),
-                    ("q", query.as_ref()),
+                    ("q", query),
                 ],
             )
             .unwrap(),

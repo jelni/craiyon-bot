@@ -26,7 +26,7 @@ impl CommandTrait for Translate {
             ConvertArgument::convert(ctx, &arguments).await?.0;
 
         let translation =
-            translate::single(ctx.http_client.clone(), text, source_language, &target_language)
+            translate::single(ctx.http_client.clone(), &text, source_language, &target_language)
                 .await?;
 
         let source_language = EscapeMarkdown(
