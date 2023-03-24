@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{self, BufWriter, Write};
+use std::time::Duration;
 
 use futures_util::StreamExt;
 use reqwest::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
@@ -24,7 +25,12 @@ impl NetworkFile {
         url: &str,
         client_id: i32,
     ) -> Result<Self, DownloadError> {
-        let response = http_client.get(url).send().await.map_err(DownloadError::RequestError)?;
+        let response = http_client
+            .get(url)
+            .timeout(Duration::from_secs(3600))
+            .send()
+            .await
+            .map_err(DownloadError::RequestError)?;
 
         let content_type = match response.headers().get(CONTENT_TYPE) {
             Some(header) => {

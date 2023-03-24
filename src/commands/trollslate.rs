@@ -30,7 +30,7 @@ impl CommandTrait for Trollslate {
 
         let next_language = languages.next().unwrap();
         let translation =
-            translate::single(ctx.http_client.clone(), text, None, next_language).await?;
+            translate::single(ctx.http_client.clone(), &text, None, next_language).await?;
         let mut text = translation.text;
         let source_language = translation.source_language;
 
@@ -41,7 +41,7 @@ impl CommandTrait for Trollslate {
         );
 
         for language in languages.chain(iter::once(&source_language.as_str())) {
-            text = translate::single(ctx.http_client.clone(), text, None, language).await?.text;
+            text = translate::single(ctx.http_client.clone(), &text, None, language).await?.text;
             write!(
                 languages_str,
                 " ➜ *{}*",

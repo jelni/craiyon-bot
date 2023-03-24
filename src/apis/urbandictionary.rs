@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::Write;
 
 use reqwest::header::LOCATION;
@@ -26,14 +27,11 @@ pub struct Definition {
     pub permalink: String,
 }
 
-async fn search<S: AsRef<str>>(http_client: reqwest::Client, term: S) -> reqwest::Result<String> {
+async fn search(http_client: reqwest::Client, term: &str) -> reqwest::Result<Cow<str>> {
     let response = http_client
         .get(
-            Url::parse_with_params(
-                "https://www.urbandictionary.com/define.php",
-                [("term", term.as_ref())],
-            )
-            .unwrap(),
+            Url::parse_with_params("https://www.urbandictionary.com/define.php", [("term", term)])
+                .unwrap(),
         )
         .send()
         .await?
@@ -51,16 +49,16 @@ async fn search<S: AsRef<str>>(http_client: reqwest::Client, term: S) -> reqwest
                 .unwrap()
                 .1;
 
-            Ok(term.into())
+            Ok(Cow::Owned(term.into()))
         }
-        StatusCode::OK => Ok(term.as_ref().into()),
+        StatusCode::OK => Ok(Cow::Borrowed(term)),
         _ => unreachable!(),
     }
 }
 
-pub async fn define<S: AsRef<str>>(
+pub async fn define(
     http_client: reqwest::Client,
-    term: S,
+    term: &str,
 ) -> reqwest::Result<Option<Definition>> {
     let term = search(http_client.clone(), term).await?;
     let definitions = http_client

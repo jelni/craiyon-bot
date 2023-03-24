@@ -22,7 +22,8 @@ impl CommandTrait for UrbanDictionary {
 
         ctx.send_typing().await?;
 
-        if let Ok(Some(definition)) = urbandictionary::define(ctx.http_client.clone(), word).await {
+        if let Ok(Some(definition)) = urbandictionary::define(ctx.http_client.clone(), &word).await
+        {
             ctx.reply_markdown(definition.into_markdown()).await?;
         } else {
             Err("sorry, there are no definitions for this word.")?;
