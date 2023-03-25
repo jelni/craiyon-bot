@@ -1,8 +1,12 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use tdlib::enums::{ChatType, Update, UserType};
-use tdlib::types::{Chat, ChatPermissions, UpdateNewChat, UpdateUser, User};
+use tdlib::enums::{ChatType, UserType};
+use tdlib::types::{
+    Chat, ChatPermissions, UpdateChatPermissions, UpdateChatTitle, UpdateNewChat, UpdateUser, User,
+};
+
+use super::telegram_utils::MainUsername;
 
 #[derive(Default)]
 pub struct Cache {
@@ -19,26 +23,24 @@ impl Cache {
         self.users.get(&id).cloned()
     }
 
-    pub fn update(&mut self, update: Update) {
-        match update {
-            Update::NewChat(UpdateNewChat { chat }) => {
-                self.chats.insert(chat.id, chat.into());
-            }
-            Update::ChatTitle(update) => {
-                if let Some(chat) = self.chats.get_mut(&update.chat_id) {
-                    chat.title = update.title;
-                }
-            }
-            Update::ChatPermissions(update) => {
-                if let Some(chat) = self.chats.get_mut(&update.chat_id) {
-                    chat.permissions = update.permissions;
-                }
-            }
-            Update::User(UpdateUser { user }) => {
-                self.users.insert(user.id, user.into());
-            }
-            _ => (),
-        };
+    pub fn update_new_chat(&mut self, update: UpdateNewChat) {
+        self.chats.insert(update.chat.id, update.chat.into());
+    }
+
+    pub fn update_chat_title(&mut self, update: UpdateChatTitle) {
+        if let Some(chat) = self.chats.get_mut(&update.chat_id) {
+            chat.title = update.title;
+        }
+    }
+
+    pub fn update_chat_permissions(&mut self, update: UpdateChatPermissions) {
+        if let Some(chat) = self.chats.get_mut(&update.chat_id) {
+            chat.permissions = update.permissions;
+        }
+    }
+
+    pub fn update_user(&mut self, update: UpdateUser) {
+        self.users.insert(update.user.id, update.user.into());
     }
 }
 
@@ -76,13 +78,13 @@ pub struct CompactUser {
 
 impl From<User> for CompactUser {
     fn from(value: User) -> Self {
+        let username = value.main_username().map(Into::into);
+
         Self {
             id: value.id,
             first_name: value.first_name,
             last_name: value.last_name,
-            username: value
-                .usernames
-                .and_then(|usernames| usernames.active_usernames.into_iter().next()),
+            username,
             r#type: value.r#type,
             language_code: value.language_code,
         }
