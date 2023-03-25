@@ -5,12 +5,15 @@ use std::time::Duration;
 
 use reqwest::{redirect, Client};
 use tdlib::enums::{
-    self, AuthorizationState, BotCommands, MessageContent, MessageSender, Update, UserType,
+    AuthorizationState, BotCommands, ConnectionState, MessageContent, MessageSender, OptionValue,
+    Update, UserType,
 };
 use tdlib::functions;
 use tdlib::types::{
-    BotCommand, Message, MessageSenderUser, UpdateChatMember, UpdateMessageSendFailed,
-    UpdateMessageSendSucceeded, UpdateNewInlineQuery,
+    BotCommand, MessageSenderUser, OptionValueInteger, OptionValueString, UpdateAuthorizationState,
+    UpdateChatMember, UpdateChatPermissions, UpdateChatTitle, UpdateConnectionState,
+    UpdateMessageSendFailed, UpdateMessageSendSucceeded, UpdateNewChat, UpdateNewInlineQuery,
+    UpdateNewMessage, UpdateOption, UpdateUser,
 };
 use tokio::signal;
 use tokio::task::JoinHandle;
@@ -38,7 +41,7 @@ enum BotState {
 pub struct Bot {
     client_id: i32,
     state: Arc<Mutex<BotState>>,
-    me: Arc<Mutex<Option<CompactUser>>>,
+    my_id: Option<i64>,
     cache: Cache,
     http_client: reqwest::Client,
     command_manager: CommandManager,
@@ -52,7 +55,7 @@ impl Bot {
         Self {
             client_id: tdlib::create_client(),
             state: Arc::new(Mutex::new(BotState::Closed)),
-            me: Arc::new(Mutex::new(None)),
+            my_id: None,
             cache: Cache::default(),
             http_client: Client::builder()
                 .redirect(redirect::Policy::none())
@@ -121,20 +124,24 @@ impl Bot {
 
     fn on_update(&mut self, update: Update) {
         match update {
-            Update::AuthorizationState(update) => {
-                self.on_authorization_state_update(&update.authorization_state);
-            }
-            Update::NewMessage(update) => self.on_message(update.message),
-            Update::MessageSendSucceeded(update) => self.on_message_sent(Ok(update)),
-            Update::MessageSendFailed(update) => self.on_message_sent(Err(update)),
-            Update::ConnectionState(update) => log::info!("connection: {:?}", update.state),
-            Update::NewInlineQuery(update) => self.on_inline_query(update),
-            Update::ChatMember(update) => self.on_chat_member_update(update),
-            update => self.cache.update(update),
+            Update::AuthorizationState(update) => self.on_authorization_state(update),
+            Update::NewMessage(update) => self.on_new_message(update),
+            Update::MessageSendSucceeded(update) => self.on_message_send_succeeded(update),
+            Update::MessageSendFailed(update) => self.on_message_send_failed(update),
+            Update::NewChat(update) => self.on_new_chat(update),
+            Update::ChatTitle(update) => self.on_chat_title(update),
+            Update::ChatPermissions(update) => self.on_chat_permissions(update),
+            Update::User(update) => self.on_user(update),
+            Update::Option(update) => self.on_option(update),
+            Update::ConnectionState(update) => self.on_connection_state(&update),
+            Update::NewInlineQuery(update) => self.on_new_inline_query(update),
+            Update::ChatMember(update) => self.on_chat_member(update),
+            _ => (),
         }
     }
 
-    fn on_authorization_state_update(&mut self, authorization_state: &AuthorizationState) {
+    fn on_authorization_state(&mut self, update: UpdateAuthorizationState) {
+        let authorization_state = update.authorization_state;
         log::info!("authorization: {authorization_state:?}");
         match authorization_state {
             AuthorizationState::WaitTdlibParameters => {
@@ -174,7 +181,6 @@ impl Bot {
                     .unwrap();
                 });
             }
-            AuthorizationState::Ready => self.on_ready(),
             AuthorizationState::Closed => *self.state.lock().unwrap() = BotState::Closed,
             _ => (),
         }
@@ -182,22 +188,18 @@ impl Bot {
 
     fn on_ready(&mut self) {
         let client_id = self.client_id;
-        let me = self.me.clone();
         let commands = self.command_manager.public_command_list();
         self.run_task(async move {
-            let enums::User::User(user) = functions::get_me(client_id).await.unwrap();
-            let user = (user).into();
-            log::info!("running as {user}");
-            *me.lock().unwrap() = Some(user);
+            functions::get_me(client_id).await.unwrap();
             Bot::sync_commands(commands, client_id).await.unwrap();
         });
     }
 
-    fn on_message(&mut self, message: Message) {
-        if message.forward_info.is_some() {
+    fn on_new_message(&mut self, update: UpdateNewMessage) {
+        if update.message.forward_info.is_some() {
             return; // ignore forwarded messages
         }
-        let MessageSender::User(MessageSenderUser { user_id }) = message.sender_id else {
+        let MessageSender::User(MessageSenderUser { user_id }) = update.message.sender_id else {
             return; // ignore messages not sent by users
         };
         let Some(user) = self.cache.get_user(user_id) else {
@@ -206,14 +208,14 @@ impl Bot {
         let UserType::Regular = user.r#type else {
             return; // ignore bots
         };
-        let Some(chat) = self.cache.get_chat(message.chat_id) else {
+        let Some(chat) = self.cache.get_chat(update.message.chat_id) else {
             return; // ignore chats not in cache
         };
-        if let MessageContent::MessageDice(_) = message.content {
-            self.run_task(dice_reply::execute(message, self.client_id));
+        if let MessageContent::MessageDice(_) = update.message.content {
+            self.run_task(dice_reply::execute(update.message, self.client_id));
             return;
         }
-        let Some(text) = telegram_utils::get_message_text(&message) else {
+        let Some(text) = telegram_utils::get_message_text(&update.message) else {
             return; // ignore messages without text
         };
         let Some(parsed_command) = ParsedCommand::parse(text) else {
@@ -221,9 +223,12 @@ impl Bot {
         };
         if let Some(bot_username) = &parsed_command.bot_username {
             if Some(bot_username.to_ascii_lowercase())
-                != self.me.lock().unwrap().as_ref().and_then(|user| {
-                    user.username.as_ref().map(|username| username.to_ascii_lowercase())
-                })
+                != self
+                    .get_me()
+                    .unwrap()
+                    .username
+                    .as_ref()
+                    .map(|username| username.to_ascii_lowercase())
             {
                 return; // ignore commands sent to other bots
             }
@@ -238,7 +243,7 @@ impl Bot {
             CommandContext {
                 chat,
                 user,
-                message,
+                message: update.message,
                 client_id: self.client_id,
                 rate_limits: self.rate_limits.clone(),
                 message_queue: self.message_queue.clone(),
@@ -247,27 +252,75 @@ impl Bot {
         ));
     }
 
-    fn on_inline_query(&mut self, query: UpdateNewInlineQuery) {
-        self.run_task(calculate_inline::execute(query, self.http_client.clone(), self.client_id));
+    fn on_new_inline_query(&mut self, update: UpdateNewInlineQuery) {
+        self.run_task(calculate_inline::execute(update, self.http_client.clone(), self.client_id));
     }
 
-    fn on_chat_member_update(&mut self, update: UpdateChatMember) {
+    fn on_chat_member(&self, update: UpdateChatMember) {
         if let MessageSender::User(user) = &update.new_chat_member.member_id {
-            if let Some(me) = self.me.lock().unwrap().as_ref() {
-                if user.user_id == me.id {
-                    if let Some(chat) = self.cache.get_chat(update.chat_id) {
-                        telegram_utils::log_status_update(update, &chat);
-                    };
-                }
+            if user.user_id == self.my_id.unwrap() {
+                if let Some(chat) = self.cache.get_chat(update.chat_id) {
+                    telegram_utils::log_status_update(update, &chat);
+                };
             }
         }
     }
 
-    fn on_message_sent(
-        &mut self,
-        result: Result<UpdateMessageSendSucceeded, UpdateMessageSendFailed>,
-    ) {
-        self.message_queue.message_sent(result);
+    fn on_message_send_succeeded(&mut self, update: UpdateMessageSendSucceeded) {
+        self.message_queue.message_sent(Ok(update));
+    }
+
+    fn on_message_send_failed(&mut self, update: UpdateMessageSendFailed) {
+        self.message_queue.message_sent(Err(update));
+    }
+
+    fn on_new_chat(&mut self, update: UpdateNewChat) {
+        self.cache.update_new_chat(update);
+    }
+
+    fn on_chat_title(&mut self, update: UpdateChatTitle) {
+        self.cache.update_chat_title(update);
+    }
+
+    fn on_chat_permissions(&mut self, update: UpdateChatPermissions) {
+        self.cache.update_chat_permissions(update);
+    }
+
+    fn on_user(&mut self, update: UpdateUser) {
+        if update.user.id == self.my_id.unwrap() {
+            let user = CompactUser::from(update.user.clone());
+            log::info!("running as {user}");
+        }
+
+        self.cache.update_user(update);
+    }
+
+    fn on_option(&mut self, update: UpdateOption) {
+        match update.name.as_ref() {
+            "my_id" => {
+                if let OptionValue::Integer(OptionValueInteger { value }) = update.value {
+                    self.my_id = Some(value);
+                }
+            }
+            "version" => {
+                if let OptionValue::String(OptionValueString { value }) = update.value {
+                    log::info!("running on TDLib {value}");
+                }
+            }
+            _ => (),
+        }
+    }
+
+    fn on_connection_state(&mut self, update: &UpdateConnectionState) {
+        log::info!("connection: {:?}", update.state);
+
+        if let ConnectionState::Ready = update.state {
+            self.on_ready();
+        }
+    }
+
+    pub fn get_me(&self) -> Option<CompactUser> {
+        self.cache.get_user(self.my_id?)
     }
 
     pub fn add_command(&mut self, command: impl CommandTrait + Send + Sync + 'static) {

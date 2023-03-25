@@ -10,12 +10,12 @@ use tdlib::types::{
 use super::cache::CompactChat;
 
 pub trait MainUsername {
-    fn main_username(&self) -> Option<&str>;
+    fn main_username(&self) -> Option<&String>;
 }
 
 impl MainUsername for User {
-    fn main_username(&self) -> Option<&str> {
-        Some(self.usernames.as_ref()?.active_usernames.first()?.as_str())
+    fn main_username(&self) -> Option<&String> {
+        self.usernames.as_ref()?.active_usernames.first()
     }
 }
 
