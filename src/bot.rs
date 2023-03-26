@@ -124,7 +124,7 @@ impl Bot {
 
     fn on_update(&mut self, update: Update) {
         match update {
-            Update::AuthorizationState(update) => self.on_authorization_state(update),
+            Update::AuthorizationState(update) => self.on_authorization_state(&update),
             Update::NewMessage(update) => self.on_new_message(update),
             Update::MessageSendSucceeded(update) => self.on_message_send_succeeded(update),
             Update::MessageSendFailed(update) => self.on_message_send_failed(update),
@@ -140,10 +140,9 @@ impl Bot {
         }
     }
 
-    fn on_authorization_state(&mut self, update: UpdateAuthorizationState) {
-        let authorization_state = update.authorization_state;
-        log::info!("authorization: {authorization_state:?}");
-        match authorization_state {
+    fn on_authorization_state(&mut self, update: &UpdateAuthorizationState) {
+        log::info!("authorization: {:?}", update.authorization_state);
+        match update.authorization_state {
             AuthorizationState::WaitTdlibParameters => {
                 let client_id = self.client_id;
                 self.run_task(async move {
