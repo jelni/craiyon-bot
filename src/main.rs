@@ -11,7 +11,7 @@ mod utilities;
 #[tokio::main]
 async fn main() {
     logchamp::init();
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
 
     let mut bot = Bot::new();
 

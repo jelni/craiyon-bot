@@ -18,7 +18,7 @@ image = { version = "0.24", default-features = false, features = ["jpeg", "png",
 base64 = "0.21"
 md5 = "0.7"
 time = { version = "0.3", features = ["serde", "serde-well-known", "macros"] }
-dotenv = "0.15"
+dotenvy = "0.15"
 tempfile = "3.4"
 log = { version = "0.4", features = ["std"] }
 colored = "2.0"
