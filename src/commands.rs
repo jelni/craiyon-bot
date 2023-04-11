@@ -17,6 +17,7 @@ pub mod delete;
 pub mod dice_reply;
 pub mod different_dimension_me;
 pub mod generate;
+pub mod hopbot;
 pub mod kebab;
 pub mod kiwifarms;
 pub mod ping;
