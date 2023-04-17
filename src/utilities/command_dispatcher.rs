@@ -13,7 +13,7 @@ pub async fn dispatch_command(
     context: CommandContext,
 ) {
     if let Some(cooldown) = check_rate_limit(&command, &context) {
-        if let Err(err) = report_rate_limit(&context, cooldown).await {
+        if let Err(err) = Box::pin(report_rate_limit(&context, cooldown)).await {
             log::error!(
                 "TDLib error occurred while reporting a rate limit: {}: {}",
                 err.code,
