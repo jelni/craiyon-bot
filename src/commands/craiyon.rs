@@ -12,7 +12,7 @@ use crate::apis::craiyon::{self, Model};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::rate_limit::RateLimiter;
-use crate::utilities::text_utils::EscapeMarkdown;
+use crate::utilities::text_utils::{EscapeMarkdown, TruncateWithEllipsis};
 use crate::utilities::{image_utils, telegram_utils, text_utils};
 
 pub struct Generate;
@@ -96,9 +96,11 @@ impl CommandTrait for Craiyon {
             Err(issue)?;
         }
 
+        let truncated_prompt = prompt.clone().truncate_with_ellipsis(256);
+
         let status_msg = ctx
             .message_queue
-            .wait_for_message(ctx.reply(format!("drawing {prompt}…")).await?.id)
+            .wait_for_message(ctx.reply(format!("drawing {}…", truncated_prompt)).await?.id)
             .await?;
 
         let result = craiyon::draw(ctx.http_client.clone(), self.model, "", &prompt).await?;
@@ -143,10 +145,10 @@ impl CommandTrait for Craiyon {
         let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
             format!(
                 "drawn *{}* in {}\\.\ndownload: {}\nsuggested prompt: `{}`",
-                EscapeMarkdown(&prompt),
+                EscapeMarkdown(&truncated_prompt),
                 text_utils::format_duration(result.duration.as_secs()),
                 download_urls.join(" "),
-                EscapeMarkdown(&result.next_prompt)
+                EscapeMarkdown(&result.next_prompt.truncate_with_ellipsis(512))
             ),
             TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
             ctx.client_id,

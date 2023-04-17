@@ -161,7 +161,7 @@ impl StableHorde {
         let request_id =
             stablehorde::generate(ctx.http_client.clone(), &prompt, self.model, self.size)
                 .await??;
-        let escaped_prompt = EscapeMarkdown(&prompt).to_string();
+        let escaped_prompt = EscapeMarkdown(&prompt.truncate_with_ellipsis(256)).to_string();
         let (results, status_msg_id, time_taken) =
             wait_for_generation(ctx, &request_id, &escaped_prompt).await?;
         let workers =
