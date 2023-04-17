@@ -65,10 +65,10 @@ pub fn progress_bar(current: u32, max: u32) -> String {
 }
 
 pub fn check_prompt(prompt: &str) -> Option<&'static str> {
-    if prompt.chars().count() > 512 {
-        Some("this prompt is too long (>512).")
-    } else if prompt.lines().count() > 4 {
-        Some("this prompt has too many lines (>4).")
+    if prompt.chars().count() > 1024 {
+        Some("this prompt is too long (>1024).")
+    } else if prompt.lines().count() > 8 {
+        Some("this prompt has too many lines (>8).")
     } else {
         None
     }
