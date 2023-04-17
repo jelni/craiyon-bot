@@ -16,7 +16,11 @@ async fn main() {
     let mut bot = Bot::new();
 
     bot.add_command(commands::start::Start);
-    bot.add_command(commands::generate::Generate);
+    bot.add_command(commands::craiyon::Generate);
+    bot.add_command(commands::craiyon::Craiyon::art());
+    bot.add_command(commands::craiyon::Craiyon::drawing());
+    bot.add_command(commands::craiyon::Craiyon::photo());
+    bot.add_command(commands::craiyon::Craiyon::none());
     bot.add_command(commands::craiyon_search::CraiyonSearch);
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion());
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion_2());
