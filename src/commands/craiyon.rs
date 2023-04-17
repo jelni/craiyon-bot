@@ -98,7 +98,7 @@ impl CommandTrait for Craiyon {
 
         let status_msg = ctx
             .message_queue
-            .wait_for_message(ctx.reply(format!("generating {prompt}…")).await?.id)
+            .wait_for_message(ctx.reply(format!("drawing {prompt}…")).await?.id)
             .await?;
 
         let result = craiyon::draw(ctx.http_client.clone(), self.model, "", &prompt).await?;
@@ -142,7 +142,7 @@ impl CommandTrait for Craiyon {
 
         let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
             format!(
-                "generated *{}* in {}\\.\ndownload: {}\nsuggested prompt: `{}`",
+                "drawn *{}* in {}\\.\ndownload: {}\nsuggested prompt: `{}`",
                 EscapeMarkdown(&prompt),
                 text_utils::format_duration(result.duration.as_secs()),
                 download_urls.join(" "),
