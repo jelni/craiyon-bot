@@ -13,8 +13,8 @@ impl CommandTrait for Start {
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         ctx.reply_markdown(concat!(
-            "use the /generate command to generate images\\.\n",
-            "*example:* `/generate crayons in a box`"
+            "use the /craiyon command to generate images\\.\n",
+            "*example:* `/craiyon crayons in a box`"
         ))
         .await?;
 
