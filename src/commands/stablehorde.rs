@@ -38,7 +38,7 @@ impl StableHorde {
             command_names: &["stable_diffusion_2", "sd2"],
             command_description: "generate images using Stable Diffusion v2.1",
             model: "stable_diffusion_2.1",
-            size: (768, 768),
+            size: (512, 512),
         }
     }
 
