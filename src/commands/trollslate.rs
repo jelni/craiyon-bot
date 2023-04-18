@@ -7,7 +7,7 @@ use rand::seq::SliceRandom;
 use super::{CommandResult, CommandTrait};
 use crate::apis::translate;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
+use crate::utilities::convert_argument::{ConvertArgument, Language, StringGreedyOrReply};
 use crate::utilities::google_translate;
 use crate::utilities::text_utils::EscapeMarkdown;
 
@@ -20,7 +20,8 @@ impl CommandTrait for Trollslate {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let StringGreedyOrReply(text) = ConvertArgument::convert(ctx, &arguments).await?.0;
+        let (target_language, StringGreedyOrReply(text)) =
+            <(Option<Language>, _)>::convert(ctx, &arguments).await?.0;
 
         let mut languages = [
             "am", "ar", "ca", "haw", "hi", "iw", "ja", "ka", "ko", "ru", "so", "sw", "xh", "zh-CN",
@@ -36,16 +37,22 @@ impl CommandTrait for Trollslate {
 
         let mut languages_str = format!(
             "*{}* ➜ *{}*",
-            EscapeMarkdown(google_translate::get_language_name(&source_language).unwrap()),
-            EscapeMarkdown(google_translate::get_language_name(next_language).unwrap())
+            EscapeMarkdown(
+                google_translate::get_language_name(&source_language).unwrap_or(&source_language)
+            ),
+            EscapeMarkdown(
+                google_translate::get_language_name(next_language).unwrap_or(next_language)
+            )
         );
 
-        for language in languages.chain(iter::once(&source_language.as_str())) {
+        for language in languages.copied().chain(iter::once(
+            target_language.map_or(source_language.as_str(), |target_language| target_language.0),
+        )) {
             text = translate::single(ctx.http_client.clone(), &text, None, language).await?.text;
             write!(
                 languages_str,
                 " ➜ *{}*",
-                EscapeMarkdown(google_translate::get_language_name(language).unwrap())
+                EscapeMarkdown(google_translate::get_language_name(language).unwrap_or(language))
             )
             .unwrap();
         }
