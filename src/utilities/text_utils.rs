@@ -20,15 +20,24 @@ impl TruncateWithEllipsis for String {
     }
 }
 
+pub struct EscapeChar(pub char);
+
+impl fmt::Display for EscapeChar {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if MARKDOWN_CHARS.contains(&self.0) {
+            f.write_char('\\')?;
+        }
+
+        f.write_char(self.0)
+    }
+}
+
 pub struct EscapeMarkdown<'a>(pub &'a str);
 
 impl fmt::Display for EscapeMarkdown<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         for ch in self.0.chars() {
-            if MARKDOWN_CHARS.contains(&ch) {
-                f.write_char('\\')?;
-            }
-            f.write_char(ch)?;
+            write!(f, "{}", EscapeChar(ch))?;
         }
 
         Ok(())
