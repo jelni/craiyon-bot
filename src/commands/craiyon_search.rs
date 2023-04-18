@@ -13,7 +13,7 @@ use super::{CommandResult, CommandTrait};
 use crate::apis::craiyon;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
-use crate::utilities::text_utils::EscapeMarkdown;
+use crate::utilities::text_utils::{EscapeMarkdown, TruncateWithEllipsis};
 use crate::utilities::{api_utils, image_utils};
 
 pub struct CraiyonSearch;
@@ -53,7 +53,11 @@ impl CommandTrait for CraiyonSearch {
                 .into_iter()
                 .enumerate()
                 .map(|(i, (url, description))| {
-                    format!("{i}\\. [{}]({url})", EscapeMarkdown(&description))
+                    format!(
+                        "{}\\. [{}]({url})",
+                        i + 1,
+                        EscapeMarkdown(&description.truncate_with_ellipsis(128))
+                    )
                 })
                 .collect::<Vec<_>>()
                 .join("\n"),
