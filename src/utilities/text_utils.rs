@@ -1,9 +1,13 @@
 use std::fmt::{self, Write};
 
-pub const MARKDOWN_CHARS: [char; 20] = [
-    '_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!', '`',
-    '\\',
-];
+#[allow(clippy::unreadable_literal)]
+const MARKDOWN_CHARS: u128 = (0b01111000000000000000000000000001 << 96)
+    + (0b10111000000000000000000000000000 << 64)
+    + (0b01100000000000000110111100001010 << 32);
+
+fn should_escape(char: char) -> bool {
+    MARKDOWN_CHARS & 1 << u32::from(char) != 0
+}
 
 pub trait TruncateWithEllipsis {
     fn truncate_with_ellipsis(self, max_len: usize) -> Self;
@@ -24,7 +28,7 @@ pub struct EscapeChar(pub char);
 
 impl fmt::Display for EscapeChar {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if MARKDOWN_CHARS.contains(&self.0) {
+        if should_escape(self.0) {
             f.write_char('\\')?;
         }
 
@@ -80,5 +84,56 @@ pub fn check_prompt(prompt: &str) -> Option<&'static str> {
         Some("this prompt has too many lines (>8).")
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_should_escape() {
+        assert!(should_escape('_'));
+        assert!(should_escape('*'));
+        assert!(should_escape('['));
+        assert!(should_escape(']'));
+        assert!(should_escape('('));
+        assert!(should_escape(')'));
+        assert!(should_escape('~'));
+        assert!(should_escape('`'));
+        assert!(should_escape('>'));
+        assert!(should_escape('#'));
+        assert!(should_escape('+'));
+        assert!(should_escape('-'));
+        assert!(should_escape('='));
+        assert!(should_escape('|'));
+        assert!(should_escape('{'));
+        assert!(should_escape('}'));
+        assert!(should_escape('.'));
+        assert!(should_escape('!'));
+        assert!(should_escape('\\'));
+    }
+
+    #[test]
+    fn test_should_not_escape() {
+        assert!(!should_escape('0'));
+        assert!(!should_escape('a'));
+        assert!(!should_escape('/'));
+        assert!(!should_escape(' '));
+        assert!(!should_escape('\n'));
+    }
+
+    #[test]
+    fn test_escape_markdown() {
+        assert_eq!(EscapeMarkdown("0123456789").to_string(), "0123456789");
+        assert_eq!(
+            EscapeMarkdown("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ").to_string(),
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        );
+        assert_eq!(
+            EscapeMarkdown("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~").to_string(),
+            "\\!\"\\#$%&'\\(\\)\\*\\+,\\-\\./:;<\\=\\>?@\\[\\\\\\]^\\_\\`\\{\\|\\}\\~"
+        );
+        assert_eq!(EscapeMarkdown(" \n").to_string(), " \n");
     }
 }
