@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
-use crate::utilities::text_utils::{self, EscapeMarkdown};
+use crate::utilities::text_utils::{EscapeChar, EscapeMarkdown};
 
 pub struct CharInfo;
 
@@ -28,14 +28,10 @@ impl CommandTrait for CharInfo {
                 if char.is_ascii_whitespace() {
                     String::new()
                 } else {
-                    let value = char as u32;
+                    let value = char.into();
                     format!(
                         "`{}` `U\\+{:04X}` – `{}`",
-                        if text_utils::MARKDOWN_CHARS.contains(&char) {
-                            format!("\\{char}")
-                        } else {
-                            char.into()
-                        },
+                        EscapeChar(char),
                         value,
                         EscapeMarkdown(charname::get_name(value))
                     )
