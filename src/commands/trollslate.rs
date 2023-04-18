@@ -19,13 +19,17 @@ impl CommandTrait for Trollslate {
         &["trollslate", "troll"]
     }
 
+    fn description(&self) -> Option<&'static str> {
+        Some("translate text through many random languages")
+    }
+
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let (target_language, StringGreedyOrReply(text)) =
             <(Option<Language>, _)>::convert(ctx, &arguments).await?.0;
 
         let mut languages = [
-            "am", "ar", "ca", "haw", "hi", "iw", "ja", "ka", "ko", "ru", "so", "sw", "xh", "zh-CN",
-            "zu",
+            "am", "ar", "ca", "cy", "haw", "hi", "iw", "ja", "ka", "ko", "ru", "si", "so", "sw",
+            "xh", "zh-CN", "zu",
         ]
         .choose_multiple(&mut rand::thread_rng(), 9);
 
