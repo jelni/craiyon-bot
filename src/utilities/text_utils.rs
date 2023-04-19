@@ -6,7 +6,11 @@ const MARKDOWN_CHARS: u128 = (0b01111000000000000000000000000001 << 96)
     + (0b01100000000000000110111100001010 << 32);
 
 fn should_escape(char: char) -> bool {
-    MARKDOWN_CHARS & 1 << u32::from(char) != 0
+    let Some(value) = 1u128.checked_shl(u32::from(char)) else {
+        return false;
+    };
+
+    MARKDOWN_CHARS & value != 0
 }
 
 pub trait TruncateWithEllipsis {
@@ -121,6 +125,7 @@ mod test {
         assert!(!should_escape('/'));
         assert!(!should_escape(' '));
         assert!(!should_escape('\n'));
+        assert!(!should_escape('ś'));
     }
 
     #[test]
