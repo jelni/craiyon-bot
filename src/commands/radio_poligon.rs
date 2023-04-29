@@ -20,8 +20,12 @@ impl CommandTrait for RadioPoligon {
         let mut text = String::new();
 
         if now_playing.live.is_live {
-            writeln!(text, "DJ *{}* NA BEACIE!!!", EscapeMarkdown(&now_playing.live.streamer_name))
-                .unwrap();
+            writeln!(
+                text,
+                "DJ *{}* NA BEACIE\\!\\!\\!",
+                EscapeMarkdown(&now_playing.live.streamer_name)
+            )
+            .unwrap();
         } else {
             writeln!(
                 text,
