@@ -41,8 +41,8 @@ impl CommandTrait for RadioPoligon {
                     now_playing.elapsed,
                     now_playing.duration,
                 )),
-                text_utils::format_duration(u64::from(now_playing.elapsed)),
-                text_utils::format_duration(u64::from(now_playing.duration))
+                text_utils::format_duration(now_playing.elapsed.into()),
+                text_utils::format_duration(now_playing.duration.into())
             )
             .unwrap();
         }
