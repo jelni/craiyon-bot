@@ -86,7 +86,11 @@ pub async fn now_playing(
 
 impl fmt::Display for Song {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "*{}*\n{}", EscapeMarkdown(&self.title), EscapeMarkdown(&self.artist))?;
+        write!(f, "*{}*", EscapeMarkdown(&self.title))?;
+
+        if !self.artist.is_empty() {
+            write!(f, "\n{}", EscapeMarkdown(&self.artist))?;
+        }
 
         if !self.album.is_empty() {
             write!(f, " • {}", EscapeMarkdown(&self.album))?;

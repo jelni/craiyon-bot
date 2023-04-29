@@ -67,6 +67,14 @@ pub fn format_duration(duration: u64) -> String {
 }
 
 pub fn progress_bar(current: u32, max: u32) -> String {
+    if current == 0 {
+        return "[--------------------]".into();
+    }
+
+    if current >= max {
+        return "[====================]".into();
+    }
+
     #[allow(clippy::cast_precision_loss)]
     let step = max as f32 / 20.;
     #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss, clippy::cast_sign_loss)]
@@ -140,5 +148,16 @@ mod test {
             "\\!\"\\#$%&'\\(\\)\\*\\+,\\-\\./:;<\\=\\>?@\\[\\\\\\]^\\_\\`\\{\\|\\}\\~"
         );
         assert_eq!(EscapeMarkdown(" \n").to_string(), " \n");
+    }
+
+    #[test]
+    fn test_progress_bar() {
+        assert_eq!(progress_bar(0, 10), "[--------------------]");
+        assert_eq!(progress_bar(5, 10), "[==========----------]");
+        assert_eq!(progress_bar(10, 10), "[====================]");
+        assert_eq!(progress_bar(0, 1), "[--------------------]");
+        assert_eq!(progress_bar(1, 1), "[====================]");
+        assert_eq!(progress_bar(0, 0), "[--------------------]");
+        assert_eq!(progress_bar(1, 0), "[====================]");
     }
 }
