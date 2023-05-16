@@ -25,6 +25,8 @@ impl CommandTrait for GooglePalm {
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let StringGreedyOrReply(prompt) = ConvertArgument::convert(ctx, &arguments).await?.0;
 
+        ctx.send_typing().await?;
+
         let response = google_palm::generate_text(ctx.http_client.clone(), &prompt, 512).await?;
 
         let text = match response {
