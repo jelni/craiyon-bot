@@ -1,4 +1,3 @@
-pub mod clippy;
 pub mod cobalt;
 pub mod craiyon;
 pub mod different_dimension_me;
