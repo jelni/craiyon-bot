@@ -39,7 +39,7 @@ impl CommandContext {
         Ok(message)
     }
 
-    async fn _reply_text(&self, text: FormattedText) -> TdResult<Message> {
+    pub async fn reply_formatted_text(&self, text: FormattedText) -> TdResult<Message> {
         self.reply_custom(
             InputMessageContent::InputMessageText(InputMessageText {
                 text,
@@ -52,7 +52,7 @@ impl CommandContext {
     }
 
     pub async fn reply<S: Into<String>>(&self, text: S) -> TdResult<Message> {
-        self._reply_text(FormattedText { text: text.into(), ..Default::default() }).await
+        self.reply_formatted_text(FormattedText { text: text.into(), ..Default::default() }).await
     }
 
     pub async fn reply_markdown<S: Into<String>>(&self, text: S) -> TdResult<Message> {
@@ -63,7 +63,7 @@ impl CommandContext {
         )
         .await?;
 
-        self._reply_text(formatted_text).await
+        self.reply_formatted_text(formatted_text).await
     }
 
     async fn _edit_message(&self, message_id: i64, text: FormattedText) -> TdResult<Message> {
