@@ -1,3 +1,4 @@
+use std::format;
 use std::io::BufWriter;
 
 use async_trait::async_trait;
@@ -33,9 +34,14 @@ impl CommandTrait for CraiyonSearch {
 
         ctx.send_typing().await?;
 
-        let results =
-            craiyon::search(ctx.http_client.clone(), &query).await?.take(9).collect::<Vec<_>>();
-        let urls = results.iter().map(|(url, _)| Url::parse(url).unwrap());
+        let results = craiyon::search(ctx.http_client.clone(), &query)
+            .await?
+            .into_iter()
+            .take(9)
+            .collect::<Vec<_>>();
+        let urls = results.iter().map(|result| {
+            Url::parse(&format!("https://pics.craiyon.com/{}", result.image_id)).unwrap()
+        });
         let images = api_utils::simultaneous_download(ctx.http_client.clone(), urls).await?;
 
         let images = images
@@ -52,11 +58,12 @@ impl CommandTrait for CraiyonSearch {
             results
                 .into_iter()
                 .enumerate()
-                .map(|(i, (url, description))| {
+                .map(|(i, result)| {
                     format!(
-                        "{}\\. [{}]({url})",
+                        "{}\\. [{}](https://pics.craiyon.com/{})",
                         i + 1,
-                        EscapeMarkdown(&description.truncate_with_ellipsis(128))
+                        EscapeMarkdown(&result.prompt.truncate_with_ellipsis(128)),
+                        result.image_id
                     )
                 })
                 .collect::<Vec<_>>()
