@@ -222,12 +222,9 @@ impl Bot {
         };
         if let Some(bot_username) = &parsed_command.bot_username {
             if Some(bot_username.to_ascii_lowercase())
-                != self
-                    .get_me()
-                    .unwrap()
-                    .username
-                    .as_ref()
-                    .map(|username| username.to_ascii_lowercase())
+                != self.get_me().and_then(|me| {
+                    me.username.as_ref().map(|username| username.to_ascii_lowercase())
+                })
             {
                 return; // ignore commands sent to other bots
             }
