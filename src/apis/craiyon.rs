@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
@@ -63,27 +62,25 @@ pub async fn draw(
     Ok(GenerationResult { images, next_prompt: response.next_prompt, duration })
 }
 
+#[derive(Deserialize)]
+pub struct SearchResult {
+    pub image_id: String,
+    pub prompt: String,
+}
+
 pub async fn search(
     http_client: reqwest::Client,
     text: &str,
-) -> Result<impl Iterator<Item = (String, String)>, CommandError> {
-    let mut form = HashMap::new();
-    form.insert("text", text);
-    form.insert("version", SEARCH_VERSION);
-
+) -> Result<Vec<SearchResult>, CommandError> {
     let results = http_client
         .post("https://search.craiyon.com/search")
-        .form(&form)
+        .form(&[("text", text), ("version", SEARCH_VERSION)])
         .send()
         .await?
         .server_error()?
         .error_for_status()?
-        .json::<Vec<(String, String)>>()
+        .json::<Vec<SearchResult>>()
         .await?;
 
-    let images = results
-        .into_iter()
-        .map(|(path, description)| (format!("https://img.craiyon.com/{path}"), description));
-
-    Ok(images)
+    Ok(results)
 }
