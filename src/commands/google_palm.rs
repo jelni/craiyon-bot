@@ -59,6 +59,10 @@ impl CommandTrait for GooglePalm {
             }
         };
 
+        if text.is_empty() {
+            ctx.reply("no text was generated.").await?;
+        }
+
         let enums::FormattedText::FormattedText(formatted_text) =
             functions::parse_markdown(FormattedText { text, ..Default::default() }, ctx.client_id)
                 .await?;
