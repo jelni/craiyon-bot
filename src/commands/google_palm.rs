@@ -29,7 +29,8 @@ impl CommandTrait for GooglePalm {
 
         ctx.send_typing().await?;
 
-        let response = google_palm::generate_text(ctx.http_client.clone(), &prompt, 256).await?;
+        let response =
+            google_palm::generate_text(ctx.http_client.clone(), &(prompt + "\n"), 256).await?;
 
         let text = match response {
             Ok(response) => {
