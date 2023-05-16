@@ -1,4 +1,6 @@
 use async_trait::async_trait;
+use tdlib::types::FormattedText;
+use tdlib::{enums, functions};
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::google_palm;
@@ -50,10 +52,18 @@ impl CommandTrait for GooglePalm {
 
                 response.candidates.unwrap().into_iter().next().unwrap().output
             }
-            Err(response) => format!("error {}: {}", response.error.code, response.error.message),
+            Err(response) => {
+                ctx.reply(format!("error {}: {}", response.error.code, response.error.message))
+                    .await?;
+                return Ok(());
+            }
         };
 
-        ctx.reply(text).await?;
+        let enums::FormattedText::FormattedText(formatted_text) =
+            functions::parse_markdown(FormattedText { text, ..Default::default() }, ctx.client_id)
+                .await?;
+
+        ctx.reply_formatted_text(formatted_text).await?;
 
         Ok(())
     }
