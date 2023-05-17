@@ -51,7 +51,12 @@ impl CommandTrait for GooglePalm {
                     return Ok(());
                 }
 
-                response.candidates.unwrap().into_iter().next().unwrap().output
+                if let Some(candidates) = response.candidates {
+                    candidates.into_iter().next().unwrap().output
+                } else {
+                    ctx.reply("no response was generated.").await?;
+                    return Ok(());
+                }
             }
             Err(response) => {
                 ctx.reply(format!("error {}: {}", response.error.code, response.error.message))
@@ -62,6 +67,7 @@ impl CommandTrait for GooglePalm {
 
         if text.is_empty() {
             ctx.reply("no text was generated.").await?;
+            return Ok(());
         }
 
         let enums::FormattedText::FormattedText(formatted_text) =

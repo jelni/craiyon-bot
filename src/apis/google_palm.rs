@@ -43,12 +43,6 @@ pub struct ContentFilter {
 }
 
 #[derive(Deserialize)]
-pub struct SafetyFeedback {
-    pub rating: String,
-    pub setting: String,
-}
-
-#[derive(Deserialize)]
 pub struct ErrorResponse {
     pub error: Error,
 }
