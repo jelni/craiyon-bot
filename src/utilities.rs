@@ -8,6 +8,7 @@ pub mod file_download;
 pub mod google_translate;
 pub mod image_utils;
 pub mod logchamp;
+pub mod message_entities;
 pub mod message_queue;
 pub mod parsed_command;
 pub mod rate_limit;
