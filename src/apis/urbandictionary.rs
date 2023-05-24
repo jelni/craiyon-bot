@@ -1,13 +1,9 @@
 use std::borrow::Cow;
-use std::fmt::Write;
 
 use reqwest::header::LOCATION;
 use reqwest::{StatusCode, Url};
 use serde::Deserialize;
-use time::macros::format_description;
 use time::OffsetDateTime;
-
-use crate::utilities::text_utils::EscapeMarkdown;
 
 #[derive(Deserialize)]
 struct Response {
@@ -74,35 +70,4 @@ pub async fn define(
         .list;
 
     Ok(definitions.into_iter().next())
-}
-
-impl Definition {
-    pub fn into_markdown(mut self) -> String {
-        self.definition.retain(|c| !['[', ']'].contains(&c));
-        self.example.retain(|c| !['[', ']'].contains(&c));
-
-        let mut result = String::new();
-        writeln!(result, "[*{}*]({})", EscapeMarkdown(&self.word), self.permalink).unwrap();
-        writeln!(result, "{}\n", EscapeMarkdown(&self.definition)).unwrap();
-        if !self.example.is_empty() {
-            writeln!(result, "_{}_\n", EscapeMarkdown(&self.example)).unwrap();
-        }
-        writeln!(
-            result,
-            "by [{}]({}), {}",
-            EscapeMarkdown(&self.author),
-            Url::parse_with_params(
-                "https://urbandictionary.com/author.php",
-                [("author", &self.author)]
-            )
-            .unwrap(),
-            EscapeMarkdown(
-                &self.written_on.format(format_description!("[year]-[month]-[day]")).unwrap()
-            )
-        )
-        .unwrap();
-        write!(result, "👍 {} 👎 {}", self.thumbs_up, self.thumbs_down).unwrap();
-
-        result
-    }
 }

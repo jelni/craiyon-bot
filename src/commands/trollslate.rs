@@ -1,4 +1,3 @@
-use std::fmt::Write;
 use std::iter;
 
 use async_trait::async_trait;
@@ -8,8 +7,8 @@ use super::{CommandResult, CommandTrait};
 use crate::apis::translate;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, Language, StringGreedyOrReply};
-use crate::utilities::google_translate;
-use crate::utilities::text_utils::EscapeMarkdown;
+use crate::utilities::message_entities::ToEntity;
+use crate::utilities::{google_translate, message_entities};
 
 pub struct Trollslate;
 
@@ -39,29 +38,27 @@ impl CommandTrait for Trollslate {
         let mut text = translation.text;
         let source_language = translation.source_language;
 
-        let mut languages_str = format!(
-            "*{}* ➜ *{}*",
-            EscapeMarkdown(
-                google_translate::get_language_name(&source_language).unwrap_or(&source_language)
-            ),
-            EscapeMarkdown(
-                google_translate::get_language_name(next_language).unwrap_or(next_language)
-            )
-        );
+        let mut entities = vec![
+            google_translate::get_language_name(&source_language)
+                .unwrap_or(&source_language)
+                .bold(),
+            " ➜ ".text(),
+            google_translate::get_language_name(next_language).unwrap_or(next_language).bold(),
+        ];
 
         for language in languages.copied().chain(iter::once(
             target_language.map_or(source_language.as_str(), |target_language| target_language.0),
         )) {
             text = translate::single(ctx.http_client.clone(), &text, None, language).await?.text;
-            write!(
-                languages_str,
-                " ➜ *{}*",
-                EscapeMarkdown(google_translate::get_language_name(language).unwrap_or(language))
-            )
-            .unwrap();
+            entities.extend([
+                " ➜ ".text(),
+                google_translate::get_language_name(language).unwrap_or(language).bold(),
+            ]);
         }
 
-        ctx.reply_markdown(format!("{languages_str}\n{}", EscapeMarkdown(&text))).await?;
+        entities.extend(["\n".text(), text.text()]);
+
+        ctx.reply_formatted_text(message_entities::formatted_text(entities)).await?;
 
         Ok(())
     }

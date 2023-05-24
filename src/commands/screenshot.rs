@@ -7,13 +7,13 @@ use tdlib::types::{FormattedText, InputFileLocal, InputMessagePhoto};
 use tempfile::NamedTempFile;
 use url::ParseError;
 
-use super::CommandError::CustomMarkdown;
+use super::CommandError::CustomFormattedText;
 use super::{CommandResult, CommandTrait};
 use crate::apis::microlink;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
+use crate::utilities::message_entities::{self, ToEntity};
 use crate::utilities::rate_limit::RateLimiter;
-use crate::utilities::text_utils::EscapeMarkdown;
 
 pub struct Screenshot;
 
@@ -28,7 +28,7 @@ impl CommandTrait for Screenshot {
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
-        RateLimiter::new(3, 120)
+        RateLimiter::new(3, 60)
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
@@ -45,12 +45,11 @@ impl CommandTrait for Screenshot {
             microlink::screenshot(ctx.http_client.clone(), url.map_err(|err| err.to_string())?)
                 .await?
                 .map_err(|err| {
-                    CustomMarkdown(format!(
-                        "[{}]({}): {}",
-                        EscapeMarkdown(&err.code),
-                        err.more,
-                        EscapeMarkdown(&err.message)
-                    ))
+                    CustomFormattedText(message_entities::formatted_text(vec![
+                        err.code.text_url(&err.more),
+                        ": ".text(),
+                        err.message.text(),
+                    ]))
                 })?;
 
         let screenshot = ctx
@@ -61,6 +60,7 @@ impl CommandTrait for Screenshot {
             .error_for_status()?
             .bytes()
             .await?;
+
         let mut temp_file = NamedTempFile::new().unwrap();
         temp_file.write_all(&screenshot).unwrap();
 

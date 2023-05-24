@@ -6,8 +6,8 @@ use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{
     ConvertArgument, SourceTargetLanguages, StringGreedyOrReply,
 };
-use crate::utilities::google_translate;
-use crate::utilities::text_utils::EscapeMarkdown;
+use crate::utilities::message_entities::ToEntity;
+use crate::utilities::{google_translate, message_entities};
 
 pub struct Translate;
 
@@ -29,19 +29,19 @@ impl CommandTrait for Translate {
             translate::single(ctx.http_client.clone(), &text, source_language, &target_language)
                 .await?;
 
-        let source_language = EscapeMarkdown(
-            google_translate::get_language_name(&translation.source_language)
-                .unwrap_or(&translation.source_language),
-        );
+        let source_language = google_translate::get_language_name(&translation.source_language)
+            .unwrap_or(&translation.source_language);
 
-        let target_language = EscapeMarkdown(
-            google_translate::get_language_name(&target_language).unwrap_or(&target_language),
-        );
+        let target_language =
+            google_translate::get_language_name(&target_language).unwrap_or(&target_language);
 
-        ctx.reply_markdown(format!(
-            "*{source_language}* ➜ *{target_language}*\n{}",
-            EscapeMarkdown(&translation.text)
-        ))
+        ctx.reply_formatted_text(message_entities::formatted_text(vec![
+            source_language.bold(),
+            " ➜ ".text(),
+            target_language.bold(),
+            "\n".text(),
+            translation.text.text(),
+        ]))
         .await?;
 
         Ok(())

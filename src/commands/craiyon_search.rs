@@ -5,17 +5,17 @@ use async_trait::async_trait;
 use image::imageops::FilterType;
 use image::ImageFormat;
 use reqwest::Url;
-use tdlib::enums::{FormattedText, InputFile, InputMessageContent, TextParseMode};
-use tdlib::functions;
-use tdlib::types::{InputFileLocal, InputMessagePhoto, TextParseModeMarkdown};
+use tdlib::enums::{InputFile, InputMessageContent};
+use tdlib::types::{InputFileLocal, InputMessagePhoto};
 use tempfile::NamedTempFile;
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::craiyon;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
-use crate::utilities::text_utils::{EscapeMarkdown, TruncateWithEllipsis};
-use crate::utilities::{api_utils, image_utils};
+use crate::utilities::message_entities::{ToEntity, ToEntityOwned};
+use crate::utilities::text_utils::TruncateWithEllipsis;
+use crate::utilities::{api_utils, image_utils, message_entities};
 
 pub struct CraiyonSearch;
 
@@ -54,25 +54,24 @@ impl CommandTrait for CraiyonSearch {
         let mut temp_file = NamedTempFile::new().unwrap();
         image.write_to(&mut BufWriter::new(&mut temp_file), ImageFormat::Png).unwrap();
 
-        let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
+        let formatted_text = message_entities::formatted_text(
             results
                 .into_iter()
                 .enumerate()
-                .map(|(i, result)| {
-                    format!(
-                        "{}\\. [{}](https://pics.craiyon.com/{})",
-                        i + 1,
-                        EscapeMarkdown(&result.prompt.truncate_with_ellipsis(128)),
-                        result.image_id
-                    )
+                .flat_map(|(i, result)| {
+                    [
+                        "\n".text(),
+                        (i + 1).to_string().text_owned(),
+                        ". ".text(),
+                        result.prompt.truncate_with_ellipsis(128).text_url_owned(format!(
+                            "https://pics.craiyon.com/{}",
+                            result.image_id
+                        )),
+                    ]
                 })
-                .collect::<Vec<_>>()
-                .join("\n"),
-            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
-            ctx.client_id,
-        )
-        .await
-        .unwrap();
+                .skip(1)
+                .collect::<Vec<_>>(),
+        );
 
         let message = ctx
             .reply_custom(

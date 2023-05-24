@@ -94,7 +94,7 @@ async fn report_command_error(
 ) -> TdResult<()> {
     match error {
         CommandError::Custom(text) => context.reply(text).await?,
-        CommandError::CustomMarkdown(text) => context.reply_markdown(text).await?,
+        CommandError::CustomFormattedText(text) => context.reply_formatted_text(text).await?,
         CommandError::ArgumentConversion(err) => context.reply(err.to_string()).await?,
         CommandError::Telegram(err) => {
             log::error!("TDLib error in the {command} command: {}: {}", err.code, err.message);

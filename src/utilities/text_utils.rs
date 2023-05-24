@@ -1,18 +1,3 @@
-use std::fmt::{self, Write};
-
-#[allow(clippy::unreadable_literal)]
-const MARKDOWN_CHARS: u128 = (0b01111000000000000000000000000001 << 96)
-    + (0b10111000000000000000000000000000 << 64)
-    + (0b01100000000000000110111100001010 << 32);
-
-fn should_escape(char: char) -> bool {
-    let Some(value) = 1u128.checked_shl(u32::from(char)) else {
-        return false;
-    };
-
-    MARKDOWN_CHARS & value != 0
-}
-
 pub trait TruncateWithEllipsis {
     fn truncate_with_ellipsis(self, max_len: usize) -> Self;
 }
@@ -25,30 +10,6 @@ impl TruncateWithEllipsis for String {
         }
 
         self
-    }
-}
-
-pub struct EscapeChar(pub char);
-
-impl fmt::Display for EscapeChar {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if should_escape(self.0) {
-            f.write_char('\\')?;
-        }
-
-        f.write_char(self.0)
-    }
-}
-
-pub struct EscapeMarkdown<'a>(pub &'a str);
-
-impl fmt::Display for EscapeMarkdown<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for ch in self.0.chars() {
-            write!(f, "{}", EscapeChar(ch))?;
-        }
-
-        Ok(())
     }
 }
 
@@ -102,53 +63,6 @@ pub fn check_prompt(prompt: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod test {
     use super::*;
-
-    #[test]
-    fn test_should_escape() {
-        assert!(should_escape('_'));
-        assert!(should_escape('*'));
-        assert!(should_escape('['));
-        assert!(should_escape(']'));
-        assert!(should_escape('('));
-        assert!(should_escape(')'));
-        assert!(should_escape('~'));
-        assert!(should_escape('`'));
-        assert!(should_escape('>'));
-        assert!(should_escape('#'));
-        assert!(should_escape('+'));
-        assert!(should_escape('-'));
-        assert!(should_escape('='));
-        assert!(should_escape('|'));
-        assert!(should_escape('{'));
-        assert!(should_escape('}'));
-        assert!(should_escape('.'));
-        assert!(should_escape('!'));
-        assert!(should_escape('\\'));
-    }
-
-    #[test]
-    fn test_should_not_escape() {
-        assert!(!should_escape('0'));
-        assert!(!should_escape('a'));
-        assert!(!should_escape('/'));
-        assert!(!should_escape(' '));
-        assert!(!should_escape('\n'));
-        assert!(!should_escape('ś'));
-    }
-
-    #[test]
-    fn test_escape_markdown() {
-        assert_eq!(EscapeMarkdown("0123456789").to_string(), "0123456789");
-        assert_eq!(
-            EscapeMarkdown("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ").to_string(),
-            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-        );
-        assert_eq!(
-            EscapeMarkdown("!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~").to_string(),
-            "\\!\"\\#$%&'\\(\\)\\*\\+,\\-\\./:;<\\=\\>?@\\[\\\\\\]^\\_\\`\\{\\|\\}\\~"
-        );
-        assert_eq!(EscapeMarkdown(" \n").to_string(), " \n");
-    }
 
     #[test]
     fn test_progress_bar() {

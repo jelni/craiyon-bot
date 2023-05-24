@@ -1,9 +1,13 @@
 use async_trait::async_trait;
+use tdlib::types::FormattedText;
+use time::macros::format_description;
+use url::Url;
 
 use super::{CommandResult, CommandTrait};
-use crate::apis::urbandictionary;
+use crate::apis::urbandictionary::{self, Definition};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
+use crate::utilities::message_entities::{self, ToEntity, ToEntityOwned, ToNestedEntity};
 
 pub struct UrbanDictionary;
 
@@ -24,11 +28,58 @@ impl CommandTrait for UrbanDictionary {
 
         if let Ok(Some(definition)) = urbandictionary::define(ctx.http_client.clone(), &word).await
         {
-            ctx.reply_markdown(definition.into_markdown()).await?;
+            ctx.reply_formatted_text(format_definition(definition)).await?;
         } else {
             Err("sorry, there are no definitions for this word.")?;
         };
 
         Ok(())
     }
+}
+
+fn format_definition(definition: Definition) -> FormattedText {
+    let mut description = definition.definition;
+    let mut example = definition.example;
+
+    description.retain(|c| !['[', ']'].contains(&c));
+    example.retain(|c| !['[', ']'].contains(&c));
+
+    let mut entities = vec![
+        definition.word.bold().text_url(definition.permalink),
+        "\n".text(),
+        description.text(),
+        "\n\n".text(),
+    ];
+
+    if !example.is_empty() {
+        entities.extend([example.italic(), "\n\n".text()]);
+    }
+
+    entities.extend([
+        "by ".text(),
+        definition.author.text_url(
+            Url::parse_with_params(
+                "https://urbandictionary.com/author.php",
+                [("author", &definition.author)],
+            )
+            .unwrap()
+            .to_string(),
+        ),
+        ", ".text(),
+        definition
+            .written_on
+            .format(format_description!("[year]-[month]-[day]"))
+            .unwrap()
+            .text_owned(),
+        "\n".text(),
+    ]);
+
+    entities.extend([
+        "👍 ".text(),
+        definition.thumbs_up.to_string().text_owned(),
+        " 👎 ".text(),
+        definition.thumbs_down.to_string().text_owned(),
+    ]);
+
+    message_entities::formatted_text(entities)
 }

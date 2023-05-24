@@ -2,18 +2,18 @@ use std::io::BufWriter;
 
 use async_trait::async_trait;
 use image::ImageFormat;
-use tdlib::enums::{FormattedText, InputFile, InputMessageContent, TextParseMode};
-use tdlib::functions;
-use tdlib::types::{InputFileLocal, InputMessagePhoto, TextParseModeMarkdown};
+use tdlib::enums::{InputFile, InputMessageContent};
+use tdlib::types::{InputFileLocal, InputMessagePhoto};
 use tempfile::NamedTempFile;
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::craiyon::{self, Model};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
+use crate::utilities::message_entities::{ToEntity, ToEntityOwned};
 use crate::utilities::rate_limit::RateLimiter;
-use crate::utilities::text_utils::{EscapeMarkdown, TruncateWithEllipsis};
-use crate::utilities::{image_utils, telegram_utils, text_utils};
+use crate::utilities::text_utils::TruncateWithEllipsis;
+use crate::utilities::{image_utils, message_entities, telegram_utils, text_utils};
 
 pub struct Generate;
 
@@ -24,10 +24,17 @@ impl CommandTrait for Generate {
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        ctx.reply_markdown(concat!(
-            "this command was renamed to `/craiyon_art`, `/craiyon_drawing`, ",
-            "`/craiyon_photo`, and `/craiyon`\\. use one of them instead\\."
-        ))
+        ctx.reply_formatted_text(message_entities::formatted_text(vec![
+            "this command was renamed to ".text(),
+            "/craiyon_art".code(),
+            ", ".text(),
+            "/craiyon_drawing".code(),
+            ", ".text(),
+            "/craiyon_photo".code(),
+            ", and ".text(),
+            "/craiyon".code(),
+            ". use one of them instead.".text(),
+        ]))
         .await?;
 
         Ok(())
@@ -139,22 +146,22 @@ impl CommandTrait for Craiyon {
             .images
             .into_iter()
             .enumerate()
-            .map(|(i, url)| format!("[{}]({url})", i + 1))
-            .collect::<Vec<_>>();
+            .flat_map(|(i, url)| [" ".text(), (i + 1).to_string().text_url_owned(url)])
+            .skip(1);
 
-        let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
-            format!(
-                "drawn *{}* in {}\\.\ndownload: {}\nsuggested prompt: `{}`",
-                EscapeMarkdown(&truncated_prompt),
-                text_utils::format_duration(result.duration.as_secs()),
-                download_urls.join(" "),
-                EscapeMarkdown(&result.next_prompt.truncate_with_ellipsis(512))
-            ),
-            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
-            ctx.client_id,
-        )
-        .await
-        .unwrap();
+        let mut entities = vec![
+            "drawn ".text(),
+            truncated_prompt.bold(),
+            " in ".text(),
+            text_utils::format_duration(result.duration.as_secs()).text_owned(),
+            ".\ndownload: ".text(),
+        ];
+
+        entities.extend(download_urls);
+        entities.extend([
+            "\nsuggested prompt: ".text(),
+            result.next_prompt.truncate_with_ellipsis(512).code_owned(),
+        ]);
 
         let message = ctx
             .reply_custom(
@@ -166,7 +173,7 @@ impl CommandTrait for Craiyon {
                     added_sticker_file_ids: Vec::new(),
                     width: image.width().try_into().unwrap(),
                     height: image.height().try_into().unwrap(),
-                    caption: Some(formatted_text),
+                    caption: Some(message_entities::formatted_text(entities)),
                     self_destruct_time: 0,
                     has_spoiler: false,
                 }),
