@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use reqwest::StatusCode;
+use tdlib::types::FormattedText;
 
 use crate::bot::TdError;
 use crate::utilities::api_utils::ServerError;
@@ -51,7 +52,7 @@ pub trait CommandTrait {
 #[derive(Debug)]
 pub enum CommandError {
     Custom(String),
-    CustomMarkdown(String),
+    CustomFormattedText(FormattedText),
     ArgumentConversion(ConversionError),
     Telegram(TdError),
     Server(StatusCode),

@@ -1,10 +1,7 @@
-use std::fmt;
-
 use serde::Deserialize;
 
 use crate::commands::CommandError;
 use crate::utilities::api_utils::DetectServerError;
-use crate::utilities::text_utils::EscapeMarkdown;
 
 #[derive(Deserialize)]
 struct StartitJoke {
@@ -82,20 +79,4 @@ pub async fn now_playing(
         .await?;
 
     Ok(now_playing)
-}
-
-impl fmt::Display for Song {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "*{}*", EscapeMarkdown(&self.title))?;
-
-        if !self.artist.is_empty() {
-            write!(f, "\n{}", EscapeMarkdown(&self.artist))?;
-        }
-
-        if !self.album.is_empty() {
-            write!(f, " • {}", EscapeMarkdown(&self.album))?;
-        }
-
-        Ok(())
-    }
 }

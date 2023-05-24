@@ -2,6 +2,7 @@ use async_trait::async_trait;
 
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::message_entities::{self, ToEntity};
 
 pub struct Start;
 
@@ -12,10 +13,12 @@ impl CommandTrait for Start {
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        ctx.reply_markdown(concat!(
-            "use the /craiyon command to generate images\\.\n",
-            "*example:* `/craiyon crayons in a box`"
-        ))
+        ctx.reply_formatted_text(message_entities::formatted_text(vec![
+            "use the /craiyon_art command to generate images.\n".text(),
+            "example:".bold(),
+            " ".text(),
+            "/craiyon_art crayons in a box".code(),
+        ]))
         .await?;
 
         Ok(())

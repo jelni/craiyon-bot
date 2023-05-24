@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
-use tdlib::enums::{self, ChatAction, InputMessageContent, TextParseMode};
+use tdlib::enums::{self, ChatAction, InputMessageContent};
 use tdlib::functions;
-use tdlib::types::{FormattedText, InputMessageText, Message, TextParseModeMarkdown};
+use tdlib::types::{FormattedText, InputMessageText, Message};
 
 use super::cache::{CompactChat, CompactUser};
 use super::message_queue::MessageQueue;
@@ -55,18 +55,11 @@ impl CommandContext {
         self.reply_formatted_text(FormattedText { text: text.into(), ..Default::default() }).await
     }
 
-    pub async fn reply_markdown<S: Into<String>>(&self, text: S) -> TdResult<Message> {
-        let enums::FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
-            text.into(),
-            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
-            self.client_id,
-        )
-        .await?;
-
-        self.reply_formatted_text(formatted_text).await
-    }
-
-    async fn _edit_message(&self, message_id: i64, text: FormattedText) -> TdResult<Message> {
+    pub async fn edit_message_formatted_text(
+        &self,
+        message_id: i64,
+        text: FormattedText,
+    ) -> TdResult<Message> {
         let enums::Message::Message(message) = functions::edit_message_text(
             self.message.chat_id,
             message_id,
@@ -83,29 +76,16 @@ impl CommandContext {
         Ok(message)
     }
 
-    #[allow(dead_code)]
     pub async fn edit_message<S: Into<String>>(
         &self,
         message_id: i64,
         text: S,
     ) -> TdResult<Message> {
-        self._edit_message(message_id, FormattedText { text: text.into(), ..Default::default() })
-            .await
-    }
-
-    pub async fn edit_message_markdown<S: Into<String>>(
-        &self,
-        message_id: i64,
-        text: S,
-    ) -> TdResult<Message> {
-        let enums::FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
-            text.into(),
-            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
-            self.client_id,
+        self.edit_message_formatted_text(
+            message_id,
+            FormattedText { text: text.into(), ..Default::default() },
         )
-        .await?;
-
-        self._edit_message(message_id, formatted_text).await
+        .await
     }
 
     pub async fn delete_messages(&self, message_ids: Vec<i64>) -> TdResult<()> {

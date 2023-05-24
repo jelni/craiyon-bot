@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
-use crate::utilities::text_utils::{EscapeChar, EscapeMarkdown};
+use crate::utilities::message_entities::{self, ToEntity, ToEntityOwned};
 
 pub struct CharInfo;
 
@@ -21,29 +21,32 @@ impl CommandTrait for CharInfo {
         let StringGreedyOrReply(chars) = ConvertArgument::convert(ctx, &arguments).await?.0;
         let mut chars = chars.chars();
 
-        let mut lines = chars
+        let mut entities = chars
             .by_ref()
             .take(10)
-            .map(|char| {
+            .flat_map(|char| {
                 if char.is_ascii_whitespace() {
-                    String::new()
+                    vec!["\n".text()]
                 } else {
                     let value = char.into();
-                    format!(
-                        "`{}` `U\\+{:04X}` – `{}`",
-                        EscapeChar(char),
-                        value,
-                        EscapeMarkdown(charname::get_name(value))
-                    )
+                    vec![
+                        "\n".text(),
+                        char.to_string().code_owned(),
+                        " ".text(),
+                        format!("U+{value:04X}").code_owned(),
+                        " ".text(),
+                        charname::get_name(value).text(),
+                    ]
                 }
             })
+            .skip(1)
             .collect::<Vec<_>>();
 
         if chars.next().is_some() {
-            lines.push("…".into());
+            entities.push("…".text());
         }
 
-        ctx.reply_markdown(lines.join("\n")).await?;
+        ctx.reply_formatted_text(message_entities::formatted_text(entities)).await?;
 
         Ok(())
     }

@@ -3,15 +3,16 @@ use std::io::BufWriter;
 
 use async_trait::async_trait;
 use image::{DynamicImage, ImageFormat};
-use tdlib::enums::{File, FormattedText, InputFile, InputMessageContent, TextParseMode};
+use tdlib::enums::{File, InputFile, InputMessageContent};
 use tdlib::functions;
-use tdlib::types::{InputFileLocal, InputMessagePhoto, TextParseModeMarkdown};
+use tdlib::types::{InputFileLocal, InputMessagePhoto};
 use tempfile::NamedTempFile;
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::different_dimension_me;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::telegram_utils;
+use crate::utilities::message_entities::ToEntity;
+use crate::utilities::{message_entities, telegram_utils};
 
 const MEBIBYTE: i64 = 1024 * 1024;
 
@@ -62,12 +63,8 @@ impl CommandTrait for DifferentDimensionMe {
         let mut temp_file = NamedTempFile::new().unwrap();
         image.write_to(&mut BufWriter::new(&mut temp_file), ImageFormat::Png).unwrap();
 
-        let FormattedText::FormattedText(formatted_text) = functions::parse_text_entities(
-            format!("[open full image]({image_url})"),
-            TextParseMode::Markdown(TextParseModeMarkdown { version: 2 }),
-            ctx.client_id,
-        )
-        .await?;
+        let formatted_text =
+            message_entities::formatted_text(vec!["open full image".text_url(image_url)]);
 
         let message = ctx
             .reply_custom(
