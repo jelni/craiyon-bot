@@ -46,14 +46,18 @@ impl NetworkFile {
 
         let temp_dir = TempDir::new().map_err(|_| DownloadError::FilesystemError)?;
         let file_path = temp_dir.path().join(filename.text);
-        let mut file =
-            BufWriter::new(File::create(&file_path).map_err(|_| DownloadError::FilesystemError)?);
+        let mut file = BufWriter::with_capacity(
+            4 * 1024 * 1024,
+            File::create(&file_path).map_err(|_| DownloadError::FilesystemError)?,
+        );
 
         let mut stream = response.bytes_stream();
         while let Some(bytes) = stream.next().await {
             let bytes = bytes.map_err(DownloadError::RequestError)?;
             file.write_all(&bytes).map_err(|_| DownloadError::FilesystemError)?;
         }
+
+        file.flush().map_err(|_| DownloadError::FilesystemError)?;
 
         Ok(Self { temp_dir, file_path: file_path.to_string_lossy().into_owned(), content_type })
     }
