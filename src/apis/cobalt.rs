@@ -44,7 +44,7 @@ pub async fn query(
     url: &str,
 ) -> Result<Result<Vec<String>, String>, CommandError> {
     let response = http_client
-        .post("https://co.wukko.me/api/json")
+        .post("https://co.wuk.sh/api/json")
         .json(&Payload {
             url,
             v_codec: "h264",
