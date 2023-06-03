@@ -34,8 +34,8 @@ impl CommandTrait for CharInfo {
                         char.to_string().code_owned(),
                         " ".text(),
                         format!("U+{value:04X}").code_owned(),
-                        " ".text(),
-                        charname::get_name(value).text(),
+                        " – ".text(),
+                        charname::get_name(value).code(),
                     ]
                 }
             })
