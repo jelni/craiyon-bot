@@ -71,7 +71,7 @@ impl Bot {
         }
     }
 
-    pub async fn run(&mut self) {
+    pub fn run(&mut self) {
         *self.state.lock().unwrap() = BotState::Running;
         let client_id = self.client_id;
         self.run_task(async move {

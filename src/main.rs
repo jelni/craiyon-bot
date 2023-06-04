@@ -44,6 +44,6 @@ async fn main() {
     bot.add_command(commands::delete::Delete);
     bot.add_command(commands::sex::Sex);
 
-    bot.run().await;
+    bot.run();
     log::logger().flush();
 }
