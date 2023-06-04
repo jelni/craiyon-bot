@@ -5,6 +5,7 @@ use tdlib::functions;
 use tdlib::types::{FormattedText, InputMessageText, Message};
 
 use super::cache::{CompactChat, CompactUser};
+use super::config::Config;
 use super::message_queue::MessageQueue;
 use super::rate_limit::RateLimits;
 use crate::bot::TdResult;
@@ -16,6 +17,7 @@ pub struct CommandContext {
     pub client_id: i32,
     pub rate_limits: Arc<Mutex<RateLimits>>,
     pub message_queue: Arc<MessageQueue>,
+    pub config: Arc<Mutex<Config>>,
     pub http_client: reqwest::Client,
 }
 

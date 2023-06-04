@@ -7,12 +7,14 @@ use tdlib::types::{
 
 use super::cache::{CompactChat, CompactUser};
 use super::command_context::CommandContext;
+use super::config::Config;
 use super::message_queue::MessageQueue;
 use super::rate_limit::{RateLimiter, RateLimits};
 
 pub fn command_context() -> CommandContext {
     CommandContext {
         chat: CompactChat {
+            id: 0,
             r#type: ChatType::Supergroup(ChatTypeSupergroup::default()),
             title: "chat_title".into(),
             permissions: ChatPermissions::default(),
@@ -74,6 +76,7 @@ pub fn command_context() -> CommandContext {
             rate_limit_exceeded: RateLimiter::new(0, 0),
         })),
         message_queue: Arc::new(MessageQueue::default()),
+        config: Arc::new(Mutex::new(Config::default())),
         http_client: reqwest::Client::new(),
     }
 }

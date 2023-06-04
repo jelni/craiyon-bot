@@ -22,6 +22,7 @@ use crate::commands::{calculate_inline, dice_reply, CommandTrait};
 use crate::utilities::cache::{Cache, CompactUser};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::command_manager::CommandManager;
+use crate::utilities::config::Config;
 use crate::utilities::message_queue::MessageQueue;
 use crate::utilities::parsed_command::ParsedCommand;
 use crate::utilities::rate_limit::{RateLimiter, RateLimits};
@@ -43,6 +44,7 @@ pub struct Bot {
     state: Arc<Mutex<BotState>>,
     my_id: Option<i64>,
     cache: Cache,
+    config: Arc<Mutex<Config>>,
     http_client: reqwest::Client,
     command_manager: CommandManager,
     message_queue: Arc<MessageQueue>,
@@ -57,6 +59,7 @@ impl Bot {
             state: Arc::new(Mutex::new(BotState::Closed)),
             my_id: None,
             cache: Cache::default(),
+            config: Arc::new(Mutex::new(Config::load().unwrap())),
             http_client: Client::builder()
                 .redirect(redirect::Policy::none())
                 .timeout(Duration::from_secs(300))
@@ -107,6 +110,10 @@ impl Bot {
                 BotState::Closed => break,
                 _ => (),
             }
+        }
+
+        if let Err(err) = self.config.lock().unwrap().save() {
+            log::error!("failed to save bot config: {err}");
         }
     }
 
@@ -243,6 +250,7 @@ impl Bot {
                 client_id: self.client_id,
                 rate_limits: self.rate_limits.clone(),
                 message_queue: self.message_queue.clone(),
+                config: self.config.clone(),
                 http_client: self.http_client.clone(),
             },
         ));
@@ -320,7 +328,7 @@ impl Bot {
     }
 
     pub fn add_command(&mut self, command: impl CommandTrait + Send + Sync + 'static) {
-        self.command_manager.add_command(command);
+        self.command_manager.add_command(Box::new(command));
     }
 
     pub async fn sync_commands(commands: Vec<BotCommand>, client_id: i32) -> TdResult<()> {
@@ -328,7 +336,7 @@ impl Bot {
             functions::get_commands(None, String::new(), client_id).await?;
 
         if commands == bot_commands.commands {
-            log::info!("commands already synced");
+            log::debug!("commands already synced");
             return Ok(());
         }
 

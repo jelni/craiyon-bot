@@ -28,10 +28,10 @@ impl CommandManager {
         Self { commands: Vec::new() }
     }
 
-    pub fn add_command(&mut self, command: impl CommandTrait + Send + Sync + 'static) {
+    pub fn add_command(&mut self, command: Box<impl CommandTrait + Send + Sync + 'static>) {
         self.commands.push(Arc::new(CommandInstance {
             rate_limiter: Mutex::new(command.rate_limit()),
-            command: Box::new(command),
+            command,
         }));
     }
 
