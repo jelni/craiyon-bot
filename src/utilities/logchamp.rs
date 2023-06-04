@@ -23,11 +23,10 @@ impl Logger {
 
 impl Log for Logger {
     fn enabled(&self, metadata: &Metadata) -> bool {
-        let max_level = match metadata.target().split("::").next().unwrap() {
-            env!("CARGO_PKG_NAME") => Level::Debug,
-            _ => Level::Info,
-        };
-        metadata.level() <= max_level
+        match metadata.target().split("::").next().unwrap() {
+            "craiyon_bot" => true,
+            _ => metadata.level() <= Level::Info,
+        }
     }
 
     fn log(&self, record: &Record) {
@@ -46,8 +45,8 @@ impl Log for Logger {
             Level::Error => Color::BrightRed,
             Level::Warn => Color::BrightYellow,
             Level::Info => Color::BrightCyan,
-            Level::Debug => Color::BrightMagenta,
-            Level::Trace => Color::BrightGreen,
+            Level::Debug => Color::Magenta,
+            Level::Trace => Color::Green,
         };
 
         println!("{} {} {args}", timestamp.color(Color::BrightBlack), level.color(color));
