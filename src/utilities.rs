@@ -3,6 +3,7 @@ pub mod cache;
 pub mod command_context;
 pub mod command_dispatcher;
 pub mod command_manager;
+pub mod config;
 pub mod convert_argument;
 pub mod file_download;
 pub mod google_translate;

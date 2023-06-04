@@ -26,6 +26,7 @@ async fn main() {
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion_2());
     bot.add_command(commands::stablehorde::StableHorde::waifu_diffusion());
     bot.add_command(commands::stablehorde::StableHorde::furry_diffusion());
+    bot.add_command(commands::config::Config);
     bot.add_command(commands::different_dimension_me::DifferentDimensionMe);
     bot.add_command(commands::google_palm::GooglePalm);
     bot.add_command(commands::translate::Translate);

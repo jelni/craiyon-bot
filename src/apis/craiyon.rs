@@ -5,8 +5,8 @@ use serde::{Deserialize, Serialize};
 use crate::commands::CommandError;
 use crate::utilities::api_utils::DetectServerError;
 
-static DRAW_VERSION: &str = "35s5hfwn9n78gb06";
-static SEARCH_VERSION: &str = "hpv3obayw36clkqp";
+const DRAW_VERSION: &str = "35s5hfwn9n78gb06";
+const SEARCH_VERSION: &str = "hpv3obayw36clkqp";
 
 #[derive(Serialize)]
 struct Payload<'a> {

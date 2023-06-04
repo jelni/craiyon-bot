@@ -3,9 +3,8 @@ use async_trait::async_trait;
 use super::{CommandResult, CommandTrait};
 use crate::apis::translate;
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::{
-    ConvertArgument, SourceTargetLanguages, StringGreedyOrReply,
-};
+use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
+use crate::utilities::google_translate::SourceTargetLanguages;
 
 pub struct BadTranslate;
 
