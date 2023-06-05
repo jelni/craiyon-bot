@@ -23,7 +23,7 @@ impl CommandTrait for BadTranslate {
             ConvertArgument::convert(ctx, &arguments).await?.0;
 
         let translations = translate::multiple(
-            ctx.http_client.clone(),
+            ctx.bot_state.http_client.clone(),
             text.split_ascii_whitespace(),
             source_language,
             &target_language,

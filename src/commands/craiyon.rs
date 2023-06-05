@@ -106,18 +106,20 @@ impl CommandTrait for Craiyon {
         let truncated_prompt = prompt.clone().truncate_with_ellipsis(256);
 
         let status_msg = ctx
+            .bot_state
             .message_queue
             .wait_for_message(ctx.reply(format!("drawing {}…", truncated_prompt)).await?.id)
             .await?;
 
-        let result = craiyon::draw(ctx.http_client.clone(), self.model, "", &prompt).await?;
+        let result =
+            craiyon::draw(ctx.bot_state.http_client.clone(), self.model, "", &prompt).await?;
 
         let tasks = result
             .images
             .clone()
             .into_iter()
             .map(|url| {
-                let http_client = ctx.http_client.clone();
+                let http_client = ctx.bot_state.http_client.clone();
                 tokio::spawn(async move {
                     let response = http_client.get(url).send().await;
                     match response {
@@ -181,7 +183,7 @@ impl CommandTrait for Craiyon {
             )
             .await?;
 
-        ctx.message_queue.wait_for_message(message.id).await?;
+        ctx.bot_state.message_queue.wait_for_message(message.id).await?;
         ctx.delete_message(status_msg.id).await.ok();
         temp_file.close().unwrap();
 

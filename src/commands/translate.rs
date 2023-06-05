@@ -24,9 +24,13 @@ impl CommandTrait for Translate {
         let (SourceTargetLanguages(source_language, target_language), StringGreedyOrReply(text)) =
             ConvertArgument::convert(ctx, &arguments).await?.0;
 
-        let translation =
-            translate::single(ctx.http_client.clone(), &text, source_language, &target_language)
-                .await?;
+        let translation = translate::single(
+            ctx.bot_state.http_client.clone(),
+            &text,
+            source_language,
+            &target_language,
+        )
+        .await?;
 
         let source_language = google_translate::get_language_name(&translation.source_language)
             .unwrap_or(&translation.source_language);

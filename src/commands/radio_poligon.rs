@@ -15,7 +15,7 @@ impl CommandTrait for RadioPoligon {
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        let now_playing = poligon::now_playing(ctx.http_client.clone(), 1).await?;
+        let now_playing = poligon::now_playing(ctx.bot_state.http_client.clone(), 1).await?;
         let mut entities = Vec::new();
 
         if now_playing.live.is_live {

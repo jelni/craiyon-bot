@@ -34,7 +34,7 @@ impl CommandTrait for CraiyonSearch {
 
         ctx.send_typing().await?;
 
-        let results = craiyon::search(ctx.http_client.clone(), &query)
+        let results = craiyon::search(ctx.bot_state.http_client.clone(), &query)
             .await?
             .into_iter()
             .take(9)
@@ -42,7 +42,8 @@ impl CommandTrait for CraiyonSearch {
         let urls = results.iter().map(|result| {
             Url::parse(&format!("https://pics.craiyon.com/{}", result.image_id)).unwrap()
         });
-        let images = api_utils::simultaneous_download(ctx.http_client.clone(), urls).await?;
+        let images =
+            api_utils::simultaneous_download(ctx.bot_state.http_client.clone(), urls).await?;
 
         let images = images
             .into_iter()
@@ -91,7 +92,7 @@ impl CommandTrait for CraiyonSearch {
             )
             .await?;
 
-        ctx.message_queue.wait_for_message(message.id).await?;
+        ctx.bot_state.message_queue.wait_for_message(message.id).await?;
         temp_file.close().unwrap();
 
         Ok(())

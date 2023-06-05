@@ -30,7 +30,8 @@ impl CommandTrait for GooglePalm {
         ctx.send_typing().await?;
 
         let response =
-            google_palm::generate_text(ctx.http_client.clone(), &(prompt + "\n"), 256).await?;
+            google_palm::generate_text(ctx.bot_state.http_client.clone(), &(prompt + "\n"), 256)
+                .await?;
 
         let text = match response {
             Ok(response) => {
@@ -70,9 +71,11 @@ impl CommandTrait for GooglePalm {
             return Ok(());
         }
 
-        let enums::FormattedText::FormattedText(formatted_text) =
-            functions::parse_markdown(FormattedText { text, ..Default::default() }, ctx.client_id)
-                .await?;
+        let enums::FormattedText::FormattedText(formatted_text) = functions::parse_markdown(
+            FormattedText { text, ..Default::default() },
+            ctx.bot_state.client_id,
+        )
+        .await?;
 
         ctx.reply_formatted_text(formatted_text).await?;
 

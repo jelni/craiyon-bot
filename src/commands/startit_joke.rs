@@ -13,7 +13,7 @@ impl CommandTrait for StartitJoke {
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        let joke = poligon::startit_joke(ctx.http_client.clone()).await?;
+        let joke = poligon::startit_joke(ctx.bot_state.http_client.clone()).await?;
         ctx.reply(format!("Kacper Podpora mówi: {joke}")).await?;
 
         Ok(())
