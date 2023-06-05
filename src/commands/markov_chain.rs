@@ -4,6 +4,7 @@ use tdlib::enums::ChatType;
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::message_entities::{self, ToEntity};
+use crate::utilities::rate_limit::RateLimiter;
 
 pub struct MarkovChain;
 
@@ -15,6 +16,10 @@ impl CommandTrait for MarkovChain {
 
     fn description(&self) -> Option<&'static str> {
         Some("generate text based on seen chat messages")
+    }
+
+    fn rate_limit(&self) -> RateLimiter<i64> {
+        RateLimiter::new(3, 20)
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
