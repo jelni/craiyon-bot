@@ -25,17 +25,15 @@ impl CommandTrait for DifferentDimensionMe {
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        let mut file =
-            telegram_utils::get_message_or_reply_image(&ctx.message, ctx.bot_state.client_id)
-                .await
-                .ok_or("send or reply to an image.")?;
+        let mut file = telegram_utils::get_message_or_reply_image(&ctx.message, ctx.client_id)
+            .await
+            .ok_or("send or reply to an image.")?;
 
         if file.expected_size > 4 * MEBIBYTE {
             Err("the image cannot be larger than 4 MiB.")?;
         }
 
-        File::File(file) =
-            functions::download_file(file.id, 1, 0, 0, true, ctx.bot_state.client_id).await?;
+        File::File(file) = functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
 
         ctx.send_typing().await?;
 

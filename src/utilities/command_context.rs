@@ -9,6 +9,7 @@ use super::cache::{CompactChat, CompactUser};
 use crate::bot::TdResult;
 
 pub struct CommandContext {
+    pub client_id: i32,
     pub chat: CompactChat,
     pub user: CompactUser,
     pub message: Message,
@@ -28,7 +29,7 @@ impl CommandContext {
             None,
             reply_markup,
             message_content,
-            self.bot_state.client_id,
+            self.client_id,
         )
         .await?;
 
@@ -65,7 +66,7 @@ impl CommandContext {
                 disable_web_page_preview: true,
                 ..Default::default()
             }),
-            self.bot_state.client_id,
+            self.client_id,
         )
         .await?;
 
@@ -85,13 +86,7 @@ impl CommandContext {
     }
 
     pub async fn delete_messages(&self, message_ids: Vec<i64>) -> TdResult<()> {
-        functions::delete_messages(
-            self.message.chat_id,
-            message_ids,
-            true,
-            self.bot_state.client_id,
-        )
-        .await
+        functions::delete_messages(self.message.chat_id, message_ids, true, self.client_id).await
     }
 
     pub async fn delete_message(&self, message_id: i64) -> TdResult<()> {
@@ -103,7 +98,7 @@ impl CommandContext {
             self.message.chat_id,
             self.message.message_thread_id,
             Some(ChatAction::Typing),
-            self.bot_state.client_id,
+            self.client_id,
         )
         .await
     }

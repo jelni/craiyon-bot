@@ -20,12 +20,13 @@ use crate::utilities::bot_state::{BotState, BotStatus};
 use crate::utilities::cache::{Cache, CompactUser};
 use crate::utilities::command_manager::{CommandInstance, CommandManager};
 use crate::utilities::message_filters::MessageDestination;
-use crate::utilities::{command_dispatcher, message_filters, telegram_utils};
+use crate::utilities::{command_dispatcher, markov_chain_manager, message_filters, telegram_utils};
 
 pub type TdError = tdlib::types::Error;
 pub type TdResult<T> = Result<T, TdError>;
 
 pub struct Bot {
+    pub client_id: i32,
     pub my_id: Option<i64>,
     command_manager: CommandManager,
     pub cache: Cache,
@@ -36,17 +37,18 @@ pub struct Bot {
 impl Bot {
     pub fn new() -> Self {
         Self {
+            client_id: tdlib::create_client(),
             my_id: None,
             command_manager: CommandManager::new(),
             cache: Cache::default(),
-            state: Arc::new(BotState::new(tdlib::create_client())),
+            state: Arc::new(BotState::new()),
             tasks: Vec::new(),
         }
     }
 
     pub fn run(&mut self) {
         *self.state.status.lock().unwrap() = BotStatus::Running;
-        let client_id = self.state.client_id;
+        let client_id = self.client_id;
         self.run_task(async move {
             functions::set_log_verbosity_level(1, client_id).await.unwrap();
         });
@@ -85,11 +87,15 @@ impl Bot {
         if let Err(err) = self.state.config.lock().unwrap().save() {
             log::error!("failed to save bot config: {err}");
         }
+
+        if let Err(err) = markov_chain_manager::save(&self.state.markov_chain.lock().unwrap()) {
+            log::error!("failed to save Markov chain: {err}");
+        }
     }
 
     fn close(&mut self) {
         *self.state.status.lock().unwrap() = BotStatus::Closing;
-        let client_id = self.state.client_id;
+        let client_id = self.client_id;
         self.run_task(async move {
             functions::close(client_id).await.unwrap();
         });
@@ -121,7 +127,7 @@ impl Bot {
         log::info!("authorization: {:?}", update.authorization_state);
         match update.authorization_state {
             AuthorizationState::WaitTdlibParameters => {
-                let client_id = self.state.client_id;
+                let client_id = self.client_id;
                 self.run_task(async move {
                     functions::set_tdlib_parameters(
                         false,
@@ -147,7 +153,7 @@ impl Bot {
                 });
             }
             AuthorizationState::WaitPhoneNumber => {
-                let client_id = self.state.client_id;
+                let client_id = self.client_id;
                 self.run_task(async move {
                     functions::check_authentication_bot_token(
                         env::var("TELEGRAM_TOKEN").unwrap(),
@@ -163,7 +169,7 @@ impl Bot {
     }
 
     fn on_ready(&mut self) {
-        let client_id = self.state.client_id;
+        let client_id = self.client_id;
         let commands = self.command_manager.public_command_list();
         self.run_task(async move {
             functions::get_me(client_id).await.unwrap();
@@ -181,10 +187,12 @@ impl Bot {
                         command, arguments, context,
                     ));
                 }
-                MessageDestination::Dice { message, bot_state } => {
-                    self.run_task(dice_reply::execute(message, bot_state.client_id));
+                MessageDestination::Dice { message } => {
+                    self.run_task(dice_reply::execute(message, self.client_id));
                 }
-                MessageDestination::MarkovChain { text } => todo!(),
+                MessageDestination::MarkovChain { text } => {
+                    markov_chain_manager::train(&mut self.state.markov_chain.lock().unwrap(), text);
+                }
             }
         }
     }
@@ -193,7 +201,7 @@ impl Bot {
         self.run_task(calculate_inline::execute(
             update,
             self.state.http_client.clone(),
-            self.state.client_id,
+            self.client_id,
         ));
     }
 

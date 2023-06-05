@@ -93,7 +93,7 @@ impl ConvertArgument for Reply {
         let Message::Message(message) = functions::get_message(
             ctx.message.reply_in_chat_id,
             ctx.message.reply_to_message_id,
-            ctx.bot_state.client_id,
+            ctx.client_id,
         )
         .await
         .map_err(|_| ConversionError::BadArgument("replied message cannot be loaded."))?;
@@ -153,9 +153,9 @@ impl ConvertArgument for bool {
         let (mut argument, rest) = String::convert(ctx, arguments).await?;
         argument.make_ascii_lowercase();
 
-        let value = if ["true", "yes", "on", "enable"].contains(&argument.as_str()) {
+        let value = if ["true", "yes", "on", "enable", "enabled"].contains(&argument.as_str()) {
             true
-        } else if ["false", "no", "off", "disable"].contains(&argument.as_str()) {
+        } else if ["false", "no", "off", "disable", "disabled"].contains(&argument.as_str()) {
             false
         } else {
             return Err(ConversionError::BadArgument("argument cannot be converted to a bool."));

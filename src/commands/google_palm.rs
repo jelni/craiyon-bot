@@ -71,11 +71,9 @@ impl CommandTrait for GooglePalm {
             return Ok(());
         }
 
-        let enums::FormattedText::FormattedText(formatted_text) = functions::parse_markdown(
-            FormattedText { text, ..Default::default() },
-            ctx.bot_state.client_id,
-        )
-        .await?;
+        let enums::FormattedText::FormattedText(formatted_text) =
+            functions::parse_markdown(FormattedText { text, ..Default::default() }, ctx.client_id)
+                .await?;
 
         ctx.reply_formatted_text(formatted_text).await?;
 

@@ -10,6 +10,7 @@ pub mod file_download;
 pub mod google_translate;
 pub mod image_utils;
 pub mod logchamp;
+pub mod markov_chain_manager;
 pub mod message_entities;
 pub mod message_filters;
 pub mod message_queue;

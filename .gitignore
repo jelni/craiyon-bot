@@ -1,5 +1,6 @@
 /target
 /.data
 config.dat
+markov_chain.dat
 .env
 .log

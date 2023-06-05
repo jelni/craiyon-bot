@@ -22,6 +22,7 @@ pub mod different_dimension_me;
 pub mod google_palm;
 pub mod kebab;
 pub mod kiwifarms;
+pub mod markov_chain;
 pub mod ping;
 pub mod radio_poligon;
 pub mod screenshot;
