@@ -184,6 +184,7 @@ dependencies = [
  "futures-util",
  "image",
  "log",
+ "markov-chain",
  "md5",
  "oneshot",
  "rand",
@@ -686,6 +687,15 @@ dependencies = [
  "scoped-tls",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "markov-chain"
+version = "0.1.0"
+source = "git+https://github.com/JelNiSlaw/markov-chain#0187d153813051249a50cb47ff03abd27b51db10"
+dependencies = [
+ "rand",
+ "serde",
 ]
 
 [[package]]

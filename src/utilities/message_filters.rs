@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use tdlib::enums::{MessageContent, MessageSender, UserType};
+use tdlib::enums::{ChatType, MessageContent, MessageSender, TextEntityType, UserType};
 use tdlib::types::{Message, MessageSenderUser};
 
 use super::bot_state::BotState;
@@ -12,7 +12,7 @@ use crate::bot::Bot;
 
 pub enum MessageDestination {
     Command { command: Arc<CommandInstance>, arguments: String, context: CommandContext },
-    Dice { message: Message, bot_state: Arc<BotState> },
+    Dice { message: Message },
     MarkovChain { text: String },
 }
 
@@ -44,7 +44,7 @@ pub fn filter_message(
     };
 
     if let MessageContent::MessageDice(_) = message.content {
-        return Some(MessageDestination::Dice { message, bot_state });
+        return Some(MessageDestination::Dice { message });
     }
 
     let Some(text) = telegram_utils::get_message_text(&message) else {
@@ -72,9 +72,31 @@ pub fn filter_message(
         Some(MessageDestination::Command {
             command,
             arguments: parsed_command.arguments,
-            context: CommandContext { chat, user, message, bot_state },
+            context: CommandContext { client_id: bot.client_id, chat, user, message, bot_state },
         })
     } else {
+        let (ChatType::BasicGroup(_) | ChatType::Supergroup(_)) = chat.r#type else {
+            return None; // ignore messages not in a group
+        };
+
+        if text.entities.iter().any(|entity| {
+            matches!(
+                entity.r#type,
+                TextEntityType::Mention
+                    | TextEntityType::Url
+                    | TextEntityType::EmailAddress
+                    | TextEntityType::PhoneNumber
+                    | TextEntityType::BankCardNumber
+                    | TextEntityType::MentionName(_)
+            )
+        }) {
+            return None; // ignore messages with sensitive data
+        }
+
+        if !bot_state.config.lock().unwrap().markov_chain_learning.contains(&message.chat_id) {
+            return None; // ignore messages if Markov chain learning is disabled
+        }
+
         Some(MessageDestination::MarkovChain { text: text.text.clone() })
     }
 }

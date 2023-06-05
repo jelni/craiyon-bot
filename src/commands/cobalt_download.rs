@@ -41,18 +41,14 @@ impl CommandTrait for CobaltDownload {
         let mut files = Vec::with_capacity(urls.len());
 
         for url in urls {
-            match NetworkFile::download(
-                ctx.bot_state.http_client.clone(),
-                &url,
-                ctx.bot_state.client_id,
-            )
-            .await
+            match NetworkFile::download(ctx.bot_state.http_client.clone(), &url, ctx.client_id)
+                .await
             {
                 Ok(file) => files.push(file),
                 Err(err) => match err {
                     DownloadError::RequestError(err) => {
                         log::warn!("cobalt download failed: {err}");
-                        Err("≫ cobalt download failed.")?;
+                        Err(format!("≫ cobalt download failed: {}", err.without_url()))?;
                     }
                     DownloadError::FilesystemError => {
                         Err("failed to save the file to the hard drive.")?;
@@ -113,7 +109,7 @@ impl CommandTrait for CobaltDownload {
             None,
             messages,
             false,
-            ctx.bot_state.client_id,
+            ctx.client_id,
         )
         .await?;
 

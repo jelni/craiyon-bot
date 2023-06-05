@@ -11,6 +11,7 @@ use super::command_context::CommandContext;
 
 pub fn command_context() -> CommandContext {
     CommandContext {
+        client_id: 0,
         chat: CompactChat {
             r#type: ChatType::Supergroup(ChatTypeSupergroup::default()),
             title: "chat_title".into(),
@@ -68,6 +69,6 @@ pub fn command_context() -> CommandContext {
             }),
             reply_markup: None,
         },
-        bot_state: Arc::new(BotState::new(0)),
+        bot_state: Arc::new(BotState::new()),
     }
 }
