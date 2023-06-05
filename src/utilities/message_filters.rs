@@ -60,7 +60,7 @@ pub fn message_destination(
 
             let username = me.username?; // return if the client user has no username
 
-            if username.to_ascii_lowercase() != *bot_username {
+            if username.to_ascii_lowercase() != *bot_username.to_ascii_lowercase() {
                 return None; // ignore commands sent to other bots
             }
         }
