@@ -178,7 +178,7 @@ impl Bot {
 
     fn on_new_message(&mut self, update: UpdateNewMessage) {
         if let Some(destination) =
-            message_filters::filter_message(self, self.state.clone(), update.message)
+            message_filters::message_destination(self, self.state.clone(), update.message)
         {
             match destination {
                 MessageDestination::Command { command, arguments, context } => {

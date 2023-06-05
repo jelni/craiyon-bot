@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use tdlib::enums::ChatType;
 
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
@@ -17,17 +18,19 @@ impl CommandTrait for MarkovChain {
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        if !ctx
-            .bot_state
-            .config
-            .lock()
-            .unwrap()
-            .markov_chain_learning
-            .contains(&ctx.message.chat_id)
+        if !matches!(ctx.chat.r#type, ChatType::Private(_))
+            && !ctx
+                .bot_state
+                .config
+                .lock()
+                .unwrap()
+                .markov_chain_learning
+                .contains(&ctx.message.chat_id)
         {
             ctx.reply_formatted_text(message_entities::formatted_text(vec![
                 "a chat admin has to enable Markov chain learning with ".text(),
                 "/config markov_chain_learning true".code(),
+                ".".text(),
             ]))
             .await?;
             return Ok(());

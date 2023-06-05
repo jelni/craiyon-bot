@@ -16,7 +16,7 @@ pub enum MessageDestination {
     MarkovChain { text: String },
 }
 
-pub fn filter_message(
+pub fn message_destination(
     bot: &Bot,
     bot_state: Arc<BotState>,
     message: Message,
