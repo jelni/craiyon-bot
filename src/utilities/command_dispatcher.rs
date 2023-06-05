@@ -56,6 +56,7 @@ fn check_rate_limit(command: &CommandInstance, context: &CommandContext) -> Opti
 
 async fn report_rate_limit(context: &CommandContext, cooldown: u64) -> TdResult<()> {
     if context
+        .bot_state
         .rate_limits
         .lock()
         .unwrap()
@@ -69,6 +70,7 @@ async fn report_rate_limit(context: &CommandContext, cooldown: u64) -> TdResult<
     let cooldown_end = Instant::now() + Duration::from_secs(cooldown.clamp(5, 60));
 
     let message = context
+        .bot_state
         .message_queue
         .wait_for_message(
             context

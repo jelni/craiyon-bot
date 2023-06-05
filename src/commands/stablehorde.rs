@@ -91,7 +91,7 @@ impl CommandTrait for StableHorde {
         ctx.send_typing().await?;
 
         let generation = self.generate(ctx, prompt).await?;
-        let images = download_images(ctx.http_client.clone(), &generation.urls).await?;
+        let images = download_images(ctx.bot_state.http_client.clone(), &generation.urls).await?;
         let image = process_images(images, self.size);
         let mut temp_file = NamedTempFile::new().unwrap();
         image.write_to(&mut BufWriter::new(&mut temp_file), ImageFormat::Png).unwrap();
@@ -123,7 +123,7 @@ impl CommandTrait for StableHorde {
             )
             .await?;
 
-        ctx.message_queue.wait_for_message(message.id).await?;
+        ctx.bot_state.message_queue.wait_for_message(message.id).await?;
         if let Some(status_msg_id) = status_msg_id {
             ctx.delete_message(status_msg_id).await.ok();
         }
@@ -147,9 +147,13 @@ impl StableHorde {
         ctx: &CommandContext,
         prompt: String,
     ) -> Result<Generation, CommandError> {
-        let request_id =
-            stablehorde::generate(ctx.http_client.clone(), &prompt, self.model, self.size)
-                .await??;
+        let request_id = stablehorde::generate(
+            ctx.bot_state.http_client.clone(),
+            &prompt,
+            self.model,
+            self.size,
+        )
+        .await??;
         let escaped_prompt = prompt.truncate_with_ellipsis(256);
         let (results, status_msg_id, time_taken) =
             wait_for_generation(ctx, &request_id, &escaped_prompt).await?;
@@ -191,7 +195,7 @@ async fn wait_for_generation(
     let mut last_status = None;
     let mut show_volunteer_notice = false;
     let time_taken = loop {
-        let status = stablehorde::check(ctx.http_client.clone(), request_id).await??;
+        let status = stablehorde::check(ctx.bot_state.http_client.clone(), request_id).await??;
 
         if status.done {
             break start_time.elapsed();
@@ -202,7 +206,7 @@ async fn wait_for_generation(
         }
 
         if !status.is_possible {
-            stablehorde::cancel_generation(ctx.http_client.clone(), request_id).await?;
+            stablehorde::cancel_generation(ctx.bot_state.http_client.clone(), request_id).await?;
             Err("there are no online workers for the requested model.")?;
         }
 
@@ -217,7 +221,8 @@ async fn wait_for_generation(
                     format_status_text(&status, escaped_prompt, show_volunteer_notice);
                 status_msg_id = Some(match status_msg_id {
                     None => {
-                        ctx.message_queue
+                        ctx.bot_state
+                            .message_queue
                             .wait_for_message(ctx.reply_formatted_text(formatted_text).await?.id)
                             .await?
                             .id
@@ -235,7 +240,7 @@ async fn wait_for_generation(
         tokio::time::sleep(Duration::from_secs(2)).await;
     };
 
-    let results = stablehorde::results(ctx.http_client.clone(), request_id).await??;
+    let results = stablehorde::results(ctx.bot_state.http_client.clone(), request_id).await??;
     Ok((results, status_msg_id, time_taken))
 }
 

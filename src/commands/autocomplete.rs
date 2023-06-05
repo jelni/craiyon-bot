@@ -29,7 +29,7 @@ impl CommandTrait for Autocomplete {
         let StringGreedyOrReply(query) = ConvertArgument::convert(ctx, &arguments).await?.0;
 
         let completions =
-            google::complete(ctx.http_client.clone(), &query).await.unwrap_or_default();
+            google::complete(ctx.bot_state.http_client.clone(), &query).await.unwrap_or_default();
         ctx.reply(completions.choose(&mut StdRng::from_entropy()).ok_or("no autocompletions")?)
             .await?;
 

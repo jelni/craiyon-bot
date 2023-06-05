@@ -41,18 +41,21 @@ impl CommandTrait for Screenshot {
 
         ctx.send_typing().await?;
 
-        let data =
-            microlink::screenshot(ctx.http_client.clone(), url.map_err(|err| err.to_string())?)
-                .await?
-                .map_err(|err| {
-                    CustomFormattedText(message_entities::formatted_text(vec![
-                        err.code.text_url(&err.more),
-                        ": ".text(),
-                        err.message.text(),
-                    ]))
-                })?;
+        let data = microlink::screenshot(
+            ctx.bot_state.http_client.clone(),
+            url.map_err(|err| err.to_string())?,
+        )
+        .await?
+        .map_err(|err| {
+            CustomFormattedText(message_entities::formatted_text(vec![
+                err.code.text_url(&err.more),
+                ": ".text(),
+                err.message.text(),
+            ]))
+        })?;
 
         let screenshot = ctx
+            .bot_state
             .http_client
             .get(data.screenshot.url)
             .send()
@@ -82,7 +85,7 @@ impl CommandTrait for Screenshot {
             )
             .await?;
 
-        ctx.message_queue.wait_for_message(message.id).await?;
+        ctx.bot_state.message_queue.wait_for_message(message.id).await?;
         temp_file.close().unwrap();
 
         Ok(())

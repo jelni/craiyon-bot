@@ -26,7 +26,8 @@ impl CommandTrait for UrbanDictionary {
 
         ctx.send_typing().await?;
 
-        if let Ok(Some(definition)) = urbandictionary::define(ctx.http_client.clone(), &word).await
+        if let Ok(Some(definition)) =
+            urbandictionary::define(ctx.bot_state.http_client.clone(), &word).await
         {
             ctx.reply_formatted_text(format_definition(definition)).await?;
         } else {

@@ -46,7 +46,6 @@ impl Cache {
 
 #[derive(Clone)]
 pub struct CompactChat {
-    pub id: i64,
     pub r#type: ChatType,
     pub title: String,
     pub permissions: ChatPermissions,
@@ -54,12 +53,7 @@ pub struct CompactChat {
 
 impl From<Chat> for CompactChat {
     fn from(value: Chat) -> Self {
-        Self {
-            id: value.id,
-            r#type: value.r#type,
-            title: value.title,
-            permissions: value.permissions,
-        }
+        Self { r#type: value.r#type, title: value.title, permissions: value.permissions }
     }
 }
 

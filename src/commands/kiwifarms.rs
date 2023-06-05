@@ -22,7 +22,7 @@ impl CommandTrait for KiwiFarms {
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         ctx.send_typing().await?;
 
-        let text = match kiwifarms::status(ctx.http_client.clone()).await {
+        let text = match kiwifarms::status(ctx.bot_state.http_client.clone()).await {
             Ok(status) => {
                 if let StatusCode::NON_AUTHORITATIVE_INFORMATION = status {
                     "yes 🤬".into()

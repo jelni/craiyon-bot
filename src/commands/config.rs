@@ -36,14 +36,26 @@ impl CommandTrait for Config {
 
             let value = bool::convert(ctx, rest).await?.0;
             if value {
-                let changed = ctx.config.lock().unwrap().markov_chain_learning.insert(ctx.chat.id);
+                let changed = ctx
+                    .bot_state
+                    .config
+                    .lock()
+                    .unwrap()
+                    .markov_chain_learning
+                    .insert(ctx.message.chat_id);
                 if changed {
                     ctx.reply("Markov chain will now learn from chat messages.").await?;
                 } else {
                     ctx.reply("Markov chain learning was already enabled.").await?;
                 }
             } else {
-                let changed = ctx.config.lock().unwrap().markov_chain_learning.remove(&ctx.chat.id);
+                let changed = ctx
+                    .bot_state
+                    .config
+                    .lock()
+                    .unwrap()
+                    .markov_chain_learning
+                    .remove(&ctx.message.chat_id);
                 if changed {
                     ctx.reply("Markov chain won't learn from chat messages anymore.").await?;
                 } else {

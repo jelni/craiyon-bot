@@ -26,19 +26,28 @@ impl CommandTrait for CobaltDownload {
         let StringGreedyOrReply(media_url) = ConvertArgument::convert(ctx, &arguments).await?.0;
 
         ctx.send_typing().await?;
-        let urls = cobalt::query(ctx.http_client.clone(), &media_url)
+        let urls = cobalt::query(ctx.bot_state.http_client.clone(), &media_url)
             .await??
             .into_iter()
             .take(10)
             .collect::<Vec<_>>();
 
-        let status_msg =
-            ctx.message_queue.wait_for_message(ctx.reply("downloading…").await?.id).await?;
+        let status_msg = ctx
+            .bot_state
+            .message_queue
+            .wait_for_message(ctx.reply("downloading…").await?.id)
+            .await?;
 
         let mut files = Vec::with_capacity(urls.len());
 
         for url in urls {
-            match NetworkFile::download(ctx.http_client.clone(), &url, ctx.client_id).await {
+            match NetworkFile::download(
+                ctx.bot_state.http_client.clone(),
+                &url,
+                ctx.bot_state.client_id,
+            )
+            .await
+            {
                 Ok(file) => files.push(file),
                 Err(err) => match err {
                     DownloadError::RequestError(err) => {
@@ -60,7 +69,8 @@ impl CommandTrait for CobaltDownload {
         if files.len() == 1 {
             let file = files.into_iter().next().unwrap();
 
-            ctx.message_queue
+            ctx.bot_state
+                .message_queue
                 .wait_for_message(
                     ctx.reply_custom(
                         InputMessageContent::InputMessageDocument(InputMessageDocument {
@@ -103,11 +113,12 @@ impl CommandTrait for CobaltDownload {
             None,
             messages,
             false,
-            ctx.client_id,
+            ctx.bot_state.client_id,
         )
         .await?;
 
         for result in ctx
+            .bot_state
             .message_queue
             .wait_for_messages(messages.messages.into_iter().flatten().map(|message| message.id))
             .await

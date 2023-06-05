@@ -1,82 +1,52 @@
 use std::env;
 use std::future::Future;
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::sync::Arc;
 
-use reqwest::{redirect, Client};
 use tdlib::enums::{
-    AuthorizationState, BotCommands, ConnectionState, MessageContent, MessageSender, OptionValue,
-    Update, UserType,
+    AuthorizationState, BotCommands, ConnectionState, MessageSender, OptionValue, Update,
 };
 use tdlib::functions;
 use tdlib::types::{
-    BotCommand, MessageSenderUser, OptionValueInteger, OptionValueString, UpdateAuthorizationState,
-    UpdateChatMember, UpdateChatPermissions, UpdateChatTitle, UpdateConnectionState,
-    UpdateMessageSendFailed, UpdateMessageSendSucceeded, UpdateNewChat, UpdateNewInlineQuery,
-    UpdateNewMessage, UpdateOption, UpdateUser,
+    BotCommand, OptionValueInteger, OptionValueString, UpdateAuthorizationState, UpdateChatMember,
+    UpdateChatPermissions, UpdateChatTitle, UpdateConnectionState, UpdateMessageSendFailed,
+    UpdateMessageSendSucceeded, UpdateNewChat, UpdateNewInlineQuery, UpdateNewMessage,
+    UpdateOption, UpdateUser,
 };
 use tokio::signal;
 use tokio::task::JoinHandle;
 
 use crate::commands::{calculate_inline, dice_reply, CommandTrait};
+use crate::utilities::bot_state::{BotState, BotStatus};
 use crate::utilities::cache::{Cache, CompactUser};
-use crate::utilities::command_context::CommandContext;
-use crate::utilities::command_manager::CommandManager;
-use crate::utilities::config::Config;
-use crate::utilities::message_queue::MessageQueue;
-use crate::utilities::parsed_command::ParsedCommand;
-use crate::utilities::rate_limit::{RateLimiter, RateLimits};
-use crate::utilities::{command_dispatcher, telegram_utils};
+use crate::utilities::command_manager::{CommandInstance, CommandManager};
+use crate::utilities::message_filters::MessageDestination;
+use crate::utilities::{command_dispatcher, message_filters, telegram_utils};
 
 pub type TdError = tdlib::types::Error;
 pub type TdResult<T> = Result<T, TdError>;
 
-#[derive(Clone, Copy)]
-enum BotState {
-    Running,
-    WaitingToClose,
-    Closing,
-    Closed,
-}
-
 pub struct Bot {
-    client_id: i32,
-    state: Arc<Mutex<BotState>>,
-    my_id: Option<i64>,
-    cache: Cache,
-    config: Arc<Mutex<Config>>,
-    http_client: reqwest::Client,
+    pub my_id: Option<i64>,
     command_manager: CommandManager,
-    message_queue: Arc<MessageQueue>,
-    rate_limits: Arc<Mutex<RateLimits>>,
+    pub cache: Cache,
+    state: Arc<BotState>,
     tasks: Vec<JoinHandle<()>>,
 }
 
 impl Bot {
     pub fn new() -> Self {
         Self {
-            client_id: tdlib::create_client(),
-            state: Arc::new(Mutex::new(BotState::Closed)),
             my_id: None,
-            cache: Cache::default(),
-            config: Arc::new(Mutex::new(Config::load().unwrap())),
-            http_client: Client::builder()
-                .redirect(redirect::Policy::none())
-                .timeout(Duration::from_secs(300))
-                .build()
-                .unwrap(),
             command_manager: CommandManager::new(),
-            rate_limits: Arc::new(Mutex::new(RateLimits {
-                rate_limit_exceeded: RateLimiter::new(1, 20),
-            })),
+            cache: Cache::default(),
+            state: Arc::new(BotState::new(tdlib::create_client())),
             tasks: Vec::new(),
-            message_queue: Arc::new(MessageQueue::default()),
         }
     }
 
     pub fn run(&mut self) {
-        *self.state.lock().unwrap() = BotState::Running;
-        let client_id = self.client_id;
+        *self.state.status.lock().unwrap() = BotStatus::Running;
+        let client_id = self.state.client_id;
         self.run_task(async move {
             functions::set_log_verbosity_level(1, client_id).await.unwrap();
         });
@@ -85,7 +55,7 @@ impl Bot {
         self.run_task(async move {
             signal::ctrl_c().await.unwrap();
             log::warn!("Ctrl+C received");
-            *state.lock().unwrap() = BotState::WaitingToClose;
+            *state.status.lock().unwrap() = BotStatus::WaitingToClose;
         });
 
         let mut last_task_count = 0;
@@ -94,9 +64,9 @@ impl Bot {
                 self.on_update(update);
             }
             self.tasks.retain(|t| !t.is_finished());
-            let state = *self.state.lock().unwrap();
+            let state = *self.state.status.lock().unwrap();
             match state {
-                BotState::WaitingToClose => {
+                BotStatus::WaitingToClose => {
                     if self.tasks.is_empty() {
                         self.close();
                     } else {
@@ -107,19 +77,19 @@ impl Bot {
                         }
                     }
                 }
-                BotState::Closed => break,
+                BotStatus::Closed => break,
                 _ => (),
             }
         }
 
-        if let Err(err) = self.config.lock().unwrap().save() {
+        if let Err(err) = self.state.config.lock().unwrap().save() {
             log::error!("failed to save bot config: {err}");
         }
     }
 
     fn close(&mut self) {
-        *self.state.lock().unwrap() = BotState::Closing;
-        let client_id = self.client_id;
+        *self.state.status.lock().unwrap() = BotStatus::Closing;
+        let client_id = self.state.client_id;
         self.run_task(async move {
             functions::close(client_id).await.unwrap();
         });
@@ -151,7 +121,7 @@ impl Bot {
         log::info!("authorization: {:?}", update.authorization_state);
         match update.authorization_state {
             AuthorizationState::WaitTdlibParameters => {
-                let client_id = self.client_id;
+                let client_id = self.state.client_id;
                 self.run_task(async move {
                     functions::set_tdlib_parameters(
                         false,
@@ -177,7 +147,7 @@ impl Bot {
                 });
             }
             AuthorizationState::WaitPhoneNumber => {
-                let client_id = self.client_id;
+                let client_id = self.state.client_id;
                 self.run_task(async move {
                     functions::check_authentication_bot_token(
                         env::var("TELEGRAM_TOKEN").unwrap(),
@@ -187,13 +157,13 @@ impl Bot {
                     .unwrap();
                 });
             }
-            AuthorizationState::Closed => *self.state.lock().unwrap() = BotState::Closed,
+            AuthorizationState::Closed => *self.state.status.lock().unwrap() = BotStatus::Closed,
             _ => (),
         }
     }
 
     fn on_ready(&mut self) {
-        let client_id = self.client_id;
+        let client_id = self.state.client_id;
         let commands = self.command_manager.public_command_list();
         self.run_task(async move {
             functions::get_me(client_id).await.unwrap();
@@ -202,67 +172,34 @@ impl Bot {
     }
 
     fn on_new_message(&mut self, update: UpdateNewMessage) {
-        if update.message.forward_info.is_some() {
-            return; // ignore forwarded messages
-        }
-        let MessageSender::User(MessageSenderUser { user_id }) = update.message.sender_id else {
-            return; // ignore messages not sent by users
-        };
-        let Some(user) = self.cache.get_user(user_id) else {
-            return; // ignore users not in cache
-        };
-        let UserType::Regular = user.r#type else {
-            return; // ignore bots
-        };
-        let Some(chat) = self.cache.get_chat(update.message.chat_id) else {
-            return; // ignore chats not in cache
-        };
-        if let MessageContent::MessageDice(_) = update.message.content {
-            self.run_task(dice_reply::execute(update.message, self.client_id));
-            return;
-        }
-        let Some(text) = telegram_utils::get_message_text(&update.message) else {
-            return; // ignore messages without text
-        };
-        let Some(parsed_command) = ParsedCommand::parse(text) else {
-            return; // ignore messages without commands
-        };
-        if let Some(bot_username) = &parsed_command.bot_username {
-            if Some(bot_username.to_ascii_lowercase())
-                != self.get_me().and_then(|me| {
-                    me.username.as_ref().map(|username| username.to_ascii_lowercase())
-                })
-            {
-                return; // ignore commands sent to other bots
+        if let Some(destination) =
+            message_filters::filter_message(self, self.state.clone(), update.message)
+        {
+            match destination {
+                MessageDestination::Command { command, arguments, context } => {
+                    self.run_task(command_dispatcher::dispatch_command(
+                        command, arguments, context,
+                    ));
+                }
+                MessageDestination::Dice { message, bot_state } => {
+                    self.run_task(dice_reply::execute(message, bot_state.client_id));
+                }
+                MessageDestination::MarkovChain { text } => todo!(),
             }
         }
-        let Some(command) = self.command_manager.get_command(&parsed_command.name) else {
-            return; // ignore nonexistent commands
-        };
-
-        self.run_task(command_dispatcher::dispatch_command(
-            command,
-            parsed_command.arguments,
-            CommandContext {
-                chat,
-                user,
-                message: update.message,
-                client_id: self.client_id,
-                rate_limits: self.rate_limits.clone(),
-                message_queue: self.message_queue.clone(),
-                config: self.config.clone(),
-                http_client: self.http_client.clone(),
-            },
-        ));
     }
 
     fn on_new_inline_query(&mut self, update: UpdateNewInlineQuery) {
-        self.run_task(calculate_inline::execute(update, self.http_client.clone(), self.client_id));
+        self.run_task(calculate_inline::execute(
+            update,
+            self.state.http_client.clone(),
+            self.state.client_id,
+        ));
     }
 
     fn on_chat_member(&self, update: UpdateChatMember) {
         if let MessageSender::User(user) = &update.new_chat_member.member_id {
-            if user.user_id == self.my_id.unwrap() {
+            if self.my_id.is_some_and(|my_id| user.user_id == my_id) {
                 if let Some(chat) = self.cache.get_chat(update.chat_id) {
                     telegram_utils::log_status_update(update, &chat);
                 };
@@ -271,11 +208,11 @@ impl Bot {
     }
 
     fn on_message_send_succeeded(&mut self, update: UpdateMessageSendSucceeded) {
-        self.message_queue.message_sent(Ok(update));
+        self.state.message_queue.message_sent(Ok(update));
     }
 
     fn on_message_send_failed(&mut self, update: UpdateMessageSendFailed) {
-        self.message_queue.message_sent(Err(update));
+        self.state.message_queue.message_sent(Err(update));
     }
 
     fn on_new_chat(&mut self, update: UpdateNewChat) {
@@ -291,7 +228,7 @@ impl Bot {
     }
 
     fn on_user(&mut self, update: UpdateUser) {
-        if update.user.id == self.my_id.unwrap() {
+        if self.my_id.is_some_and(|my_id| update.user.id == my_id) {
             let user = CompactUser::from(update.user.clone());
             log::info!("running as {user}");
         }
@@ -329,6 +266,10 @@ impl Bot {
 
     pub fn add_command(&mut self, command: impl CommandTrait + Send + Sync + 'static) {
         self.command_manager.add_command(Box::new(command));
+    }
+
+    pub fn get_command(&self, name: &str) -> Option<Arc<CommandInstance>> {
+        self.command_manager.get_command(name)
     }
 
     pub async fn sync_commands(commands: Vec<BotCommand>, client_id: i32) -> TdResult<()> {

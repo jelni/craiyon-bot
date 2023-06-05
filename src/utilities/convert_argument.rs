@@ -93,7 +93,7 @@ impl ConvertArgument for Reply {
         let Message::Message(message) = functions::get_message(
             ctx.message.reply_in_chat_id,
             ctx.message.reply_to_message_id,
-            ctx.client_id,
+            ctx.bot_state.client_id,
         )
         .await
         .map_err(|_| ConversionError::BadArgument("replied message cannot be loaded."))?;

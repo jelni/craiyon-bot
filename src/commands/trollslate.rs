@@ -35,7 +35,8 @@ impl CommandTrait for Trollslate {
 
         let next_language = languages.next().unwrap();
         let translation =
-            translate::single(ctx.http_client.clone(), &text, None, next_language).await?;
+            translate::single(ctx.bot_state.http_client.clone(), &text, None, next_language)
+                .await?;
         let mut text = translation.text;
         let source_language = translation.source_language;
 
@@ -50,7 +51,9 @@ impl CommandTrait for Trollslate {
         for language in languages.copied().chain(iter::once(
             target_language.map_or(source_language.as_str(), |target_language| target_language.0),
         )) {
-            text = translate::single(ctx.http_client.clone(), &text, None, language).await?.text;
+            text = translate::single(ctx.bot_state.http_client.clone(), &text, None, language)
+                .await?
+                .text;
             entities.extend([
                 " ➜ ".text(),
                 google_translate::get_language_name(language).unwrap_or(language).bold(),

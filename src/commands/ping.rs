@@ -20,7 +20,7 @@ impl CommandTrait for Ping {
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         let start = Instant::now();
-        functions::test_network(ctx.client_id).await?;
+        functions::test_network(ctx.bot_state.client_id).await?;
         let duration = start.elapsed();
         ctx.reply(format!("ping: {}ms", duration.as_millis())).await?;
 

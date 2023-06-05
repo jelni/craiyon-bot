@@ -25,20 +25,22 @@ impl CommandTrait for DifferentDimensionMe {
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        let mut file = telegram_utils::get_message_or_reply_image(&ctx.message, ctx.client_id)
-            .await
-            .ok_or("send or reply to an image.")?;
+        let mut file =
+            telegram_utils::get_message_or_reply_image(&ctx.message, ctx.bot_state.client_id)
+                .await
+                .ok_or("send or reply to an image.")?;
 
         if file.expected_size > 4 * MEBIBYTE {
             Err("the image cannot be larger than 4 MiB.")?;
         }
 
-        File::File(file) = functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
+        File::File(file) =
+            functions::download_file(file.id, 1, 0, 0, true, ctx.bot_state.client_id).await?;
 
         ctx.send_typing().await?;
 
         let result = different_dimension_me::process(
-            ctx.http_client.clone(),
+            ctx.bot_state.http_client.clone(),
             &fs::read(file.local.path).unwrap(),
         )
         .await?;
@@ -55,7 +57,7 @@ impl CommandTrait for DifferentDimensionMe {
         })?;
 
         let image_url = media.img_urls.into_iter().next().ok_or("the generation failed.")?;
-        let response = ctx.http_client.get(&image_url).send().await?;
+        let response = ctx.bot_state.http_client.get(&image_url).send().await?;
         let image =
             image::load_from_memory_with_format(&response.bytes().await?, ImageFormat::Jpeg)
                 .map_err(|err| err.to_string())?;
@@ -84,7 +86,7 @@ impl CommandTrait for DifferentDimensionMe {
             )
             .await?;
 
-        ctx.message_queue.wait_for_message(message.id).await?;
+        ctx.bot_state.message_queue.wait_for_message(message.id).await?;
         temp_file.close().unwrap();
 
         Ok(())
