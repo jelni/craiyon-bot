@@ -17,7 +17,7 @@ use tokio::task::JoinHandle;
 
 use crate::commands::{calculate_inline, dice_reply, CommandTrait};
 use crate::utilities::bot_state::{BotState, BotStatus};
-use crate::utilities::cache::{Cache, CompactUser};
+use crate::utilities::cache::CompactUser;
 use crate::utilities::command_manager::{CommandInstance, CommandManager};
 use crate::utilities::message_filters::MessageDestination;
 use crate::utilities::{command_dispatcher, markov_chain_manager, message_filters, telegram_utils};
@@ -27,9 +27,8 @@ pub type TdResult<T> = Result<T, TdError>;
 
 pub struct Bot {
     pub client_id: i32,
-    pub my_id: Option<i64>,
+    my_id: Option<i64>,
     command_manager: CommandManager,
-    pub cache: Cache,
     state: Arc<BotState>,
     tasks: Vec<JoinHandle<()>>,
 }
@@ -40,7 +39,6 @@ impl Bot {
             client_id: tdlib::create_client(),
             my_id: None,
             command_manager: CommandManager::new(),
-            cache: Cache::default(),
             state: Arc::new(BotState::new()),
             tasks: Vec::new(),
         }
@@ -125,6 +123,7 @@ impl Bot {
 
     fn on_authorization_state(&mut self, update: &UpdateAuthorizationState) {
         log::info!("authorization: {:?}", update.authorization_state);
+
         match update.authorization_state {
             AuthorizationState::WaitTdlibParameters => {
                 let client_id = self.client_id;
@@ -205,14 +204,16 @@ impl Bot {
         ));
     }
 
-    fn on_chat_member(&self, update: UpdateChatMember) {
+    fn on_chat_member(&mut self, update: UpdateChatMember) {
         if let MessageSender::User(user) = &update.new_chat_member.member_id {
             if self.my_id.is_some_and(|my_id| user.user_id == my_id) {
-                if let Some(chat) = self.cache.get_chat(update.chat_id) {
-                    telegram_utils::log_status_update(update, &chat);
+                if let Some(chat) = self.state.cache.lock().unwrap().get_chat(update.chat_id) {
+                    telegram_utils::log_status_update(&update, &chat);
                 };
             }
         }
+
+        self.state.cache.lock().unwrap().update_chat_member(update);
     }
 
     fn on_message_send_succeeded(&mut self, update: UpdateMessageSendSucceeded) {
@@ -224,15 +225,15 @@ impl Bot {
     }
 
     fn on_new_chat(&mut self, update: UpdateNewChat) {
-        self.cache.update_new_chat(update);
+        self.state.cache.lock().unwrap().update_new_chat(update);
     }
 
     fn on_chat_title(&mut self, update: UpdateChatTitle) {
-        self.cache.update_chat_title(update);
+        self.state.cache.lock().unwrap().update_chat_title(update);
     }
 
     fn on_chat_permissions(&mut self, update: UpdateChatPermissions) {
-        self.cache.update_chat_permissions(update);
+        self.state.cache.lock().unwrap().update_chat_permissions(update);
     }
 
     fn on_user(&mut self, update: UpdateUser) {
@@ -241,7 +242,7 @@ impl Bot {
             log::info!("running as {user}");
         }
 
-        self.cache.update_user(update);
+        self.state.cache.lock().unwrap().update_user(update);
     }
 
     fn on_option(&mut self, update: UpdateOption) {
@@ -269,7 +270,7 @@ impl Bot {
     }
 
     pub fn get_me(&self) -> Option<CompactUser> {
-        self.cache.get_user(self.my_id?)
+        self.state.cache.lock().unwrap().get_user(self.my_id?)
     }
 
     pub fn add_command(&mut self, command: impl CommandTrait + Send + Sync + 'static) {

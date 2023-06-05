@@ -29,7 +29,7 @@ pub fn filter_message(
         return None; // ignore messages not sent by users
     };
 
-    let Some(user) = bot.cache.get_user(user_id) else {
+    let Some(user) = bot_state.cache.lock().unwrap().get_user(user_id) else {
         log::warn!("user {user_id} not found in cache");
         return None; // ignore users not in cache
     };
@@ -38,7 +38,7 @@ pub fn filter_message(
         return None; // ignore bots
     };
 
-    let Some(chat) = bot.cache.get_chat(message.chat_id) else {
+    let Some(chat) = bot_state.cache.lock().unwrap().get_chat(message.chat_id) else {
         log::warn!("chat {} not found in cache", message.chat_id);
         return None; // ignore chats not in cache
     };
