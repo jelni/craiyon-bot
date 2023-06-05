@@ -74,17 +74,16 @@ pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Op
     get_message_image(&message)
 }
 
-pub fn log_status_update(update: UpdateChatMember, chat: &CompactChat) {
+pub fn log_status_update(update: &UpdateChatMember, chat: &CompactChat) {
     if let ChatType::Private(_) = chat.r#type {
         return;
     }
 
-    let new_status = update.new_chat_member.status;
-    if new_status == update.old_chat_member.status {
+    if update.new_chat_member.status == update.old_chat_member.status {
         return;
     }
 
-    let status = match new_status {
+    let status = match update.new_chat_member.status {
         ChatMemberStatus::Member => "joined",
         ChatMemberStatus::Left => "left",
         _ => return,

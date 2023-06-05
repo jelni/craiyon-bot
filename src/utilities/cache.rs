@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use tdlib::enums::{ChatType, UserType};
+use tdlib::enums::{ChatMemberStatus, ChatType, MessageSender, UserType};
 use tdlib::types::{
-    Chat, ChatPermissions, UpdateChatPermissions, UpdateChatTitle, UpdateNewChat, UpdateUser, User,
+    Chat, ChatPermissions, MessageSenderUser, UpdateChatMember, UpdateChatPermissions,
+    UpdateChatTitle, UpdateNewChat, UpdateUser, User,
 };
 
 use super::telegram_utils::MainUsername;
@@ -12,6 +13,7 @@ use super::telegram_utils::MainUsername;
 pub struct Cache {
     chats: HashMap<i64, CompactChat>,
     users: HashMap<i64, CompactUser>,
+    member_status: HashMap<(i64, i64), ChatMemberStatus>,
 }
 
 impl Cache {
@@ -21,6 +23,14 @@ impl Cache {
 
     pub fn get_user(&self, id: i64) -> Option<CompactUser> {
         self.users.get(&id).cloned()
+    }
+
+    pub fn get_member_status(&self, chat_id: i64, member_id: i64) -> Option<ChatMemberStatus> {
+        self.member_status.get(&(chat_id, member_id)).cloned()
+    }
+
+    pub fn set_member_status(&mut self, chat_id: i64, member_id: i64, status: ChatMemberStatus) {
+        self.member_status.insert((chat_id, member_id), status);
     }
 
     pub fn update_new_chat(&mut self, update: UpdateNewChat) {
@@ -41,6 +51,13 @@ impl Cache {
 
     pub fn update_user(&mut self, update: UpdateUser) {
         self.users.insert(update.user.id, update.user.into());
+    }
+
+    pub fn update_chat_member(&mut self, update: UpdateChatMember) {
+        if let MessageSender::User(MessageSenderUser { user_id }) = update.new_chat_member.member_id
+        {
+            self.member_status.insert((update.chat_id, user_id), update.new_chat_member.status);
+        }
     }
 }
 

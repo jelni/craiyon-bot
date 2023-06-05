@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use tdlib::enums::ChatType;
+use tdlib::enums::{ChatMemberStatus, ChatType};
 
 use super::{CommandError, CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
@@ -7,7 +7,7 @@ use crate::utilities::convert_argument::ConvertArgument;
 use crate::utilities::message_entities::{self, Entity, ToEntity};
 
 const MARKOV_CHAIN_LEARNING: &str = "markov_chain_learning";
-const OPTIONS: [&str; 1] = [MARKOV_CHAIN_LEARNING];
+const SETTINGS: [&str; 1] = [MARKOV_CHAIN_LEARNING];
 
 pub struct Config;
 
@@ -18,21 +18,22 @@ impl CommandTrait for Config {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("configure bot options")
+        Some("configure bot settings")
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let Ok((mut option, rest)) = String::convert(ctx, &arguments).await else {
-            let mut entities = vec!["list of available options:\n".text()];
-            entities.extend(option_names());
+        let Ok((mut setting, rest)) = String::convert(ctx, &arguments).await else {
+            let mut entities = vec!["list of available settings:\n".text()];
+            entities.extend(setting_names());
             ctx.reply_formatted_text(message_entities::formatted_text(entities)).await?;
             return Ok(());
         };
 
-        option.make_ascii_lowercase();
+        setting.make_ascii_lowercase();
 
-        if option == MARKOV_CHAIN_LEARNING {
+        if setting == MARKOV_CHAIN_LEARNING {
             chat_group_guard(ctx)?;
+            chat_admin_guard(ctx).await?;
 
             let value = bool::convert(ctx, rest).await?.0;
             if value {
@@ -63,8 +64,8 @@ impl CommandTrait for Config {
                 }
             };
         } else {
-            let mut entities = vec!["unknown option name. available options include:\n".text()];
-            entities.extend(option_names());
+            let mut entities = vec!["unknown setting name. available settings include:\n".text()];
+            entities.extend(setting_names());
 
             Err(CommandError::CustomFormattedText(message_entities::formatted_text(entities)))?;
         }
@@ -75,12 +76,27 @@ impl CommandTrait for Config {
 
 fn chat_group_guard(ctx: &CommandContext) -> CommandResult {
     let (ChatType::BasicGroup(_) | ChatType::Supergroup(_)) = ctx.chat.r#type else {
-        return Err(CommandError::Custom("this option can be only set in groups.".into()));
+        return Err("this setting can be only set in groups.".into());
     };
 
     Ok(())
 }
 
-fn option_names() -> impl Iterator<Item = Entity<'static>> {
-    OPTIONS.into_iter().flat_map(|option| [",\n".text(), option.code()]).skip(1)
+async fn chat_admin_guard(ctx: &CommandContext) -> CommandResult {
+    let status =
+        ctx.bot_state.get_member_status(ctx.message.chat_id, ctx.user.id, ctx.client_id).await?;
+
+    if !match status {
+        ChatMemberStatus::Creator(_) => true,
+        ChatMemberStatus::Administrator(status) => status.rights.can_change_info,
+        _ => false,
+    } {
+        return Err("this setting requires the Change Group Info permission.".into());
+    }
+
+    Ok(())
+}
+
+fn setting_names() -> impl Iterator<Item = Entity<'static>> {
+    SETTINGS.into_iter().flat_map(|setting| [",\n".text(), setting.code()]).skip(1)
 }

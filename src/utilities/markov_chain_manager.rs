@@ -33,11 +33,14 @@ pub fn train(markov_chain: &mut MarkovChain, mut text: String) {
     let mut words = text
         .split_ascii_whitespace()
         .map(|word| word.trim_matches(|char: char| !char.is_alphabetic()))
-        .filter(|word| !word.is_empty());
+        .filter(|word| !word.is_empty())
+        .collect::<Vec<_>>();
 
-    if words.any(|word| word.chars().count() > 32) {
+    if words.iter().any(|word| word.chars().count() > 32) {
         return;
     }
 
-    markov_chain.train(words.map(Into::into));
+    words.dedup();
+
+    markov_chain.train(words.into_iter().map(Into::into));
 }

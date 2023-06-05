@@ -3,11 +3,16 @@ use std::time::Duration;
 
 use markov_chain::MarkovChain;
 use reqwest::{redirect, Client};
+use tdlib::enums::{ChatMember, ChatMemberStatus, MessageSender};
+use tdlib::functions;
+use tdlib::types::MessageSenderUser;
 
+use super::cache::Cache;
 use super::config::Config;
 use super::markov_chain_manager;
 use super::message_queue::MessageQueue;
 use super::rate_limit::{RateLimiter, RateLimits};
+use crate::bot::TdResult;
 
 #[derive(Clone, Copy)]
 pub enum BotStatus {
@@ -20,6 +25,7 @@ pub enum BotStatus {
 pub struct BotState {
     pub status: Mutex<BotStatus>,
     pub config: Mutex<Config>,
+    pub cache: Mutex<Cache>,
     pub http_client: Client,
     pub message_queue: MessageQueue,
     pub rate_limits: Mutex<RateLimits>,
@@ -31,6 +37,7 @@ impl BotState {
         Self {
             status: Mutex::new(BotStatus::Closed),
             config: Mutex::new(Config::load().unwrap()),
+            cache: Mutex::new(Cache::default()),
             http_client: Client::builder()
                 .redirect(redirect::Policy::none())
                 .timeout(Duration::from_secs(300))
@@ -40,5 +47,31 @@ impl BotState {
             message_queue: MessageQueue::default(),
             markov_chain: Mutex::new(markov_chain_manager::load().unwrap()),
         }
+    }
+
+    pub async fn get_member_status(
+        &self,
+        chat_id: i64,
+        member_id: i64,
+        client_id: i32,
+    ) -> TdResult<ChatMemberStatus> {
+        if let Some(status) = self.cache.lock().unwrap().get_member_status(chat_id, member_id) {
+            return Ok(status);
+        }
+
+        let ChatMember::ChatMember(chat_member) = functions::get_chat_member(
+            chat_id,
+            MessageSender::User(MessageSenderUser { user_id: member_id }),
+            client_id,
+        )
+        .await?;
+
+        self.cache.lock().unwrap().set_member_status(
+            chat_id,
+            member_id,
+            chat_member.status.clone(),
+        );
+
+        Ok(chat_member.status)
     }
 }
