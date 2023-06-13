@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use tdlib::enums::{InputFile, InputMessageContent, Messages};
 use tdlib::functions;
-use tdlib::types::{InputFileLocal, InputMessageDocument};
+use tdlib::types::{InputFileLocal, InputMessageAudio, InputMessageDocument, InputMessageVideo};
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::cobalt;
@@ -69,14 +69,7 @@ impl CommandTrait for CobaltDownload {
                 .message_queue
                 .wait_for_message(
                     ctx.reply_custom(
-                        InputMessageContent::InputMessageDocument(InputMessageDocument {
-                            document: InputFile::Local(InputFileLocal {
-                                path: file.file_path.clone(),
-                            }),
-                            thumbnail: None,
-                            disable_content_type_detection: false,
-                            caption: None,
-                        }),
+                        get_message_content(&file),
                         Some(telegram_utils::donate_markup("≫ cobalt", "https://boosty.to/wukko")),
                     )
                     .await?
@@ -94,7 +87,9 @@ impl CommandTrait for CobaltDownload {
             .iter()
             .map(|file| {
                 InputMessageContent::InputMessageDocument(InputMessageDocument {
-                    document: InputFile::Local(InputFileLocal { path: file.file_path.clone() }),
+                    document: InputFile::Local(InputFileLocal {
+                        path: file.file_path.to_str().unwrap().into(),
+                    }),
                     thumbnail: None,
                     disable_content_type_detection: false,
                     caption: None,
@@ -129,5 +124,50 @@ impl CommandTrait for CobaltDownload {
         }
 
         Ok(())
+    }
+}
+
+fn get_message_content(file: &NetworkFile) -> InputMessageContent {
+    let input_file =
+        InputFile::Local(InputFileLocal { path: file.file_path.to_str().unwrap().into() });
+
+    if file.content_type.as_ref().is_some_and(|content_type| content_type == "video/mp4")
+        || file.file_path.extension().is_some_and(|extension| extension.eq_ignore_ascii_case("mp4"))
+    {
+        InputMessageContent::InputMessageVideo(InputMessageVideo {
+            video: input_file,
+            thumbnail: None,
+            added_sticker_file_ids: Vec::new(),
+            duration: 0,
+            width: 0,
+            height: 0,
+            supports_streaming: true,
+            caption: None,
+            self_destruct_time: 0,
+            has_spoiler: false,
+        })
+    } else if file
+        .content_type
+        .as_ref()
+        .is_some_and(|content_type| ["audio/mpeg", "audio/webm"].contains(&content_type.as_str()))
+        || file.file_path.extension().is_some_and(|extension| {
+            extension.eq_ignore_ascii_case("mp3") || extension.eq_ignore_ascii_case("opus")
+        })
+    {
+        InputMessageContent::InputMessageAudio(InputMessageAudio {
+            audio: input_file,
+            album_cover_thumbnail: None,
+            duration: 0,
+            title: String::new(),
+            performer: String::new(),
+            caption: None,
+        })
+    } else {
+        InputMessageContent::InputMessageDocument(InputMessageDocument {
+            document: input_file,
+            thumbnail: None,
+            disable_content_type_detection: false,
+            caption: None,
+        })
     }
 }

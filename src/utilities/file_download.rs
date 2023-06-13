@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{self, BufWriter, Write};
+use std::path::PathBuf;
 use std::time::Duration;
 
 use futures_util::StreamExt;
@@ -15,7 +16,7 @@ pub enum DownloadError {
 
 pub struct NetworkFile {
     temp_dir: TempDir,
-    pub file_path: String,
+    pub file_path: PathBuf,
     pub content_type: Option<String>,
 }
 
@@ -59,7 +60,7 @@ impl NetworkFile {
 
         file.flush().map_err(|_| DownloadError::FilesystemError)?;
 
-        Ok(Self { temp_dir, file_path: file_path.to_string_lossy().into_owned(), content_type })
+        Ok(Self { temp_dir, file_path, content_type })
     }
 
     pub fn close(self) -> io::Result<()> {
