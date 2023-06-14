@@ -7,10 +7,10 @@ use tdlib::enums::{
 };
 use tdlib::functions;
 use tdlib::types::{
-    BotCommand, OptionValueInteger, OptionValueString, UpdateAuthorizationState, UpdateChatMember,
-    UpdateChatPermissions, UpdateChatTitle, UpdateConnectionState, UpdateMessageSendFailed,
-    UpdateMessageSendSucceeded, UpdateNewChat, UpdateNewInlineQuery, UpdateNewMessage,
-    UpdateOption, UpdateUser,
+    BotCommand, OptionValueBoolean, OptionValueInteger, OptionValueString,
+    UpdateAuthorizationState, UpdateChatMember, UpdateChatPermissions, UpdateChatTitle,
+    UpdateConnectionState, UpdateMessageSendFailed, UpdateMessageSendSucceeded, UpdateNewChat,
+    UpdateNewInlineQuery, UpdateNewMessage, UpdateOption, UpdateUser,
 };
 use tokio::signal;
 use tokio::task::JoinHandle;
@@ -149,6 +149,22 @@ impl Bot {
                     )
                     .await
                     .unwrap();
+
+                    for option in [
+                        "disable_persistent_network_statistics",
+                        "disable_time_adjustment_protection",
+                        "ignore_inline_thumbnails",
+                        "ignore_platform_restrictions",
+                        "use_storage_optimizer",
+                    ] {
+                        functions::set_option(
+                            option.into(),
+                            Some(OptionValue::Boolean(OptionValueBoolean { value: true })),
+                            client_id,
+                        )
+                        .await
+                        .unwrap();
+                    }
                 });
             }
             AuthorizationState::WaitPhoneNumber => {
