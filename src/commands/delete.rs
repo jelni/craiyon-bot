@@ -1,4 +1,6 @@
 use async_trait::async_trait;
+use tdlib::enums::MessageReplyTo;
+use tdlib::types::MessageReplyToMessage;
 
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
@@ -19,10 +21,13 @@ impl CommandTrait for Delete {
             return Ok(());
         }
 
-        let reply_to_message_id = ctx.message.reply_to_message_id;
-        if reply_to_message_id != 0 {
-            ctx.delete_message(reply_to_message_id).await.ok();
-        }
+        let Some(&MessageReplyTo::Message(MessageReplyToMessage { message_id, .. })) =
+            ctx.message.reply_to.as_ref()
+        else {
+            return Ok(());
+        };
+
+        ctx.delete_message(message_id).await.ok();
 
         Ok(())
     }
