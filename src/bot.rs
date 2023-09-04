@@ -139,7 +139,7 @@ impl Bot {
                         false,
                         env::var("API_ID").unwrap().parse().unwrap(),
                         env::var("API_HASH").unwrap(),
-                        "en".into(),
+                        "en-raw".into(),
                         env!("CARGO_PKG_NAME").into(),
                         String::new(),
                         env!("CARGO_PKG_VERSION").into(),

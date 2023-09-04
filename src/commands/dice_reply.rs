@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use rand::Rng;
-use tdlib::enums::{InputMessageContent, MessageContent};
+use tdlib::enums::{InputMessageContent, MessageContent, MessageReplyTo};
 use tdlib::functions;
-use tdlib::types::{FormattedText, InputMessageText, Message, MessageDice};
+use tdlib::types::{FormattedText, InputMessageText, Message, MessageDice, MessageReplyToMessage};
 
 pub async fn execute(message: Message, client_id: i32) {
     let MessageContent::MessageDice(dice) = message.content else {
@@ -23,7 +23,10 @@ pub async fn execute(message: Message, client_id: i32) {
     functions::send_message(
         message.chat_id,
         message.message_thread_id,
-        message.id,
+        Some(MessageReplyTo::Message(MessageReplyToMessage {
+            chat_id: message.chat_id,
+            message_id: message.id,
+        })),
         None,
         None,
         InputMessageContent::InputMessageText(InputMessageText {

@@ -1,10 +1,11 @@
 use tdlib::enums::{
-    self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, ReplyMarkup,
+    self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, MessageReplyTo,
+    ReplyMarkup,
 };
 use tdlib::functions;
 use tdlib::types::{
     File, FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message,
-    ReplyMarkupInlineKeyboard, UpdateChatMember, User,
+    MessageReplyToMessage, ReplyMarkupInlineKeyboard, UpdateChatMember, User,
 };
 
 use super::cache::CompactChat;
@@ -62,14 +63,14 @@ pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Op
         return Some(file);
     }
 
-    if message.reply_to_message_id == 0 {
+    let &MessageReplyTo::Message(MessageReplyToMessage { chat_id, message_id }) =
+        message.reply_to.as_ref()?
+    else {
         return None;
-    }
+    };
 
     let enums::Message::Message(message) =
-        functions::get_message(message.reply_in_chat_id, message.reply_to_message_id, client_id)
-            .await
-            .ok()?;
+        functions::get_message(chat_id, message_id, client_id).await.ok()?;
 
     get_message_image(&message)
 }

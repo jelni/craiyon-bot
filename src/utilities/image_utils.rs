@@ -10,12 +10,12 @@ pub fn collage(images: Vec<DynamicImage>, image_size: (u32, u32), gap: u32) -> D
         image_count_y * image_size.1 + (image_count_y - 1) * gap,
     );
 
-    for (i, image) in images.into_iter().enumerate() {
-        let col = i % image_count_x as usize;
-        let row = i / image_count_x as usize;
-        let x = col * (image_size.0 + gap) as usize;
-        let y = row * (image_size.1 + gap) as usize;
-        imageops::overlay(&mut base, &image, x as _, y as _);
+    for (image, i) in images.into_iter().zip(0..) {
+        let col = i % image_count_x;
+        let row = i / image_count_x;
+        let x = col * (image_size.0 + gap);
+        let y = row * (image_size.1 + gap);
+        imageops::overlay(&mut base, &image, i64::from(x), i64::from(y));
     }
 
     base

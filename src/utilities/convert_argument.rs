@@ -1,8 +1,9 @@
 use std::fmt;
 
 use async_trait::async_trait;
-use tdlib::enums::Message;
+use tdlib::enums::{Message, MessageReplyTo};
 use tdlib::functions;
+use tdlib::types::MessageReplyToMessage;
 
 use super::command_context::CommandContext;
 use super::telegram_utils;
@@ -86,17 +87,19 @@ impl ConvertArgument for Reply {
         ctx: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        if ctx.message.reply_to_message_id == 0 {
-            Err(ConversionError::MissingArgument)?;
-        }
+        let Some(MessageReplyTo::Message(MessageReplyToMessage { chat_id, message_id })) =
+            ctx.message.reply_to
+        else {
+            return Err(ConversionError::MissingArgument);
+        };
 
-        let Message::Message(message) = functions::get_message(
-            ctx.message.reply_in_chat_id,
-            ctx.message.reply_to_message_id,
-            ctx.client_id,
-        )
-        .await
-        .map_err(|_| ConversionError::BadArgument("replied message cannot be loaded."))?;
+        let Message::Message(message) =
+            functions::get_message(chat_id, message_id, ctx.client_id).await.map_err(|_| {
+                ConversionError::BadArgument(concat!(
+                    "replied message cannot be loaded ",
+                    "(i can't see other bots' messages — unless you forward them).",
+                ))
+            })?;
 
         let argument = telegram_utils::get_message_text(&message)
             .ok_or(ConversionError::BadArgument("replied message doesn't contain any text."))?

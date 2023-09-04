@@ -189,8 +189,7 @@ impl ConvertArgument for SourceTargetLanguages {
         ctx: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        let Some((Language(first_language), rest)) =
-            Language::convert(ctx, arguments).await.ok()
+        let Some((Language(first_language), rest)) = Language::convert(ctx, arguments).await.ok()
         else {
             let target_language = if ctx.user.language_code.is_empty() {
                 Cow::Borrowed("en")
@@ -201,8 +200,7 @@ impl ConvertArgument for SourceTargetLanguages {
             return Ok((SourceTargetLanguages(None, target_language), arguments));
         };
 
-        let Some((Language(second_language), rest)) =
-            Language::convert(ctx, rest).await.ok()
+        let Some((Language(second_language), rest)) = Language::convert(ctx, rest).await.ok()
         else {
             return Ok((SourceTargetLanguages(None, Cow::Borrowed(first_language)), rest));
         };
