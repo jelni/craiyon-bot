@@ -32,23 +32,22 @@ pub enum InvalidCloudflareStorageUrl {
 
 pub fn cloudflare_storage_url(url: &str) -> Result<Url, InvalidCloudflareStorageUrl> {
     Url::parse(url).map_err(InvalidCloudflareStorageUrl::ParseError).and_then(|url| {
-        if let Some(host) = url.host_str() {
+        url.host_str().map_or(Err(InvalidCloudflareStorageUrl::InvalidDomain), |host| {
             if host.ends_with(CLOUDFLARE_STORAGE) {
-                Ok(url)
+                Ok(url.clone())
             } else {
                 Err(InvalidCloudflareStorageUrl::InvalidDomain)
             }
-        } else {
-            Err(InvalidCloudflareStorageUrl::InvalidDomain)
-        }
+        })
     })
 }
 
 pub async fn simultaneous_download(
     http_client: reqwest::Client,
-    urls: impl Iterator<Item = Url>,
+    urls: Vec<Url>,
 ) -> reqwest::Result<Vec<Bytes>> {
     let tasks = urls
+        .into_iter()
         .map(|url| {
             let http_client = http_client.clone();
             tokio::spawn(async move {

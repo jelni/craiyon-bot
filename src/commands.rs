@@ -87,7 +87,7 @@ impl From<TdError> for CommandError {
 
 impl From<ServerError> for CommandError {
     fn from(value: ServerError) -> Self {
-        CommandError::Server(value.0)
+        Self::Server(value.0)
     }
 }
 

@@ -55,7 +55,7 @@ impl CommandTrait for GooglePalm {
                 if let Some(candidates) = response.candidates {
                     candidates.into_iter().next().unwrap().output
                 } else {
-                    ctx.reply("no response was generated.").await?;
+                    ctx.reply("no response was generated.".into()).await?;
                     return Ok(());
                 }
             }
@@ -67,7 +67,7 @@ impl CommandTrait for GooglePalm {
         };
 
         if text.is_empty() {
-            ctx.reply("no text was generated.").await?;
+            ctx.reply("no text was generated.".into()).await?;
             return Ok(());
         }
 

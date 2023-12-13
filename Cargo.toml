@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 markov-chain = { git = "https://github.com/jelni/markov-chain" }
 
-tdlib = "0.8.1"
+tdlib = "0.10.0"
 tokio = { version = "1.26", features = ["rt-multi-thread", "macros", "time", "signal"] }
 async-trait = "0.1"
 reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "rustls-tls"] }

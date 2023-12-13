@@ -16,15 +16,12 @@ struct Error {
     pub error: String,
 }
 
-pub async fn evaluate<S: Into<String>>(
+pub async fn evaluate(
     http_client: reqwest::Client,
-    expr: S,
+    expr: String,
 ) -> reqwest::Result<Result<String, String>> {
-    let response = http_client
-        .post("https://api.mathjs.org/v4/")
-        .json(&Payload { expr: expr.into() })
-        .send()
-        .await?;
+    let response =
+        http_client.post("https://api.mathjs.org/v4/").json(&Payload { expr }).send().await?;
 
     let result = match response.status() {
         StatusCode::OK => Ok(response.json::<Response>().await?.result),

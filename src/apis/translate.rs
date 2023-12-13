@@ -50,9 +50,9 @@ pub async fn single(
     })
 }
 
-pub async fn multiple<'a, I: IntoIterator<Item = &'a str>>(
+pub async fn multiple(
     http_client: reqwest::Client,
-    queries: I,
+    queries: &[&str],
     source_language: Option<&str>,
     target_language: &str,
 ) -> reqwest::Result<Vec<String>> {

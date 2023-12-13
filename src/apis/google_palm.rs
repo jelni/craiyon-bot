@@ -85,7 +85,7 @@ pub async fn generate_text(
         .send()
         .await?;
 
-    if let StatusCode::OK = response.status() {
+    if response.status() == StatusCode::OK {
         Ok(Ok(response.json().await?))
     } else {
         Ok(Err(response.json().await?))

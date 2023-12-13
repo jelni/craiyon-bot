@@ -29,7 +29,7 @@ pub struct StableHorde {
 }
 
 impl StableHorde {
-    pub fn stable_diffusion_2() -> Self {
+    pub const fn stable_diffusion_2() -> Self {
         Self {
             command_names: &["stable_diffusion_2", "sd2"],
             command_description: "generate images using Stable Diffusion v2.1",
@@ -38,7 +38,7 @@ impl StableHorde {
         }
     }
 
-    pub fn stable_diffusion() -> Self {
+    pub const fn stable_diffusion() -> Self {
         Self {
             command_names: &["stable_diffusion", "sd"],
             command_description: "generate images using Stable Diffusion v1.5",
@@ -47,7 +47,7 @@ impl StableHorde {
         }
     }
 
-    pub fn waifu_diffusion() -> Self {
+    pub const fn waifu_diffusion() -> Self {
         Self {
             command_names: &["waifu_diffusion", "wd"],
             command_description: "generate images using Waifu Diffusion",
@@ -56,7 +56,7 @@ impl StableHorde {
         }
     }
 
-    pub fn furry_diffusion() -> Self {
+    pub const fn furry_diffusion() -> Self {
         Self {
             command_names: &["furry_diffusion", "fd"],
             command_description: "generate images using Furry Epoch",
@@ -109,7 +109,7 @@ impl CommandTrait for StableHorde {
                     width: image.width().try_into().unwrap(),
                     height: image.height().try_into().unwrap(),
                     caption: Some(format_result_text(generation)),
-                    self_destruct_time: 0,
+                    self_destruct_type: None,
                     has_spoiler: false,
                 }),
                 Some(ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
@@ -290,7 +290,7 @@ fn format_status_text(
         )
         .code_owned(),
         " ETA: ".text(),
-        text_utils::format_duration(status.wait_time.try_into().unwrap()).text_owned(),
+        text_utils::format_duration(status.wait_time.into()).text_owned(),
     ];
 
     if volunteer_notice {

@@ -24,7 +24,7 @@ impl CommandTrait for KiwiFarms {
 
         let text = match kiwifarms::status(ctx.bot_state.http_client.clone()).await {
             Ok(status) => {
-                if let StatusCode::NON_AUTHORITATIVE_INFORMATION = status {
+                if status == StatusCode::NON_AUTHORITATIVE_INFORMATION {
                     "yes 🤬".into()
                 } else {
                     format!("{} no", status.as_u16())
@@ -32,13 +32,7 @@ impl CommandTrait for KiwiFarms {
             }
             Err(err) => {
                 let err = err.without_url();
-                format!(
-                    "no ({})",
-                    match err.source() {
-                        Some(err) => err,
-                        None => &err as _,
-                    }
-                )
+                format!("no ({})", err.source().map_or(&err as &dyn Error, |err| err))
             }
         };
         ctx.reply(text).await?;

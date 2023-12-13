@@ -8,7 +8,7 @@ pub struct ParsedCommand {
 }
 
 impl ParsedCommand {
-    pub fn parse(formatted_text: &FormattedText) -> Option<ParsedCommand> {
+    pub fn parse(formatted_text: &FormattedText) -> Option<Self> {
         let entity = formatted_text
             .entities
             .iter()
@@ -22,14 +22,12 @@ impl ParsedCommand {
 
         let command = &formatted_text.text[command_name_range.clone()];
 
-        let (command_name, username) = match command.split_once('@') {
-            Some(parts) => (parts.0, Some(parts.1)),
-            None => (command, None),
-        };
+        let (command_name, username) =
+            command.split_once('@').map_or((command, None), |parts| (parts.0, Some(parts.1)));
 
         let arguments = formatted_text.text[command_name_range.end..].trim_start().into();
 
-        Some(ParsedCommand {
+        Some(Self {
             name: command_name.to_lowercase(),
             bot_username: username.map(str::to_string),
             arguments,

@@ -188,7 +188,7 @@ impl Bot {
         let commands = self.command_manager.public_command_list();
         self.run_task(async move {
             functions::get_me(client_id).await.unwrap();
-            Bot::sync_commands(commands, client_id).await.unwrap();
+            Self::sync_commands(commands, client_id).await.unwrap();
         });
     }
 
@@ -280,7 +280,7 @@ impl Bot {
     fn on_connection_state(&mut self, update: &UpdateConnectionState) {
         log::info!("connection: {:?}", update.state);
 
-        if let ConnectionState::Ready = update.state {
+        if update.state == ConnectionState::Ready {
             self.on_ready();
         }
     }

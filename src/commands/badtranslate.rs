@@ -24,7 +24,7 @@ impl CommandTrait for BadTranslate {
 
         let translations = translate::multiple(
             ctx.bot_state.http_client.clone(),
-            text.split_ascii_whitespace(),
+            &text.split_ascii_whitespace().collect::<Vec<_>>(),
             source_language,
             &target_language,
         )

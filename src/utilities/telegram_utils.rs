@@ -29,7 +29,7 @@ pub fn donate_markup(name: &str, url: impl Into<String>) -> ReplyMarkup {
     })
 }
 
-pub fn get_message_text(message: &Message) -> Option<&FormattedText> {
+pub const fn get_message_text(message: &Message) -> Option<&FormattedText> {
     let formatted_text = match &message.content {
         MessageContent::MessageText(text) => &text.text,
         MessageContent::MessageAnimation(animation) => &animation.caption,

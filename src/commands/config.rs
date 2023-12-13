@@ -45,9 +45,9 @@ impl CommandTrait for Config {
                     .markov_chain_learning
                     .insert(ctx.message.chat_id);
                 if changed {
-                    ctx.reply("Markov chain will now learn from chat messages.").await?;
+                    ctx.reply("Markov chain will now learn from chat messages.".into()).await?;
                 } else {
-                    ctx.reply("Markov chain learning was already enabled.").await?;
+                    ctx.reply("Markov chain learning was already enabled.".into()).await?;
                 }
             } else {
                 let changed = ctx
@@ -58,9 +58,10 @@ impl CommandTrait for Config {
                     .markov_chain_learning
                     .remove(&ctx.message.chat_id);
                 if changed {
-                    ctx.reply("Markov chain won't learn from chat messages anymore.").await?;
+                    ctx.reply("Markov chain won't learn from chat messages anymore.".into())
+                        .await?;
                 } else {
-                    ctx.reply("Markov chain learning was already disabled.").await?;
+                    ctx.reply("Markov chain learning was already disabled.".into()).await?;
                 }
             };
         } else {

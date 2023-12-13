@@ -55,7 +55,7 @@ pub fn command_context() -> CommandContext {
             unread_reactions: Vec::new(),
             reply_to: None,
             message_thread_id: 0,
-            self_destruct_time: 0,
+            self_destruct_type: None,
             self_destruct_in: 0.,
             auto_delete_in: 0.,
             via_bot_user_id: 0,
