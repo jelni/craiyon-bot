@@ -24,7 +24,7 @@ pub struct CommandManager {
 }
 
 impl CommandManager {
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self { commands: Vec::new() }
     }
 

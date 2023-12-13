@@ -7,11 +7,11 @@ use time::OffsetDateTime;
 
 #[derive(Deserialize)]
 struct Response {
-    pub list: Vec<Definition>,
+    pub list: Vec<Card>,
 }
 
 #[derive(Deserialize)]
-pub struct Definition {
+pub struct Card {
     pub word: String,
     pub definition: String,
     pub example: String,
@@ -52,10 +52,7 @@ async fn search(http_client: reqwest::Client, term: &str) -> reqwest::Result<Cow
     }
 }
 
-pub async fn define(
-    http_client: reqwest::Client,
-    term: &str,
-) -> reqwest::Result<Option<Definition>> {
+pub async fn define(http_client: reqwest::Client, term: &str) -> reqwest::Result<Option<Card>> {
     let term = search(http_client.clone(), term).await?;
     let definitions = http_client
         .get(

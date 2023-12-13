@@ -4,7 +4,7 @@ use time::macros::format_description;
 use url::Url;
 
 use super::{CommandResult, CommandTrait};
-use crate::apis::urbandictionary::{self, Definition};
+use crate::apis::urbandictionary::{self, Card};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::message_entities::{self, ToEntity, ToEntityOwned, ToNestedEntity};
@@ -38,7 +38,7 @@ impl CommandTrait for UrbanDictionary {
     }
 }
 
-fn format_definition(definition: Definition) -> FormattedText {
+fn format_definition(definition: Card) -> FormattedText {
     let mut description = definition.definition;
     let mut example = definition.example;
 

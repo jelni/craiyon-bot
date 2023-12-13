@@ -197,15 +197,15 @@ impl ConvertArgument for SourceTargetLanguages {
                 Cow::Owned(ctx.user.language_code.clone())
             };
 
-            return Ok((SourceTargetLanguages(None, target_language), arguments));
+            return Ok((Self(None, target_language), arguments));
         };
 
         let Some((Language(second_language), rest)) = Language::convert(ctx, rest).await.ok()
         else {
-            return Ok((SourceTargetLanguages(None, Cow::Borrowed(first_language)), rest));
+            return Ok((Self(None, Cow::Borrowed(first_language)), rest));
         };
 
-        Ok((SourceTargetLanguages(Some(first_language), Cow::Borrowed(second_language)), rest))
+        Ok((Self(Some(first_language), Cow::Borrowed(second_language)), rest))
     }
 }
 

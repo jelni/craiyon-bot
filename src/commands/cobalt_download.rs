@@ -38,7 +38,7 @@ impl CommandTrait for CobaltDownload {
         let status_msg = ctx
             .bot_state
             .message_queue
-            .wait_for_message(ctx.reply("downloading…").await?.id)
+            .wait_for_message(ctx.reply("downloading…".into()).await?.id)
             .await?;
 
         let mut files = Vec::with_capacity(urls.len());
@@ -63,7 +63,7 @@ impl CommandTrait for CobaltDownload {
             }
         }
 
-        ctx.edit_message(status_msg.id, "uploading…").await?;
+        ctx.edit_message(status_msg.id, "uploading…".into()).await?;
 
         if files.len() == 1 {
             let file = files.into_iter().next().unwrap();
@@ -117,7 +117,14 @@ impl CommandTrait for CobaltDownload {
         for result in ctx
             .bot_state
             .message_queue
-            .wait_for_messages(messages.messages.into_iter().flatten().map(|message| message.id))
+            .wait_for_messages(
+                &messages
+                    .messages
+                    .into_iter()
+                    .flatten()
+                    .map(|message| message.id)
+                    .collect::<Vec<_>>(),
+            )
             .await
         {
             result?;
@@ -149,7 +156,7 @@ fn get_message_content(file: &NetworkFile) -> InputMessageContent {
             height: 0,
             supports_streaming: true,
             caption: None,
-            self_destruct_time: 0,
+            self_destruct_type: None,
             has_spoiler: false,
         })
     } else if file

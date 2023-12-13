@@ -30,8 +30,10 @@ impl CommandTrait for Autocomplete {
 
         let completions =
             google::complete(ctx.bot_state.http_client.clone(), &query).await.unwrap_or_default();
-        ctx.reply(completions.choose(&mut StdRng::from_entropy()).ok_or("no autocompletions")?)
-            .await?;
+        ctx.reply(
+            completions.choose(&mut StdRng::from_entropy()).ok_or("no autocompletions")?.into(),
+        )
+        .await?;
 
         Ok(())
     }

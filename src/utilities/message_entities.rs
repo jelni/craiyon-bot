@@ -49,7 +49,7 @@ impl<'a> ToEntity<'a> for str {
         Entity::Text(self.into()).code()
     }
 
-    fn text_url(&'a self, url: impl Into<Cow<'a, str>>) -> Entity<'a> {
+    fn text_url(&'a self, url: impl Into<Cow<'a, Self>>) -> Entity<'a> {
         Entity::Text(self.into()).text_url(url)
     }
 }

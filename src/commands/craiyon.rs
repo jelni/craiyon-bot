@@ -48,7 +48,7 @@ pub struct Craiyon {
 }
 
 impl Craiyon {
-    pub fn art() -> Self {
+    pub const fn art() -> Self {
         Self {
             command_names: &["craiyon_art"],
             description: "generate images using 🖍 Craiyon V3 Art model",
@@ -56,7 +56,7 @@ impl Craiyon {
         }
     }
 
-    pub fn drawing() -> Self {
+    pub const fn drawing() -> Self {
         Self {
             command_names: &["craiyon_drawing"],
             description: "generate images using 🖍 Craiyon V3 Drawing model",
@@ -64,7 +64,7 @@ impl Craiyon {
         }
     }
 
-    pub fn photo() -> Self {
+    pub const fn photo() -> Self {
         Self {
             command_names: &["craiyon_photo"],
             description: "generate images using 🖍 Craiyon V3 Photo model",
@@ -72,7 +72,7 @@ impl Craiyon {
         }
     }
 
-    pub fn none() -> Self {
+    pub const fn none() -> Self {
         Self {
             command_names: &["craiyon"],
             description: "generate images using 🖍 Craiyon V3 None model",
@@ -108,7 +108,7 @@ impl CommandTrait for Craiyon {
         let status_msg = ctx
             .bot_state
             .message_queue
-            .wait_for_message(ctx.reply(format!("drawing {}…", truncated_prompt)).await?.id)
+            .wait_for_message(ctx.reply(format!("drawing {truncated_prompt}…")).await?.id)
             .await?;
 
         let result =
@@ -176,7 +176,7 @@ impl CommandTrait for Craiyon {
                     width: image.width().try_into().unwrap(),
                     height: image.height().try_into().unwrap(),
                     caption: Some(message_entities::formatted_text(entities)),
-                    self_destruct_time: 0,
+                    self_destruct_type: None,
                     has_spoiler: false,
                 }),
                 Some(telegram_utils::donate_markup("🖍️ Craiyon", "https://craiyon.com/donate")),

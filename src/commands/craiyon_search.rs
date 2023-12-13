@@ -39,9 +39,12 @@ impl CommandTrait for CraiyonSearch {
             .into_iter()
             .take(9)
             .collect::<Vec<_>>();
-        let urls = results.iter().map(|result| {
-            Url::parse(&format!("https://pics.craiyon.com/{}", result.image_id)).unwrap()
-        });
+        let urls = results
+            .iter()
+            .map(|result| {
+                Url::parse(&format!("https://pics.craiyon.com/{}", result.image_id)).unwrap()
+            })
+            .collect();
         let images =
             api_utils::simultaneous_download(ctx.bot_state.http_client.clone(), urls).await?;
 
@@ -85,7 +88,7 @@ impl CommandTrait for CraiyonSearch {
                     width: image.width().try_into().unwrap(),
                     height: image.height().try_into().unwrap(),
                     caption: Some(formatted_text),
-                    self_destruct_time: 0,
+                    self_destruct_type: None,
                     has_spoiler: false,
                 }),
                 None,

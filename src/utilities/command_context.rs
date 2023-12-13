@@ -51,8 +51,8 @@ impl CommandContext {
         .await
     }
 
-    pub async fn reply<S: Into<String>>(&self, text: S) -> TdResult<Message> {
-        self.reply_formatted_text(FormattedText { text: text.into(), ..Default::default() }).await
+    pub async fn reply(&self, text: String) -> TdResult<Message> {
+        self.reply_formatted_text(FormattedText { text, ..Default::default() }).await
     }
 
     pub async fn edit_message_formatted_text(
@@ -76,16 +76,9 @@ impl CommandContext {
         Ok(message)
     }
 
-    pub async fn edit_message<S: Into<String>>(
-        &self,
-        message_id: i64,
-        text: S,
-    ) -> TdResult<Message> {
-        self.edit_message_formatted_text(
-            message_id,
-            FormattedText { text: text.into(), ..Default::default() },
-        )
-        .await
+    pub async fn edit_message(&self, message_id: i64, text: String) -> TdResult<Message> {
+        self.edit_message_formatted_text(message_id, FormattedText { text, ..Default::default() })
+            .await
     }
 
     pub async fn delete_messages(&self, message_ids: Vec<i64>) -> TdResult<()> {

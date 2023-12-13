@@ -39,7 +39,7 @@ impl ConvertArgument for String {
     ) -> Result<(Self, &'a str), ConversionError> {
         let mut arguments = arguments.trim_start().chars();
         let argument =
-            arguments.by_ref().take_while(|char| !char.is_ascii_whitespace()).collect::<String>();
+            arguments.by_ref().take_while(|char| !char.is_ascii_whitespace()).collect::<Self>();
 
         if argument.is_empty() {
             Err(ConversionError::MissingArgument)?;

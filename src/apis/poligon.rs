@@ -21,7 +21,7 @@ pub async fn startit_joke(http_client: reqwest::Client) -> Result<String, Comman
 }
 
 #[derive(Deserialize)]
-pub struct NowPlaying {
+pub struct PlayerState {
     pub station: Station,
     pub live: Live,
     pub now_playing: Option<CurrentSong>,
@@ -69,13 +69,13 @@ pub struct Song {
 pub async fn now_playing(
     http_client: reqwest::Client,
     station_id: u32,
-) -> Result<NowPlaying, CommandError> {
+) -> Result<PlayerState, CommandError> {
     let now_playing = http_client
         .get(format!("https://radio.poligon.lgbt/api/nowplaying/{station_id}"))
         .send()
         .await?
         .server_error()?
-        .json::<NowPlaying>()
+        .json::<PlayerState>()
         .await?;
 
     Ok(now_playing)

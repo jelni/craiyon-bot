@@ -48,7 +48,7 @@ struct RequestError {
     message: String,
 }
 
-#[derive(PartialEq, Deserialize)]
+#[derive(PartialEq, Eq, Deserialize)]
 pub struct Status {
     pub done: bool,
     pub faulted: bool,
