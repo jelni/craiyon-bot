@@ -4,7 +4,7 @@ use std::fs;
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
-use tdlib::enums::{File, MessageContent};
+use tdlib::enums::File;
 use tdlib::types::FormattedText;
 use tdlib::{enums, functions};
 
@@ -44,36 +44,33 @@ impl CommandTrait for GoogleGemini {
             parts.push(Part::Text(prompt.0));
         }
 
-        if let Some(mut file) =
+        if let Some(message_image) =
             telegram_utils::get_message_or_reply_image(&ctx.message, ctx.client_id).await
         {
-            if file.expected_size > 4 * MEBIBYTE {
+            if message_image.file.expected_size > 4 * MEBIBYTE {
                 return Err(CommandError::Custom("the image cannot be larger than 4 MiB.".into()));
             }
 
-            let mime_type = if let MessageContent::MessageDocument(document) = &ctx.message.content
+            if !["image/png", "image/jpeg", "image/heic", "image/heif", "image/webp"]
+                .contains(&message_image.mime_type.as_ref())
             {
-                if !["image/png", "image/jpeg", "image/heic", "image/heif", "image/webp"]
-                    .contains(&document.document.mime_type.as_str())
-                {
-                    return Err(CommandError::Custom(
-                        "only PNG, JPEG, HEIC, HEIF, and WebP files are supported.".into(),
-                    ));
-                }
-
-                &document.document.mime_type
-            } else {
-                "image/jpeg"
-            };
+                return Err(CommandError::Custom(
+                    "only PNG, JPEG, HEIC, HEIF, and WebP files are supported.".into(),
+                ));
+            }
 
             model = "gemini-pro-vision";
 
-            File::File(file) =
-                functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
+            let File::File(file) =
+                functions::download_file(message_image.file.id, 1, 0, 0, true, ctx.client_id)
+                    .await?;
 
             let file = fs::read(file.local.path).unwrap();
 
-            parts.push(Part::InlineData(Blob { mime_type, data: STANDARD.encode(file) }));
+            parts.push(Part::InlineData(Blob {
+                mime_type: message_image.mime_type,
+                data: STANDARD.encode(file),
+            }));
         }
 
         if parts.is_empty() {

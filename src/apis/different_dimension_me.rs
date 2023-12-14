@@ -31,7 +31,7 @@ pub struct ProcessingError {
 }
 
 impl fmt::Display for ProcessingError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Different Dimension error {}: {}", self.code, self.message)
     }
 }
