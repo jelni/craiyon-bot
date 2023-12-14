@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::env;
 
 use reqwest::StatusCode;
@@ -16,20 +17,20 @@ struct GenerateContentRequest<'a> {
 
 #[derive(Serialize)]
 struct Content<'a> {
-    parts: &'a [Part<'a>],
+    parts: &'a [Part],
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub enum Part<'a> {
+pub enum Part {
     Text(String),
-    InlineData(Blob<'a>),
+    InlineData(Blob),
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Blob<'a> {
-    pub mime_type: &'a str,
+pub struct Blob {
+    pub mime_type: Cow<'static, str>,
     pub data: String,
 }
 
@@ -127,10 +128,10 @@ pub struct Error {
     pub message: String,
 }
 
-pub async fn generate_content<'a>(
+pub async fn generate_content(
     http_client: reqwest::Client,
     model: &str,
-    parts: &[Part<'a>],
+    parts: &[Part],
     max_output_tokens: u16,
 ) -> Result<Result<GenerateContentResponse, ErrorResponse>, CommandError> {
     let url =

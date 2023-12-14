@@ -225,7 +225,7 @@ impl Bot {
             if self.my_id.is_some_and(|my_id| user.user_id == my_id) {
                 if let Some(chat) = self.state.cache.lock().unwrap().get_chat(update.chat_id) {
                     telegram_utils::log_status_update(&update, &chat);
-                };
+                }
             }
         }
 

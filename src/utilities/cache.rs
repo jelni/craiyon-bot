@@ -75,7 +75,7 @@ impl From<Chat> for CompactChat {
 }
 
 impl fmt::Display for CompactChat {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.r#type {
             ChatType::Private(_) => write!(f, "PM"),
             _ => write!(f, "{:?}", self.title),
@@ -109,7 +109,7 @@ impl From<User> for CompactUser {
 }
 
 impl fmt::Display for CompactUser {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if let Some(username) = &self.username {
             write!(f, "@{username}")?;
         } else {

@@ -1,11 +1,14 @@
+use std::borrow::Cow;
+
 use tdlib::enums::{
     self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, MessageReplyTo,
-    ReplyMarkup,
+    ReplyMarkup, StickerFormat,
 };
 use tdlib::functions;
 use tdlib::types::{
     File, FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message,
-    MessageReplyToMessage, ReplyMarkupInlineKeyboard, UpdateChatMember, User,
+    MessageReplyToMessage, Photo, ReplyMarkupInlineKeyboard, Sticker, UpdateChatMember, User,
+    WebPage,
 };
 
 use super::cache::CompactChat;
@@ -18,6 +21,11 @@ impl MainUsername for User {
     fn main_username(&self) -> Option<&String> {
         self.usernames.as_ref()?.active_usernames.first()
     }
+}
+
+pub struct MessageImage {
+    pub file: File,
+    pub mime_type: Cow<'static, str>,
 }
 
 pub fn donate_markup(name: &str, url: impl Into<String>) -> ReplyMarkup {
@@ -44,23 +52,66 @@ pub const fn get_message_text(message: &Message) -> Option<&FormattedText> {
     Some(formatted_text)
 }
 
-pub fn get_message_image(message: &Message) -> Option<File> {
+pub fn get_message_image(message: &Message) -> Option<MessageImage> {
     match &message.content {
-        MessageContent::MessageDocument(document) => Some(document.document.document.clone()),
-        MessageContent::MessagePhoto(photo) => photo
-            .photo
-            .sizes
-            .iter()
-            .rev()
-            .find(|photo_size| photo_size.photo.local.can_be_downloaded)
-            .map(|photo_size| photo_size.photo.clone()),
+        MessageContent::MessageText(message) => message.web_page.as_ref().and_then(web_page_image),
+        MessageContent::MessageDocument(message) => Some(MessageImage {
+            file: message.document.document.clone(),
+            mime_type: Cow::Owned(message.document.mime_type.clone()),
+        }),
+        MessageContent::MessagePhoto(message) => largest_photo(&message.photo).map(|file| {
+            MessageImage { file: file.clone(), mime_type: Cow::Borrowed("image/jpeg") }
+        }),
+        MessageContent::MessageSticker(message) => sticker_image(&message.sticker),
         _ => None,
     }
 }
 
-pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Option<File> {
-    if let Some(file) = get_message_image(message) {
-        return Some(file);
+fn web_page_image(web_page: &WebPage) -> Option<MessageImage> {
+    if let Some(photo) = &web_page.photo {
+        if let Some(file) = largest_photo(photo) {
+            return Some(MessageImage {
+                file: file.clone(),
+                mime_type: Cow::Borrowed("image/jpeg"),
+            });
+        }
+    }
+
+    if let Some(document) = &web_page.document {
+        return Some(MessageImage {
+            file: document.document.clone(),
+            mime_type: Cow::Owned(document.mime_type.clone()),
+        });
+    }
+
+    if let Some(sticker) = &web_page.sticker {
+        if sticker.format == StickerFormat::Webp {
+            return Some(MessageImage {
+                file: sticker.sticker.clone(),
+                mime_type: Cow::Borrowed("image/webp"),
+            });
+        }
+    }
+
+    None
+}
+
+fn largest_photo(photo: &Photo) -> Option<&File> {
+    photo
+        .sizes
+        .iter()
+        .rfind(|photo_size| photo_size.photo.local.can_be_downloaded)
+        .map(|photo_size| &photo_size.photo)
+}
+
+fn sticker_image(sticker: &Sticker) -> Option<MessageImage> {
+    (sticker.format == StickerFormat::Webp)
+        .then_some(MessageImage { file: sticker.sticker.clone(), mime_type: "image/webp".into() })
+}
+
+pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Option<MessageImage> {
+    if let Some(message_image) = get_message_image(message) {
+        return Some(message_image);
     }
 
     let &MessageReplyTo::Message(MessageReplyToMessage { chat_id, message_id }) =

@@ -14,7 +14,7 @@ pub struct CommandInstance {
 }
 
 impl fmt::Display for CommandInstance {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "/{}", self.command.command_names().first().unwrap())
     }
 }

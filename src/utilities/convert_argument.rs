@@ -15,7 +15,7 @@ pub enum ConversionError {
 }
 
 impl fmt::Display for ConversionError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::MissingArgument => write!(f, "missing command argument"),
             Self::BadArgument(reason) => write!(f, "bad command argument: {reason}"),
