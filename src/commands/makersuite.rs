@@ -242,9 +242,9 @@ impl CommandTrait for GooglePalm {
 fn format_citations(citation_sources: Vec<CitationSource>) -> String {
     let mut text = String::new();
 
-    for source in citation_sources {
+    for (i, source) in citation_sources.into_iter().enumerate() {
         if let Some(uri) = source.uri {
-            text.push('\n');
+            write!(text, "\n[{}] ", i + 1).unwrap();
 
             if let Some(license) = source.license {
                 if !license.is_empty() {
