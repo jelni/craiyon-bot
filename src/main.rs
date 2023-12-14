@@ -29,7 +29,8 @@ async fn main() {
     bot.add_command(commands::markov_chain::MarkovChain);
     bot.add_command(commands::config::Config);
     bot.add_command(commands::different_dimension_me::DifferentDimensionMe);
-    bot.add_command(commands::google_palm::GooglePalm);
+    bot.add_command(commands::makersuite::GoogleGemini);
+    bot.add_command(commands::makersuite::GooglePalm);
     bot.add_command(commands::translate::Translate);
     bot.add_command(commands::badtranslate::BadTranslate);
     bot.add_command(commands::trollslate::Trollslate);
