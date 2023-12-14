@@ -11,10 +11,9 @@ use tempfile::NamedTempFile;
 use super::{CommandResult, CommandTrait};
 use crate::apis::different_dimension_me;
 use crate::utilities::command_context::CommandContext;
+use crate::utilities::file_download::MEBIBYTE;
 use crate::utilities::message_entities::ToEntity;
 use crate::utilities::{message_entities, telegram_utils};
-
-const MEBIBYTE: i64 = 1024 * 1024;
 
 pub struct DifferentDimensionMe;
 

@@ -8,6 +8,8 @@ use reqwest::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
 use tdlib::{enums, functions};
 use tempfile::TempDir;
 
+pub const MEBIBYTE: i64 = 1024 * 1024;
+
 pub enum DownloadError {
     RequestError(reqwest::Error),
     FilesystemError,
