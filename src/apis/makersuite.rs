@@ -55,7 +55,7 @@ pub struct GenerateContentResponse {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Candidate {
-    pub content: ContentResponse,
+    pub content: Option<ContentResponse>,
     pub finish_reason: String,
     pub citation_metadata: Option<CitationMetadata>,
 }

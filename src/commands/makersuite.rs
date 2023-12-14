@@ -118,24 +118,37 @@ impl CommandTrait for GoogleGemini {
             return Err(CommandError::Custom("no response generated.".into()));
         };
 
-        let mut text = candidate
-            .content
-            .parts
-            .into_iter()
-            .map(|part| match part {
-                PartResponse::Text(text) => text,
-                PartResponse::InlineData(_) => "[unsupported response part]".into(),
-            })
-            .collect::<Vec<_>>()
-            .join("\n\n");
+        let mut text = String::new();
+
+        let content_generated = if let Some(content) = candidate.content {
+            let content = content
+                .parts
+                .into_iter()
+                .map(|part| match part {
+                    PartResponse::Text(text) => text,
+                    PartResponse::InlineData(_) => "[unsupported response part]".into(),
+                })
+                .collect::<Vec<_>>()
+                .join("\n\n");
+
+            text.push_str(&content);
+
+            true
+        } else {
+            false
+        };
 
         if candidate.finish_reason != "STOP" {
-            write!(text, " [{}]", candidate.finish_reason).unwrap();
+            if content_generated {
+                text.push(' ');
+            }
+
+            write!(text, "[{}]", candidate.finish_reason).unwrap();
         }
 
         if let Some(citation_metadata) = candidate.citation_metadata {
-            writeln!(text).unwrap();
-            write!(text, "\n{}", format_citations(citation_metadata.citation_sources)).unwrap();
+            text.push_str("\n\n");
+            text.push_str(&format_citations(citation_metadata.citation_sources));
         }
 
         let enums::FormattedText::FormattedText(formatted_text) =
@@ -212,8 +225,8 @@ impl CommandTrait for GooglePalm {
         let mut text = candidate.output;
 
         if let Some(citation_metadata) = candidate.citation_metadata {
-            writeln!(text).unwrap();
-            write!(text, "\n{}", format_citations(citation_metadata.citation_sources)).unwrap();
+            text.push_str("\n\n");
+            text.push_str(&format_citations(citation_metadata.citation_sources));
         }
 
         let enums::FormattedText::FormattedText(formatted_text) =
@@ -231,9 +244,11 @@ fn format_citations(citation_sources: Vec<CitationSource>) -> String {
 
     for source in citation_sources {
         if let Some(uri) = source.uri {
+            text.push('\n');
+
             if let Some(license) = source.license {
                 if !license.is_empty() {
-                    write!(text, "\n[{license}] {uri}").unwrap();
+                    write!(text, "[{license}] ").unwrap();
                 }
             }
 
