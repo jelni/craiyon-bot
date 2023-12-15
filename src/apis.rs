@@ -10,3 +10,4 @@ pub mod poligon;
 pub mod stablehorde;
 pub mod translate;
 pub mod urbandictionary;
+pub mod urbansharing;
