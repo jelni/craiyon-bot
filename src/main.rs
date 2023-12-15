@@ -40,6 +40,7 @@ async fn main() {
     bot.add_command(commands::charinfo::CharInfo);
     bot.add_command(commands::radio_poligon::RadioPoligon);
     bot.add_command(commands::autocomplete::Autocomplete);
+    bot.add_command(commands::mevo::Mevo);
     bot.add_command(commands::kiwifarms::KiwiFarms);
     bot.add_command(commands::startit_joke::StartitJoke);
     bot.add_command(commands::kebab::Kebab);
