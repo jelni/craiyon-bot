@@ -52,8 +52,8 @@ pub struct SystemStats {
     pub trips_today: u32,
     pub trips_yesterday: u32,
     pub unique_users_today: u32,
-    pub median_duration_today: u32,
-    pub median_duration_this_year: u32,
+    pub median_duration_today: f32,
+    pub median_duration_this_year: f32,
 }
 
 pub async fn system_stats(

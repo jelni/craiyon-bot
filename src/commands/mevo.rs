@@ -18,6 +18,7 @@ impl CommandTrait for Mevo {
         let stats =
             urbansharing::system_stats(ctx.bot_state.http_client.clone(), "inurba-gdansk").await?;
 
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         ctx.reply_formatted_text(message_entities::formatted_text(vec![
             "jadący teraz: ".text(),
             stats.system_active_trip_count.count.to_string().bold(),
@@ -28,9 +29,9 @@ impl CommandTrait for Mevo {
             " użytkowników), wczoraj: ".text(),
             stats.system_stats.trips_yesterday.to_string().bold(),
             "\nśredni czas dzisiaj: ".text(),
-            text_utils::format_duration(stats.system_stats.median_duration_today.into()).bold(),
+            text_utils::format_duration(stats.system_stats.median_duration_today as u64).bold(),
             ", w tym roku: ".text(),
-            text_utils::format_duration(stats.system_stats.median_duration_this_year.into()).bold(),
+            text_utils::format_duration(stats.system_stats.median_duration_this_year as u64).bold(),
         ]))
         .await?;
 
