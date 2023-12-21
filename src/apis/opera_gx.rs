@@ -16,7 +16,7 @@ struct Response {
 }
 
 pub async fn generate(http_client: reqwest::Client) -> Result<String, CommandError> {
-    let response = http_client
+    let token = http_client
         .post("https://api.discord.gx.games/v1/direct-fulfillment")
         .json(&Payload {
             partner_user_id: "510429d266a6a5e2374f80a2942c7cfe7fc317b21b7b31b06d4a54a0287aacb8",
