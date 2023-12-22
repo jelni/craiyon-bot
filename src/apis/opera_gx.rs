@@ -1,7 +1,6 @@
 use rand::distributions::{Alphanumeric, DistString};
 use rand::rngs::StdRng;
-use rand::{CryptoRng, SeedableRng};
-use reqwest::header::ACCEPT;
+use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
 
 use crate::commands::CommandError;
@@ -18,13 +17,12 @@ struct Response {
     token: String,
 }
 
-pub async fn generate(http_client: reqwest::Client) -> Result<String, CommandError> {
+pub async fn get_nitro_link(http_client: reqwest::Client) -> Result<String, CommandError> {
     let partner_user_id = &Alphanumeric.sample_string(&mut StdRng::from_entropy(), 64);
 
     let token = http_client
         .post("https://api.discord.gx.games/v1/direct-fulfillment")
         .json(&Payload { partner_user_id })
-        .header(ACCEPT, "application/json")
         .send()
         .await?
         .server_error()?

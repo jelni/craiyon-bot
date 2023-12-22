@@ -17,9 +17,9 @@ impl CommandTrait for Nitro {
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        let link = opera_gx::generate(ctx.bot_state.http_client.clone()).await?;
+        let link = opera_gx::get_nitro_link(ctx.bot_state.http_client.clone()).await?;
 
-        ctx.reply(link).await?;
+        ctx.reply(format!("free money {link}")).await?;
 
         Ok(())
     }
