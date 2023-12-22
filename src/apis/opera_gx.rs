@@ -1,3 +1,6 @@
+use rand::distributions::{Alphanumeric, DistString};
+use rand::rngs::StdRng;
+use rand::{CryptoRng, SeedableRng};
 use reqwest::header::ACCEPT;
 use serde::{Deserialize, Serialize};
 
@@ -16,11 +19,11 @@ struct Response {
 }
 
 pub async fn generate(http_client: reqwest::Client) -> Result<String, CommandError> {
+    let partner_user_id = &Alphanumeric.sample_string(&mut StdRng::from_entropy(), 64);
+
     let token = http_client
         .post("https://api.discord.gx.games/v1/direct-fulfillment")
-        .json(&Payload {
-            partner_user_id: "510429d266a6a5e2374f80a2942c7cfe7fc317b21b7b31b06d4a54a0287aacb8",
-        })
+        .json(&Payload { partner_user_id })
         .header(ACCEPT, "application/json")
         .send()
         .await?
