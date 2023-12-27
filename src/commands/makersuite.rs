@@ -94,21 +94,22 @@ impl CommandTrait for GoogleGemini {
         if let Some(prompt_feedback) = response.prompt_feedback {
             if let Some(block_reason) = prompt_feedback.block_reason {
                 if block_reason == "SAFETY" {
-                    let reasons = prompt_feedback
-                        .safety_ratings
-                        .into_iter()
-                        .filter(|safety_rating| safety_rating.blocked.unwrap_or_default())
-                        .map(|safety_rating| safety_rating.category)
-                        .collect::<Vec<_>>()
-                        .join(", ");
+                    if let Some(safety_ratings) = prompt_feedback.safety_ratings {
+                        let reasons = safety_ratings
+                            .into_iter()
+                            .filter(|safety_rating| safety_rating.blocked)
+                            .map(|safety_rating| safety_rating.category)
+                            .collect::<Vec<_>>()
+                            .join(", ");
 
-                    return Err(CommandError::Custom(format!(
-                        "request blocked by Google: {reasons}."
-                    )));
-                };
+                        return Err(CommandError::Custom(format!(
+                            "request blocked by Google: {reasons}."
+                        )));
+                    }
+                }
 
                 return Err(CommandError::Custom("request blocked by Google.".into()));
-            };
+            }
         }
 
         let Some(candidate) = response.candidates.into_iter().next() else {

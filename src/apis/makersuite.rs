@@ -49,6 +49,7 @@ struct GenerationConfig {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GenerateContentResponse {
+    #[serde(default)]
     pub candidates: Vec<Candidate>,
     pub prompt_feedback: Option<PromptFeedback>,
 }
@@ -96,13 +97,14 @@ pub struct CitationSource {
 #[serde(rename_all = "camelCase")]
 pub struct PromptFeedback {
     pub block_reason: Option<String>,
-    pub safety_ratings: Vec<SafetyRating>,
+    pub safety_ratings: Option<Vec<SafetyRating>>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct SafetyRating {
     pub category: String,
-    pub blocked: Option<bool>,
+    #[serde(default)]
+    pub blocked: bool,
 }
 
 #[derive(Deserialize)]
