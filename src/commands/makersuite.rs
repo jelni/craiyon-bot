@@ -21,7 +21,7 @@ pub struct GoogleGemini;
 #[async_trait]
 impl CommandTrait for GoogleGemini {
     fn command_names(&self) -> &[&str] {
-        &["gemini"]
+        &["gemini", "g"]
     }
 
     fn description(&self) -> Option<&'static str> {
