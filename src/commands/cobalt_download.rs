@@ -167,12 +167,10 @@ fn get_message_content(file: &NetworkFile) -> InputMessageContent {
             extension.eq_ignore_ascii_case("mp3") || extension.eq_ignore_ascii_case("opus")
         })
     {
-        InputMessageContent::InputMessageAudio(InputMessageAudio {
-            audio: input_file,
-            album_cover_thumbnail: None,
-            duration: 0,
-            title: String::new(),
-            performer: String::new(),
+        InputMessageContent::InputMessageDocument(InputMessageDocument {
+            document: input_file,
+            thumbnail: None,
+            disable_content_type_detection: false,
             caption: None,
         })
     } else {
