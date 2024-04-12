@@ -1377,8 +1377,9 @@ checksum = "e1fc403891a21bcfb7c37834ba66a547a8f402146eba7265b5a6d88059c9ff2f"
 [[package]]
 name = "tdlib"
 version = "0.9.0"
-source = "git+https://github.com/JelNiSlaw/tdlib-rs-latest#fcb01fbf5b8f2ef9312fec8f49d50fd4d3eba155"
+source = "git+https://github.com/JelNiSlaw/tdlib-rs-latest?rev=1b23d240320a6651e0f3b3ca90dd5ef09ecc29d6#1b23d240320a6651e0f3b3ca90dd5ef09ecc29d6"
 dependencies = [
+ "dotenvy",
  "futures-channel",
  "log",
  "once_cell",
@@ -1394,7 +1395,7 @@ dependencies = [
 [[package]]
 name = "tdlib-tl-gen"
 version = "0.5.0"
-source = "git+https://github.com/JelNiSlaw/tdlib-rs-latest#fcb01fbf5b8f2ef9312fec8f49d50fd4d3eba155"
+source = "git+https://github.com/JelNiSlaw/tdlib-rs-latest?rev=1b23d240320a6651e0f3b3ca90dd5ef09ecc29d6#1b23d240320a6651e0f3b3ca90dd5ef09ecc29d6"
 dependencies = [
  "tdlib-tl-parser",
 ]
@@ -1402,7 +1403,7 @@ dependencies = [
 [[package]]
 name = "tdlib-tl-parser"
 version = "0.2.0"
-source = "git+https://github.com/JelNiSlaw/tdlib-rs-latest#fcb01fbf5b8f2ef9312fec8f49d50fd4d3eba155"
+source = "git+https://github.com/JelNiSlaw/tdlib-rs-latest?rev=1b23d240320a6651e0f3b3ca90dd5ef09ecc29d6#1b23d240320a6651e0f3b3ca90dd5ef09ecc29d6"
 
 [[package]]
 name = "tempfile"

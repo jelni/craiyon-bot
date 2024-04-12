@@ -5,10 +5,19 @@ edition = "2021"
 
 [dependencies]
 markov-chain = { git = "https://github.com/JelNiSlaw/markov-chain" }
-tdlib = { git = "https://github.com/JelNiSlaw/tdlib-rs-latest"}
-tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "time", "signal"] }
+tdlib = { git = "https://github.com/JelNiSlaw/tdlib-rs-latest", rev = "1b23d240320a6651e0f3b3ca90dd5ef09ecc29d6" }
+tokio = { version = "1.37", features = [
+    "rt-multi-thread",
+    "macros",
+    "time",
+    "signal",
+] }
 async-trait = "0.1"
-reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = [
+    "json",
+    "stream",
+    "rustls-tls",
+] }
 url = "2.5"
 serde = "1.0"
 serde_json = "1.0"
@@ -16,7 +25,11 @@ rmp-serde = "1.1"
 bytes = "1.6"
 futures-util = "0.3"
 oneshot = "0.1"
-image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+image = { version = "0.25", default-features = false, features = [
+    "jpeg",
+    "png",
+    "webp",
+] }
 base64 = "0.22"
 md5 = "0.7"
 time = { version = "0.3", features = ["serde", "serde-well-known", "macros"] }
