@@ -222,6 +222,6 @@ mod test {
                     TextEntity { offset: 3, length: 3, r#type: TextEntityType::Italic },
                 ]
             }
-        )
+        );
     }
 }

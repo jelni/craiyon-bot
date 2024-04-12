@@ -65,8 +65,16 @@ pub fn command_context() -> CommandContext {
             content: MessageContent::MessageText(MessageText {
                 text: FormattedText { text: "message_content_text".into(), entities: Vec::new() },
                 web_page: None,
+                link_preview_options: None,
             }),
             reply_markup: None,
+            is_from_offline: false,
+            can_be_replied_in_another_chat: true,
+            can_get_read_date: true,
+            import_info: None,
+            saved_messages_topic_id: 0,
+            sender_business_bot_user_id: 0,
+            sender_boost_count: 0,
         },
         bot_state: Arc::new(BotState::new()),
     }

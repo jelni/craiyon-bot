@@ -143,8 +143,6 @@ impl Bot {
                         env!("CARGO_PKG_NAME").into(),
                         String::new(),
                         env!("CARGO_PKG_VERSION").into(),
-                        true,
-                        true,
                         client_id,
                     )
                     .await

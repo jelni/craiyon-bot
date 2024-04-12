@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use tdlib::enums::{self, ChatAction, InputMessageContent, MessageReplyTo};
+use tdlib::enums::{self, ChatAction, InputMessageContent, InputMessageReplyTo};
 use tdlib::functions;
-use tdlib::types::{FormattedText, InputMessageText, Message, MessageReplyToMessage};
+use tdlib::types::{FormattedText, InputMessageText, Message, InputMessageReplyToMessage};
 
 use super::bot_state::BotState;
 use super::cache::{CompactChat, CompactUser};
@@ -25,9 +25,10 @@ impl CommandContext {
         let enums::Message::Message(message) = functions::send_message(
             self.message.chat_id,
             self.message.message_thread_id,
-            Some(MessageReplyTo::Message(MessageReplyToMessage {
+            Some(InputMessageReplyTo::Message(InputMessageReplyToMessage {
                 chat_id: self.message.chat_id,
                 message_id: self.message.id,
+                quote: None,
             })),
             None,
             reply_markup,
@@ -43,7 +44,6 @@ impl CommandContext {
         self.reply_custom(
             InputMessageContent::InputMessageText(InputMessageText {
                 text,
-                disable_web_page_preview: true,
                 ..Default::default()
             }),
             None,
@@ -66,7 +66,6 @@ impl CommandContext {
             None,
             InputMessageContent::InputMessageText(InputMessageText {
                 text,
-                disable_web_page_preview: true,
                 ..Default::default()
             }),
             self.client_id,
@@ -93,6 +92,7 @@ impl CommandContext {
         functions::send_chat_action(
             self.message.chat_id,
             self.message.message_thread_id,
+            String::new(), // not sure if this is correct
             Some(ChatAction::Typing),
             self.client_id,
         )

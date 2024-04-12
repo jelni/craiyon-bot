@@ -1,9 +1,9 @@
 use async_trait::async_trait;
-use tdlib::enums::{InputFile, InputMessageContent, MessageReplyTo, Messages};
+use tdlib::enums::{InputFile, InputMessageContent, InputMessageReplyTo, Messages};
 use tdlib::functions;
 use tdlib::types::{
-    InputFileLocal, InputMessageDocument, InputMessageVideo,
-    MessageReplyToMessage,
+    InputFileLocal, InputMessageAudio, InputMessageDocument, InputMessageVideo,
+    InputMessageReplyToMessage,
 };
 
 use super::{CommandResult, CommandTrait};
@@ -103,13 +103,13 @@ impl CommandTrait for CobaltDownload {
         let Messages::Messages(messages) = functions::send_message_album(
             ctx.message.chat_id,
             ctx.message.message_thread_id,
-            Some(MessageReplyTo::Message(MessageReplyToMessage {
+            Some(InputMessageReplyTo::Message(InputMessageReplyToMessage {
                 chat_id: ctx.message.chat_id,
                 message_id: ctx.message.id,
+                ..Default::default()
             })),
             None,
             messages,
-            false,
             ctx.client_id,
         )
         .await?;
@@ -158,6 +158,22 @@ fn get_message_content(file: &NetworkFile) -> InputMessageContent {
             caption: None,
             self_destruct_type: None,
             has_spoiler: false,
+        })
+    } else if file
+        .content_type
+        .as_ref()
+        .is_some_and(|content_type| ["audio/mpeg", "audio/webm"].contains(&content_type.as_str()))
+        || file.file_path.extension().is_some_and(|extension| {
+            extension.eq_ignore_ascii_case("mp3") || extension.eq_ignore_ascii_case("opus")
+        })
+    {
+        InputMessageContent::InputMessageAudio(InputMessageAudio {
+            audio: input_file,
+            album_cover_thumbnail: None,
+            duration: 0,
+            title: String::new(),
+            performer: String::new(),
+            caption: None,
         })
     } else {
         InputMessageContent::InputMessageDocument(InputMessageDocument {

@@ -87,7 +87,7 @@ impl ConvertArgument for Reply {
         ctx: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        let Some(MessageReplyTo::Message(MessageReplyToMessage { chat_id, message_id })) =
+        let Some(MessageReplyTo::Message(MessageReplyToMessage { chat_id, message_id , ..})) =
             ctx.message.reply_to
         else {
             return Err(ConversionError::MissingArgument);

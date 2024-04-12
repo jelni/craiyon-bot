@@ -114,7 +114,7 @@ pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Op
         return Some(message_image);
     }
 
-    let &MessageReplyTo::Message(MessageReplyToMessage { chat_id, message_id }) =
+    let &MessageReplyTo::Message(MessageReplyToMessage { chat_id, message_id, .. }) =
         message.reply_to.as_ref()?
     else {
         return None;
