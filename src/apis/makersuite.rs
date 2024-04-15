@@ -1,8 +1,7 @@
-use std::borrow::Cow;
-use std::env;
-
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
+use std::env;
 use url::Url;
 
 use crate::commands::CommandError;
@@ -46,7 +45,7 @@ struct GenerationConfig {
     max_output_tokens: u16,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct GenerateContentResponse {
     #[serde(default)]
@@ -54,7 +53,7 @@ pub struct GenerateContentResponse {
     pub prompt_feedback: Option<PromptFeedback>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Candidate {
     pub content: Option<ContentResponse>,
@@ -62,38 +61,38 @@ pub struct Candidate {
     pub citation_metadata: Option<CitationMetadata>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ContentResponse {
     pub parts: Vec<PartResponse>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum PartResponse {
     Text(String),
     InlineData(BlobResponse),
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct BlobResponse {
     pub mime_type: String,
     pub data: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct CitationMetadata {
     pub citation_sources: Vec<CitationSource>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct CitationSource {
     pub uri: Option<String>,
     pub license: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PromptFeedback {
     pub block_reason: Option<String>,
@@ -118,12 +117,12 @@ pub struct ContentFilter {
     pub message: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ErrorResponse {
     pub error: Error,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Error {
     pub code: u32,
     pub status: String,
@@ -136,8 +135,10 @@ pub async fn generate_content(
     parts: &[Part],
     max_output_tokens: u16,
 ) -> Result<Result<GenerateContentResponse, ErrorResponse>, CommandError> {
-    let url =
-        format!("https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent");
+    let url = format!(
+        // "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
+        "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    );
 
     let response = http_client
         .post(
@@ -233,3 +234,30 @@ pub async fn generate_text(
         Ok(Err(response.json().await?))
     }
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use reqwest::Client;
+//     use std::env;
+
+//     #[tokio::test]
+//     async fn test_generate_content() {
+//         let http_client = Client::new();
+//         let model = "gemini-pro";
+//         let parts =
+//             vec![Part::Text("Write a long essay about the history of bananas.".to_string())];
+//         let max_output_tokens = 512;
+
+//         // Set the API key in the environment for the test
+//         dotenvy::dotenv().ok();
+//         env::set_var("MAKERSUITE_API_KEY", std::env::var("MAKERSUITE_API_KEY").unwrap());
+
+//         let result = generate_content(http_client, model, &parts, max_output_tokens).await;
+
+//         println!("{result:?}");
+//         assert!(result.is_ok());
+//         // Check if the result is not empty.
+//         assert!(!result.unwrap().unwrap().candidates.is_empty());
+//     }
+// }

@@ -90,7 +90,7 @@ impl CommandTrait for StableHorde {
 
         ctx.send_typing().await?;
 
-        let generation = self.generate(ctx, prompt).await?;
+        let generation = Box::pin(self.generate(ctx, prompt)).await?; // Box::pin because this is a large future and it might cause a stack overflow
         let images = download_images(ctx.bot_state.http_client.clone(), &generation.urls).await?;
         let image = process_images(images, self.size);
         let mut temp_file = NamedTempFile::new().unwrap();
@@ -156,7 +156,7 @@ impl StableHorde {
         .await??;
         let escaped_prompt = prompt.truncate_with_ellipsis(256);
         let (results, status_msg_id, time_taken) =
-            wait_for_generation(ctx, &request_id, &escaped_prompt).await?;
+            Box::pin(wait_for_generation(ctx, &request_id, &escaped_prompt)).await?; // Box::pin because this is a large future and it might cause a stack overflow
         let workers =
             results.iter().map(|generation| generation.worker_name.clone()).collect::<Counter<_>>();
         let urls = results
