@@ -1,12 +1,13 @@
-use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::env;
+
+use reqwest::StatusCode;
+use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::commands::CommandError;
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct GenerateContentRequest<'a> {
     contents: &'a [Content<'a>],
@@ -14,32 +15,32 @@ struct GenerateContentRequest<'a> {
     generation_config: GenerationConfig,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct Content<'a> {
     parts: &'a [Part],
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum Part {
     Text(String),
     InlineData(Blob),
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Blob {
     pub mime_type: Cow<'static, str>,
     pub data: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct SafetySetting {
     pub category: &'static str,
     pub threshold: &'static str,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 struct GenerationConfig {
     max_output_tokens: u16,
@@ -106,12 +107,12 @@ pub struct SafetyRating {
     pub blocked: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct TextCompletion {
     pub output: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ContentFilter {
     pub reason: String,
     pub message: Option<String>,
@@ -136,8 +137,7 @@ pub async fn generate_content(
     max_output_tokens: u16,
 ) -> Result<Result<GenerateContentResponse, ErrorResponse>, CommandError> {
     let url = format!(
-        // "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
-        "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
     );
 
     let response = http_client
@@ -164,11 +164,19 @@ pub async fn generate_content(
         .send()
         .await?;
 
-    if response.status() == StatusCode::OK {
-        Ok(Ok(response.json().await?))
-    } else {
-        Ok(Err(response.json().await?))
-    }
+    // This is a stream, save all of the responses to a vec.
+    let vec: Vec<GenerateContentResponse> = response.json().await?;
+    // Combine all of the responses into one.
+    let response = vec.into_iter().fold(
+        GenerateContentResponse { candidates: Vec::new(), prompt_feedback: None },
+        |mut acc, mut x| {
+            acc.candidates.append(&mut x.candidates);
+            acc.prompt_feedback = x.prompt_feedback.or(acc.prompt_feedback);
+            acc
+        },
+    );
+
+    Ok(Ok(response))
 }
 
 #[derive(Serialize)]
@@ -235,29 +243,31 @@ pub async fn generate_text(
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use reqwest::Client;
-//     use std::env;
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use reqwest::Client;
+    use std::env;
 
-//     #[tokio::test]
-//     async fn test_generate_content() {
-//         let http_client = Client::new();
-//         let model = "gemini-pro";
-//         let parts =
-//             vec![Part::Text("Write a long essay about the history of bananas.".to_string())];
-//         let max_output_tokens = 512;
+    #[tokio::test]
+    async fn test_generate_content() {
+        let http_client = Client::new();
+        let model = "gemini-pro";
+        let parts =
+            vec![Part::Text("Write a long essay about the history of bananas.".to_string())];
+        let max_output_tokens = 512;
 
-//         // Set the API key in the environment for the test
-//         dotenvy::dotenv().ok();
-//         env::set_var("MAKERSUITE_API_KEY", std::env::var("MAKERSUITE_API_KEY").unwrap());
+        // Set the API key in the environment for the test
+        dotenvy::dotenv().ok();
+        env::set_var("MAKERSUITE_API_KEY", std::env::var("MAKERSUITE_API_KEY").unwrap());
 
-//         let result = generate_content(http_client, model, &parts, max_output_tokens).await;
+        let result = generate_content(http_client, model, &parts, max_output_tokens).await;
 
-//         println!("{result:?}");
-//         assert!(result.is_ok());
-//         // Check if the result is not empty.
-//         assert!(!result.unwrap().unwrap().candidates.is_empty());
-//     }
-// }
+        println!("{result:?}");
+        assert!(result.is_ok());
+        // Check if the content is none
+        let content = result.unwrap().unwrap();
+        let content = content.candidates.first().unwrap().content.as_ref();
+        assert!(content.is_some(), "content is none");
+    }
+}

@@ -43,6 +43,7 @@ async fn main() {
     bot.add_command(commands::mevo::Mevo);
     bot.add_command(commands::kiwifarms::KiwiFarms);
     bot.add_command(commands::startit_joke::StartitJoke);
+    bot.add_command(commands::moveit_joke::MoveitJoke);
     bot.add_command(commands::kebab::Kebab);
     bot.add_command(commands::ping::Ping);
     bot.add_command(commands::delete::Delete);
