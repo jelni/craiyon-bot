@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;

@@ -13,8 +13,8 @@ impl CommandTrait for MoveitJoke {
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        let joke = moveit::moveit_joke(ctx.bot_state.http_client.clone()).await?;
-        ctx.reply(joke).await?;
+        let joke = moveit::joke(ctx.bot_state.http_client.clone()).await?;
+        ctx.reply(format!("[{}] {}", joke.id, joke.joke)).await?;
 
         Ok(())
     }

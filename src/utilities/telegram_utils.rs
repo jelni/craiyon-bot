@@ -37,8 +37,8 @@ pub fn donate_markup(name: &str, url: impl Into<String>) -> ReplyMarkup {
     })
 }
 
-pub const fn get_message_text(message: &Message) -> Option<&FormattedText> {
-    let formatted_text = match &message.content {
+pub const fn get_message_text(content: &MessageContent) -> Option<&FormattedText> {
+    let formatted_text = match content {
         MessageContent::MessageText(text) => &text.text,
         MessageContent::MessageAnimation(animation) => &animation.caption,
         MessageContent::MessageAudio(audio) => &audio.caption,
@@ -52,8 +52,8 @@ pub const fn get_message_text(message: &Message) -> Option<&FormattedText> {
     Some(formatted_text)
 }
 
-pub fn get_message_image(message: &Message) -> Option<MessageImage> {
-    match &message.content {
+pub fn get_message_image(content: &MessageContent) -> Option<MessageImage> {
+    match content {
         MessageContent::MessageText(message) => message.web_page.as_ref().and_then(web_page_image),
         MessageContent::MessageDocument(message) => Some(MessageImage {
             file: message.document.document.clone(),
@@ -110,20 +110,26 @@ fn sticker_image(sticker: &Sticker) -> Option<MessageImage> {
 }
 
 pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Option<MessageImage> {
-    if let Some(message_image) = get_message_image(message) {
+    if let Some(message_image) = get_message_image(&message.content) {
         return Some(message_image);
     }
 
-    let &MessageReplyTo::Message(MessageReplyToMessage { chat_id, message_id, .. }) =
+    let MessageReplyTo::Message(MessageReplyToMessage { chat_id, message_id, content, .. }) =
         message.reply_to.as_ref()?
     else {
         return None;
     };
 
-    let enums::Message::Message(message) =
-        functions::get_message(chat_id, message_id, client_id).await.ok()?;
+    let content = if let Some(content) = content {
+        Cow::Borrowed(content)
+    } else {
+        let enums::Message::Message(message) =
+            functions::get_message(*chat_id, *message_id, client_id).await.ok()?;
 
-    get_message_image(&message)
+        Cow::Owned(message.content)
+    };
+
+    get_message_image(&content)
 }
 
 pub fn log_status_update(update: &UpdateChatMember, chat: &CompactChat) {

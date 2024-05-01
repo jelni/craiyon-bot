@@ -2,8 +2,8 @@ use async_trait::async_trait;
 use tdlib::enums::{InputFile, InputMessageContent, InputMessageReplyTo, Messages};
 use tdlib::functions;
 use tdlib::types::{
-    InputFileLocal, InputMessageAudio, InputMessageDocument, InputMessageVideo,
-    InputMessageReplyToMessage,
+    InputFileLocal, InputMessageAudio, InputMessageDocument, InputMessageReplyToMessage,
+    InputMessageVideo,
 };
 
 use super::{CommandResult, CommandTrait};

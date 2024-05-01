@@ -1,7 +1,6 @@
 use bytes::Bytes;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::{Response, StatusCode, Url};
-use url::ParseError;
 
 const CLOUDFLARE_STORAGE: &str = "r2.cloudflarestorage.com";
 
@@ -26,12 +25,12 @@ impl DetectServerError for Response {
 }
 
 pub enum InvalidCloudflareStorageUrl {
-    ParseError(ParseError),
+    ParseError,
     InvalidDomain,
 }
 
 pub fn cloudflare_storage_url(url: &str) -> Result<Url, InvalidCloudflareStorageUrl> {
-    Url::parse(url).map_err(InvalidCloudflareStorageUrl::ParseError).and_then(|url| {
+    Url::parse(url).map_err(|_| InvalidCloudflareStorageUrl::ParseError).and_then(|url| {
         url.host_str().map_or(Err(InvalidCloudflareStorageUrl::InvalidDomain), |host| {
             if host.ends_with(CLOUDFLARE_STORAGE) {
                 Ok(url.clone())

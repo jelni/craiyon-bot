@@ -37,7 +37,7 @@ impl CommandTrait for GoogleGemini {
 
         ctx.send_typing().await?;
 
-        let mut model = "gemini-pro";
+        let mut model = "gemini-1.0-pro-latest";
         let mut parts = Vec::new();
 
         if let Some(prompt) = prompt {
@@ -59,7 +59,7 @@ impl CommandTrait for GoogleGemini {
                 ));
             }
 
-            model = "gemini-pro-vision";
+            model = "gemini-1.0-pro-vision-latest";
 
             let File::File(file) =
                 functions::download_file(message_image.file.id, 1, 0, 0, true, ctx.client_id)
@@ -77,12 +77,12 @@ impl CommandTrait for GoogleGemini {
             return Err(CommandError::Custom("no prompt or image provided.".into()));
         }
 
-        let response =
+        let responses =
             makersuite::generate_content(ctx.bot_state.http_client.clone(), model, &parts, 512)
                 .await?;
 
-        let response = match response {
-            Ok(response) => response,
+        let responses = match responses {
+            Ok(responses) => responses,
             Err(response) => {
                 return Err(CommandError::Custom(format!(
                     "error {}: {}",
@@ -91,14 +91,16 @@ impl CommandTrait for GoogleGemini {
             }
         };
 
-        if let Some(prompt_feedback) = response.prompt_feedback {
-            if let Some(block_reason) = prompt_feedback.block_reason {
+        if let Some(prompt_feedback) =
+            &responses.last().and_then(|response| response.prompt_feedback.as_ref())
+        {
+            if let Some(block_reason) = &prompt_feedback.block_reason {
                 if block_reason == "SAFETY" {
-                    if let Some(safety_ratings) = prompt_feedback.safety_ratings {
+                    if let Some(safety_ratings) = &prompt_feedback.safety_ratings {
                         let reasons = safety_ratings
-                            .into_iter()
+                            .iter()
                             .filter(|safety_rating| safety_rating.blocked)
-                            .map(|safety_rating| safety_rating.category)
+                            .map(|safety_rating| safety_rating.category.as_str())
                             .collect::<Vec<_>>()
                             .join(", ");
 
@@ -112,41 +114,42 @@ impl CommandTrait for GoogleGemini {
             }
         }
 
-        let Some(candidate) = response.candidates.into_iter().next() else {
-            return Err(CommandError::Custom("no response generated.".into()));
-        };
+        let mut parts = Vec::new();
+        let mut finish_reason = String::new();
+        let mut citation_sources = Vec::new();
 
-        let mut text = String::new();
+        for response in responses {
+            let Some(candidate) = response.candidates.into_iter().next() else {
+                return Err(CommandError::Custom("no response generated.".into()));
+            };
 
-        let content_generated = if let Some(content) = candidate.content {
-            let content = content
-                .parts
-                .into_iter()
-                .map(|part| match part {
-                    PartResponse::Text(text) => text,
-                    PartResponse::InlineData(_) => "[unsupported response part]".into(),
-                })
-                .collect::<Vec<_>>()
-                .join("\n\n");
-
-            text.push_str(&content);
-
-            true
-        } else {
-            false
-        };
-
-        if candidate.finish_reason != "STOP" {
-            if content_generated {
-                text.push(' ');
+            if let Some(content) = candidate.content {
+                parts.extend(content.parts);
             }
 
-            write!(text, "[{}]", candidate.finish_reason).unwrap();
+            finish_reason = candidate.finish_reason;
+
+            if let Some(citation_metadata) = candidate.citation_metadata {
+                citation_sources.extend(citation_metadata.citation_sources);
+            }
         }
 
-        if let Some(citation_metadata) = candidate.citation_metadata {
+        let mut text = parts
+            .into_iter()
+            .map(|part| match part {
+                PartResponse::Text(text) => text,
+                PartResponse::InlineData => "[unsupported response part]".into(),
+            })
+            .collect::<Vec<_>>()
+            .join("\n\n");
+
+        if finish_reason != "STOP" {
+            write!(text, " [{finish_reason}]").unwrap();
+        }
+
+        if !citation_sources.is_empty() {
             text.push_str("\n\n");
-            text.push_str(&format_citations(citation_metadata.citation_sources));
+            text.push_str(&format_citations(citation_sources));
         }
 
         let enums::FormattedText::FormattedText(formatted_text) =

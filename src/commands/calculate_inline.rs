@@ -1,7 +1,8 @@
 use tdlib::enums::{InputInlineQueryResult, InputMessageContent};
 use tdlib::functions;
 use tdlib::types::{
-    FormattedText, InputInlineQueryResultArticle, InputMessageText, UpdateNewInlineQuery,
+    FormattedText, InputInlineQueryResultArticle, InputMessageText, LinkPreviewOptions,
+    UpdateNewInlineQuery,
 };
 
 use crate::apis::mathjs;
@@ -50,6 +51,10 @@ pub async fn execute(query: UpdateNewInlineQuery, http_client: reqwest::Client, 
             reply_markup: None,
             input_message_content: InputMessageContent::InputMessageText(InputMessageText {
                 text: FormattedText { text: message_text, ..Default::default() },
+                link_preview_options: Some(LinkPreviewOptions {
+                    is_disabled: true,
+                    ..Default::default()
+                }),
                 ..Default::default()
             }),
         })],

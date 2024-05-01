@@ -132,13 +132,13 @@ impl Bot {
                         false,
                         ".data".into(),
                         String::new(),
-                        env::var("DB_ENCRYPTION_KEY").expect("missing DB_ENCRYPTION_KEY"),
+                        env::var("DB_ENCRYPTION_KEY").unwrap(),
                         true,
                         true,
                         false,
                         false,
-                        env::var("API_ID").unwrap().parse().expect("missing API_ID"),
-                        env::var("API_HASH").expect("missing API_HASH"),
+                        env::var("API_ID").unwrap().parse().unwrap(),
+                        env::var("API_HASH").unwrap(),
                         "en-raw".into(),
                         env!("CARGO_PKG_NAME").into(),
                         String::new(),
@@ -169,7 +169,7 @@ impl Bot {
                 let client_id = self.client_id;
                 self.run_task(async move {
                     functions::check_authentication_bot_token(
-                        env::var("TELEGRAM_TOKEN").expect("missing TELEGRAM_TOKEN"),
+                        env::var("TELEGRAM_TOKEN").unwrap(),
                         client_id,
                     )
                     .await

@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use rand::rngs::StdRng;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 use rand::SeedableRng;
 
 use super::{CommandResult, CommandTrait};

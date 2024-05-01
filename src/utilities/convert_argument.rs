@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt;
 
 use async_trait::async_trait;
@@ -87,21 +88,38 @@ impl ConvertArgument for Reply {
         ctx: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        let Some(MessageReplyTo::Message(MessageReplyToMessage { chat_id, message_id, .. })) =
-            ctx.message.reply_to
+        let Some(MessageReplyTo::Message(MessageReplyToMessage {
+            chat_id,
+            message_id,
+            quote,
+            content,
+            ..
+        })) = &ctx.message.reply_to
         else {
             return Err(ConversionError::MissingArgument);
         };
 
-        let Message::Message(message) =
-            functions::get_message(chat_id, message_id, ctx.client_id).await.map_err(|_| {
-                ConversionError::BadArgument(concat!(
-                    "replied message cannot be loaded ",
-                    "(i can't see other bots' messages — unless you forward them).",
-                ))
-            })?;
+        if let Some(quote) = quote {
+            return Ok((Self(quote.text.text.clone()), arguments));
+        };
 
-        let argument = telegram_utils::get_message_text(&message)
+        let content = if let Some(content) = content {
+            Cow::Borrowed(content)
+        } else {
+            let Message::Message(message) =
+                functions::get_message(*chat_id, *message_id, ctx.client_id).await.map_err(
+                    |_| {
+                        ConversionError::BadArgument(concat!(
+                        "replied message cannot be loaded ",
+                        "(i can't see other bots' messages — unless you forward or quote them).",
+                    ))
+                    },
+                )?;
+
+            Cow::Owned(message.content)
+        };
+
+        let argument = telegram_utils::get_message_text(&content)
             .ok_or(ConversionError::BadArgument("replied message doesn't contain any text."))?
             .text
             .clone();

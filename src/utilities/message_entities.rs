@@ -54,6 +54,7 @@ impl<'a> ToEntity<'a> for str {
     }
 }
 
+#[allow(dead_code)]
 pub trait ToEntityOwned<'a> {
     fn text_owned(self) -> Entity<'a>;
     fn bold_owned(self) -> Entity<'a>;
