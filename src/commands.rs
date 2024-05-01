@@ -24,7 +24,7 @@ pub mod kiwifarms;
 pub mod makersuite;
 pub mod markov_chain;
 pub mod mevo;
-pub mod nitro;
+pub mod moveit_joke;
 pub mod ping;
 pub mod radio_poligon;
 pub mod screenshot;

@@ -6,7 +6,7 @@ pub mod kiwifarms;
 pub mod makersuite;
 pub mod mathjs;
 pub mod microlink;
-pub mod opera_gx;
+pub mod moveit;
 pub mod poligon;
 pub mod stablehorde;
 pub mod translate;

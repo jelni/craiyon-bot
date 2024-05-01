@@ -1,7 +1,7 @@
 use std::iter;
 
 use async_trait::async_trait;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::translate;

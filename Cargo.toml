@@ -6,10 +6,10 @@ edition = "2021"
 [dependencies]
 markov-chain = { git = "https://github.com/jelni/markov-chain" }
 
-tdlib = "0.10.0"
-tokio = { version = "1.26", features = ["rt-multi-thread", "macros", "time", "signal"] }
+tdlib = { git = "https://github.com/jelni/tdlib-rs-latest" }
+tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "time", "signal"] }
 async-trait = "0.1"
-reqwest = { version = "0.11", default-features = false, features = ["json", "stream", "rustls-tls"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
 url = "2.3"
 serde = "1.0"
 serde_json = "1.0"
@@ -17,14 +17,14 @@ rmp-serde = "1.1"
 bytes = "1.4"
 futures-util = "0.3"
 oneshot = "0.1"
-image = { version = "0.24", default-features = false, features = ["jpeg", "png", "webp"] }
-base64 = "0.21"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+base64 = "0.22"
 md5 = "0.7"
 time = { version = "0.3", features = ["serde", "serde-well-known", "macros"] }
 dotenvy = "0.15"
 tempfile = "3.4"
 log = { version = "0.4", features = ["std"] }
 colored = "2.0"
-rand = "0.8"
+rand = "0.9.0-alpha"
 counter = "0.5"
 charname = "0.2"

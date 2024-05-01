@@ -1,9 +1,9 @@
 use async_trait::async_trait;
-use tdlib::enums::{InputFile, InputMessageContent, MessageReplyTo, Messages};
+use tdlib::enums::{InputFile, InputMessageContent, InputMessageReplyTo, Messages};
 use tdlib::functions;
 use tdlib::types::{
-    InputFileLocal, InputMessageAudio, InputMessageDocument, InputMessageVideo,
-    MessageReplyToMessage,
+    InputFileLocal, InputMessageAudio, InputMessageDocument, InputMessageReplyToMessage,
+    InputMessageVideo,
 };
 
 use super::{CommandResult, CommandTrait};
@@ -103,13 +103,13 @@ impl CommandTrait for CobaltDownload {
         let Messages::Messages(messages) = functions::send_message_album(
             ctx.message.chat_id,
             ctx.message.message_thread_id,
-            Some(MessageReplyTo::Message(MessageReplyToMessage {
+            Some(InputMessageReplyTo::Message(InputMessageReplyToMessage {
                 chat_id: ctx.message.chat_id,
                 message_id: ctx.message.id,
+                ..Default::default()
             })),
             None,
             messages,
-            false,
             ctx.client_id,
         )
         .await?;
