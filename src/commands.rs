@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use reqwest::StatusCode;
 use tdlib::types::FormattedText;
 
+use crate::apis::makersuite::GenerationError;
 use crate::bot::TdError;
 use crate::utilities::api_utils::ServerError;
 use crate::utilities::command_context::CommandContext;
@@ -78,6 +79,17 @@ impl From<&str> for CommandError {
 impl From<ConversionError> for CommandError {
     fn from(value: ConversionError) -> Self {
         Self::ArgumentConversion(value)
+    }
+}
+
+impl From<GenerationError> for CommandError {
+    fn from(value: GenerationError) -> Self {
+        match value {
+            GenerationError::NetworkError(err) => Self::Reqwest(err),
+            GenerationError::GoogleError(err) => {
+                Self::Custom(format!("error {}: {}", err.code, err.message))
+            }
+        }
     }
 }
 

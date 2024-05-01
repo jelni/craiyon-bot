@@ -1,15 +1,20 @@
 use std::fmt::Write;
 use std::fs;
+use std::time::Duration;
 
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use tdlib::enums::File;
-use tdlib::types::FormattedText;
+use tdlib::types::{FormattedText, Message};
 use tdlib::{enums, functions};
+use tokio::sync::mpsc;
+use tokio::time::Instant;
 
 use super::{CommandError, CommandResult, CommandTrait};
-use crate::apis::makersuite::{self, Blob, CitationSource, Part, PartResponse};
+use crate::apis::makersuite::{
+    self, Blob, Candidate, CitationSource, GenerateContentResponse, Part, PartResponse,
+};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::file_download::MEBIBYTE;
@@ -77,86 +82,78 @@ impl CommandTrait for GoogleGemini {
             return Err(CommandError::Custom("no prompt or image provided.".into()));
         }
 
-        let responses =
-            makersuite::generate_content(ctx.bot_state.http_client.clone(), model, &parts, 512)
-                .await?;
+        let http_client = ctx.bot_state.http_client.clone();
+        let (tx, mut rx) = mpsc::unbounded_channel();
 
-        let responses = match responses {
-            Ok(responses) => responses,
-            Err(response) => {
-                return Err(CommandError::Custom(format!(
-                    "error {}: {}",
-                    response.error.code, response.error.message
-                )));
-            }
-        };
+        tokio::spawn(async move {
+            makersuite::stream_generate_content(http_client, tx, model, &parts, 512).await;
+        });
 
-        if let Some(prompt_feedback) =
-            &responses.last().and_then(|response| response.prompt_feedback.as_ref())
-        {
-            if let Some(block_reason) = &prompt_feedback.block_reason {
-                if block_reason == "SAFETY" {
-                    if let Some(safety_ratings) = &prompt_feedback.safety_ratings {
-                        let reasons = safety_ratings
-                            .iter()
-                            .filter(|safety_rating| safety_rating.blocked)
-                            .map(|safety_rating| safety_rating.category.as_str())
-                            .collect::<Vec<_>>()
-                            .join(", ");
+        let mut next_update = Instant::now() + Duration::from_secs(5);
+        let mut changed_after_last_update = false;
+        let mut progress = Option::<GenerationProgress>::None;
+        let mut message = Option::<Message>::None;
 
-                        return Err(CommandError::Custom(format!(
-                            "request blocked by Google: {reasons}."
-                        )));
+        loop {
+            let (update_message, finished) =
+                if let Ok(response) = tokio::time::timeout_at(next_update, rx.recv()).await {
+                    match response {
+                        Some(response) => {
+                            let response = response?;
+
+                            match progress.as_mut() {
+                                Some(progress) => {
+                                    progress.update(response)?;
+                                }
+                                None => {
+                                    progress = Some(GenerationProgress::new(
+                                        response.candidates.into_iter().next().unwrap(),
+                                    ));
+                                }
+                            }
+
+                            changed_after_last_update = true;
+                            (false, false)
+                        }
+                        None => (true, true),
                     }
+                } else {
+                    next_update = Instant::now() + Duration::from_secs(5);
+                    (true, false)
+                };
+
+            if update_message && changed_after_last_update {
+                let text = match progress.as_ref() {
+                    Some(progress) => progress.format(finished),
+                    None => {
+                        continue;
+                    }
+                };
+
+                let enums::FormattedText::FormattedText(formatted_text) =
+                    functions::parse_markdown(
+                        FormattedText { text, ..Default::default() },
+                        ctx.client_id,
+                    )
+                    .await?;
+
+                if let Some(message) = message.as_ref() {
+                    ctx.edit_message_formatted_text(message.id, formatted_text).await?;
+                } else {
+                    let unsent_message = ctx.reply_formatted_text(formatted_text).await?;
+                    message = Some(
+                        ctx.bot_state.message_queue.wait_for_message(unsent_message.id).await?,
+                    );
                 }
 
-                return Err(CommandError::Custom("request blocked by Google.".into()));
-            }
-        }
-
-        let mut parts = Vec::new();
-        let mut finish_reason = String::new();
-        let mut citation_sources = Vec::new();
-
-        for response in responses {
-            let Some(candidate) = response.candidates.into_iter().next() else {
-                return Err(CommandError::Custom("no response generated.".into()));
-            };
-
-            if let Some(content) = candidate.content {
-                parts.extend(content.parts);
+                next_update = Instant::now() + Duration::from_secs(5);
+                changed_after_last_update = false;
             }
 
-            finish_reason = candidate.finish_reason;
-
-            if let Some(citation_metadata) = candidate.citation_metadata {
-                citation_sources.extend(citation_metadata.citation_sources);
+            if finished {
+                break;
             }
         }
-
-        let mut text = parts
-            .into_iter()
-            .map(|part| match part {
-                PartResponse::Text(text) => text,
-                PartResponse::InlineData => "[unsupported response part]".into(),
-            })
-            .collect::<Vec<_>>()
-            .join("\n\n");
-
-        if finish_reason != "STOP" {
-            write!(text, " [{finish_reason}]").unwrap();
-        }
-
-        if !citation_sources.is_empty() {
-            text.push_str("\n\n");
-            text.push_str(&format_citations(citation_sources));
-        }
-
-        let enums::FormattedText::FormattedText(formatted_text) =
-            functions::parse_markdown(FormattedText { text, ..Default::default() }, ctx.client_id)
-                .await?;
-
-        ctx.reply_formatted_text(formatted_text).await?;
 
         Ok(())
     }
@@ -227,7 +224,7 @@ impl CommandTrait for GooglePalm {
 
         if let Some(citation_metadata) = candidate.citation_metadata {
             text.push_str("\n\n");
-            text.push_str(&format_citations(citation_metadata.citation_sources));
+            text.push_str(&format_citations(&citation_metadata.citation_sources));
         }
 
         let enums::FormattedText::FormattedText(formatted_text) =
@@ -240,20 +237,105 @@ impl CommandTrait for GooglePalm {
     }
 }
 
-fn format_citations(citation_sources: Vec<CitationSource>) -> String {
+struct GenerationProgress {
+    parts: Vec<PartResponse>,
+    finish_reason: String,
+    citation_sources: Vec<CitationSource>,
+}
+
+impl GenerationProgress {
+    fn new(candidate: Candidate) -> Self {
+        Self {
+            parts: candidate.content.map(|content| content.parts).unwrap_or_default(),
+            finish_reason: candidate.finish_reason,
+            citation_sources: candidate
+                .citation_metadata
+                .map(|citation_metadata| citation_metadata.citation_sources)
+                .unwrap_or_default(),
+        }
+    }
+
+    fn update(&mut self, response: GenerateContentResponse) -> Result<(), CommandError> {
+        if let Some(prompt_feedback) = response.prompt_feedback {
+            if let Some(block_reason) = &prompt_feedback.block_reason {
+                if block_reason == "SAFETY" {
+                    if let Some(safety_ratings) = &prompt_feedback.safety_ratings {
+                        let reasons = safety_ratings
+                            .iter()
+                            .filter(|safety_rating| safety_rating.blocked)
+                            .map(|safety_rating| safety_rating.category.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ");
+
+                        return Err(CommandError::Custom(format!(
+                            "request blocked by Google: {reasons}."
+                        )));
+                    }
+                }
+
+                return Err(CommandError::Custom("request blocked by Google.".into()));
+            }
+        }
+
+        let Some(candidate) = response.candidates.into_iter().next() else {
+            return Err(CommandError::Custom("no response generated.".into()));
+        };
+
+        if let Some(content) = candidate.content {
+            self.parts.extend(content.parts);
+
+            if let Some(citation_metadata) = candidate.citation_metadata {
+                self.citation_sources.extend(citation_metadata.citation_sources);
+            }
+        }
+
+        self.finish_reason = candidate.finish_reason;
+
+        Ok(())
+    }
+
+    fn format(&self, finished: bool) -> String {
+        let mut text = self
+            .parts
+            .iter()
+            .map(|part| match part {
+                PartResponse::Text(text) => text.as_str(),
+                PartResponse::InlineData => "[unsupported response part]",
+            })
+            .collect::<Vec<_>>()
+            .concat();
+
+        if !finished {
+            text.push('…');
+        }
+
+        if self.finish_reason != "STOP" {
+            write!(text, " [{}]", self.finish_reason).unwrap();
+        }
+
+        if !self.citation_sources.is_empty() {
+            text.push_str("\n\n");
+            text.push_str(&format_citations(&self.citation_sources));
+        }
+
+        text
+    }
+}
+
+fn format_citations(citation_sources: &[CitationSource]) -> String {
     let mut text = String::new();
 
-    for (i, source) in citation_sources.into_iter().enumerate() {
-        if let Some(uri) = source.uri {
+    for (i, source) in citation_sources.iter().enumerate() {
+        if let Some(uri) = source.uri.as_ref() {
             write!(text, "\n[{}] ", i + 1).unwrap();
 
-            if let Some(license) = source.license {
+            if let Some(license) = source.license.as_ref() {
                 if !license.is_empty() {
                     write!(text, "[{license}] ").unwrap();
                 }
             }
 
-            text.push_str(&uri);
+            text.push_str(uri);
         }
     }
 

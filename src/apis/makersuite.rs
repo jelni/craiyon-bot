@@ -1,11 +1,18 @@
 use std::borrow::Cow;
 use std::env;
 
+use futures_util::StreamExt;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+use tokio::sync::mpsc;
 use url::Url;
 
 use crate::commands::CommandError;
+
+pub enum GenerationError {
+    NetworkError(reqwest::Error),
+    GoogleError(Error),
+}
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -117,12 +124,13 @@ pub struct Error {
     pub message: String,
 }
 
-pub async fn generate_content(
+pub async fn stream_generate_content(
     http_client: reqwest::Client,
+    tx: mpsc::UnboundedSender<Result<GenerateContentResponse, GenerationError>>,
     model: &str,
     parts: &[Part],
     max_output_tokens: u16,
-) -> Result<Result<Vec<GenerateContentResponse>, ErrorResponse>, CommandError> {
+) {
     let url = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
     );
@@ -149,9 +157,53 @@ pub async fn generate_content(
             generation_config: GenerationConfig { max_output_tokens },
         })
         .send()
-        .await?;
+        .await;
 
-    Ok(Ok(response.json::<Vec<GenerateContentResponse>>().await?))
+    let response = match response {
+        Ok(response) => response,
+        Err(err) => {
+            tx.send(Err(GenerationError::NetworkError(err))).unwrap();
+            return;
+        }
+    };
+
+    if response.status() != StatusCode::OK {
+        tx.send(Err(GenerationError::GoogleError(
+            response.json::<ErrorResponse>().await.unwrap().error,
+        )))
+        .unwrap();
+        return;
+    }
+
+    let mut buffer = String::new();
+    let mut stream = response.bytes_stream();
+
+    while let Some(part) = stream.next().await {
+        let part = match part {
+            Ok(part) => part,
+            Err(err) => {
+                tx.send(Err(GenerationError::NetworkError(err))).unwrap();
+                return;
+            }
+        };
+
+        buffer.push_str(&String::from_utf8(part.to_vec()).unwrap());
+
+        if let Some(stripped) = buffer.strip_prefix('[') {
+            buffer = stripped.into();
+        }
+
+        if let Some(stripped) = buffer.strip_suffix("\n]") {
+            buffer = stripped.into();
+        }
+
+        while let Some((first, rest)) = buffer.split_once("\n,\r\n") {
+            tx.send(Ok(serde_json::from_str(first).unwrap())).unwrap();
+            buffer = rest.into();
+        }
+    }
+
+    tx.send(Ok(serde_json::from_str(&buffer).unwrap())).unwrap();
 }
 
 #[derive(Serialize)]

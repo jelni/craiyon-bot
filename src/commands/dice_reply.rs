@@ -27,7 +27,6 @@ pub async fn execute(message: Message, client_id: i32) {
         message.chat_id,
         message.message_thread_id,
         Some(InputMessageReplyTo::Message(InputMessageReplyToMessage {
-            chat_id: message.chat_id,
             message_id: message.id,
             ..Default::default()
         })),
