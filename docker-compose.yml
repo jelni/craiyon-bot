@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  craiyon-bot:
+    build: .
+    environment:
+      TDLIB_COMMIT_HASH: 77b34797d89d23ccfab3f3e1eab532f0bc73ab38
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
+      API_ID: ${API_ID}
+      API_HASH: ${API_HASH}
+      DB_ENCRYPTION_KEY: ${DB_ENCRYPTION_KEY}
+      STABLEHORDE_TOKEN: ${STABLEHORDE_TOKEN}
+      STABLEHORDE_CLIENT: ${STABLEHORDE_CLIENT}
+      MAKERSUITE_API_KEY: ${MAKERSUITE_API_KEY}
+    volumes:
+      - craiyon-bot:/app
+
+volumes:
+  craiyon-bot:
