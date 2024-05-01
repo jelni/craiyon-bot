@@ -47,7 +47,7 @@ pub fn message_destination(
         return Some(MessageDestination::Dice { message });
     }
 
-    let Some(text) = telegram_utils::get_message_text(&message) else {
+    let Some(text) = telegram_utils::get_message_text(&message.content) else {
         return None; // ignore messages without text
     };
 

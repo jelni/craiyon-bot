@@ -1,9 +1,12 @@
 use std::time::Duration;
 
 use rand::Rng;
-use tdlib::enums::{InputMessageContent, MessageContent, MessageReplyTo};
+use tdlib::enums::{InputMessageContent, InputMessageReplyTo, MessageContent};
 use tdlib::functions;
-use tdlib::types::{FormattedText, InputMessageText, Message, MessageDice, MessageReplyToMessage};
+use tdlib::types::{
+    FormattedText, InputMessageReplyToMessage, InputMessageText, LinkPreviewOptions, Message,
+    MessageDice,
+};
 
 pub async fn execute(message: Message, client_id: i32) {
     let MessageContent::MessageDice(dice) = message.content else {
@@ -23,15 +26,19 @@ pub async fn execute(message: Message, client_id: i32) {
     functions::send_message(
         message.chat_id,
         message.message_thread_id,
-        Some(MessageReplyTo::Message(MessageReplyToMessage {
+        Some(InputMessageReplyTo::Message(InputMessageReplyToMessage {
             chat_id: message.chat_id,
             message_id: message.id,
+            ..Default::default()
         })),
         None,
         None,
         InputMessageContent::InputMessageText(InputMessageText {
             text: FormattedText { text: text.into(), ..Default::default() },
-            disable_web_page_preview: true,
+            link_preview_options: Some(LinkPreviewOptions {
+                is_disabled: true,
+                ..Default::default()
+            }),
             ..Default::default()
         }),
         client_id,

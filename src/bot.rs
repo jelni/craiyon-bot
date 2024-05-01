@@ -143,8 +143,6 @@ impl Bot {
                         env!("CARGO_PKG_NAME").into(),
                         String::new(),
                         env!("CARGO_PKG_VERSION").into(),
-                        true,
-                        true,
                         client_id,
                     )
                     .await
@@ -153,6 +151,7 @@ impl Bot {
                     for option in [
                         "disable_persistent_network_statistics",
                         "disable_time_adjustment_protection",
+                        "ignore_file_names",
                         "ignore_inline_thumbnails",
                         "ignore_platform_restrictions",
                         "use_storage_optimizer",

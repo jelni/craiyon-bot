@@ -71,14 +71,7 @@ pub struct ContentResponse {
 #[serde(rename_all = "camelCase")]
 pub enum PartResponse {
     Text(String),
-    InlineData(BlobResponse),
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct BlobResponse {
-    pub mime_type: String,
-    pub data: String,
+    InlineData,
 }
 
 #[derive(Deserialize)]
@@ -108,11 +101,6 @@ pub struct SafetyRating {
 }
 
 #[derive(Deserialize)]
-pub struct TextCompletion {
-    pub output: String,
-}
-
-#[derive(Deserialize)]
 pub struct ContentFilter {
     pub reason: String,
     pub message: Option<String>,
@@ -126,7 +114,6 @@ pub struct ErrorResponse {
 #[derive(Deserialize)]
 pub struct Error {
     pub code: u32,
-    pub status: String,
     pub message: String,
 }
 
@@ -135,9 +122,10 @@ pub async fn generate_content(
     model: &str,
     parts: &[Part],
     max_output_tokens: u16,
-) -> Result<Result<GenerateContentResponse, ErrorResponse>, CommandError> {
-    let url =
-        format!("https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent");
+) -> Result<Result<Vec<GenerateContentResponse>, ErrorResponse>, CommandError> {
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
+    );
 
     let response = http_client
         .post(
@@ -163,11 +151,7 @@ pub async fn generate_content(
         .send()
         .await?;
 
-    if response.status() == StatusCode::OK {
-        Ok(Ok(response.json().await?))
-    } else {
-        Ok(Err(response.json().await?))
-    }
+    Ok(Ok(response.json::<Vec<GenerateContentResponse>>().await?))
 }
 
 #[derive(Serialize)]
