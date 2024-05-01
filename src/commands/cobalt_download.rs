@@ -104,7 +104,6 @@ impl CommandTrait for CobaltDownload {
             ctx.message.chat_id,
             ctx.message.message_thread_id,
             Some(InputMessageReplyTo::Message(InputMessageReplyToMessage {
-                chat_id: ctx.message.chat_id,
                 message_id: ctx.message.id,
                 ..Default::default()
             })),

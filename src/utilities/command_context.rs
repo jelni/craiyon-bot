@@ -28,7 +28,6 @@ impl CommandContext {
             self.message.chat_id,
             self.message.message_thread_id,
             Some(InputMessageReplyTo::Message(InputMessageReplyToMessage {
-                chat_id: self.message.chat_id,
                 message_id: self.message.id,
                 ..Default::default()
             })),
