@@ -22,6 +22,7 @@ pub mod dice_reply;
 pub mod different_dimension_me;
 pub mod kebab;
 pub mod kiwifarms;
+pub mod llama;
 pub mod makersuite;
 pub mod markov_chain;
 pub mod mevo;
@@ -108,5 +109,44 @@ impl From<ServerError> for CommandError {
 impl From<reqwest::Error> for CommandError {
     fn from(value: reqwest::Error) -> Self {
         Self::Reqwest(value)
+    }
+}
+
+impl From<FormattedText> for CommandError {
+    fn from(value: FormattedText) -> Self {
+        Self::CustomFormattedText(value)
+    }
+}
+
+impl std::fmt::Display for CommandError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Custom(message) => write!(f, "{message}"),
+            Self::CustomFormattedText(formatted_text) => {
+                write!(f, "{}", formatted_text.text)
+            }
+            Self::ArgumentConversion(err) => write!(f, "{err}"),
+            Self::Telegram(err) => write!(f, "Telegram {} error: {}", err.code, err.message),
+            Self::Server(status) => write!(f, "Server error: {status}"),
+            Self::Reqwest(err) => write!(f, "{err}"),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_command_error_display_custom() {
+        let error = CommandError::Custom("Custom error message".to_string());
+        assert_eq!(error.to_string(), "Custom error message");
+    }
+
+    #[test]
+    fn test_command_error_telegram() {
+        let error =
+            CommandError::Telegram(TdError { code: 400, message: "Error message".to_string() });
+        assert_eq!(error.to_string(), "Telegram 400 error: Error message");
     }
 }
