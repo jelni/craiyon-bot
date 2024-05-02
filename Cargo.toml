@@ -23,6 +23,7 @@ md5 = "0.7"
 time = { version = "0.3", features = ["serde", "serde-well-known", "macros"] }
 dotenvy = "0.15"
 tempfile = "3.4"
+async-signal = "0.2"
 log = { version = "0.4", features = ["std"] }
 colored = "2.0"
 rand = "0.9.0-alpha"
