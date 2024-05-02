@@ -2,6 +2,8 @@ use std::env;
 use std::future::Future;
 use std::sync::Arc;
 
+use async_signal::{Signal, Signals};
+use futures_util::StreamExt;
 use tdlib::enums::{
     AuthorizationState, BotCommands, ConnectionState, MessageSender, OptionValue, Update,
 };
@@ -52,7 +54,15 @@ impl Bot {
         });
 
         let state = self.state.clone();
-        self.run_task(async move {
+        tokio::spawn(async move {
+            let mut signals = Signals::new([Signal::Term, Signal::Int]).unwrap();
+            let signal = signals.next().await.unwrap().unwrap();
+            log::warn!("{signal:?} received");
+            *state.status.lock().unwrap() = BotStatus::WaitingToClose;
+        });
+
+        let state = self.state.clone();
+        tokio::spawn(async move {
             signal::ctrl_c().await.unwrap();
             log::warn!("Ctrl+C received");
             *state.status.lock().unwrap() = BotStatus::WaitingToClose;
