@@ -7,7 +7,7 @@ use tdlib::{enums, functions};
 
 use super::{CommandError, CommandResult, CommandTrait};
 use crate::apis::makersuite::Part;
-use crate::apis::openai::{self, OpenAIChatCompletion};
+use crate::apis::openai::{self, ChatCompletion};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::rate_limit::RateLimiter;
@@ -66,7 +66,7 @@ impl CommandTrait for Llama {
 
         match response {
             Ok(response) => {
-                let text = OpenAIChatCompletion::get_text(&response);
+                let text = ChatCompletion::get_text(&response);
 
                 let enums::FormattedText::FormattedText(formatted_text) =
                     functions::parse_markdown(
