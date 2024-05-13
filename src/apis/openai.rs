@@ -1,53 +1,46 @@
+use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
 use crate::{commands::CommandError, utilities::api_utils::DetectServerError};
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Message {
-    role: String,
-    content: String,
+#[derive(Serialize, Deserialize)]
+pub struct Message {
+    pub role: String,
+    pub content: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Choice {
-    index: i32,
-    message: Message,
-    logprobs: Option<serde_json::Value>,
-    finish_reason: String,
+#[derive(Deserialize)]
+pub struct Choice {
+    pub index: i32,
+    pub message: Message,
+    pub logprobs: Option<serde_json::Value>,
+    pub finish_reason: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-struct Usage {
-    #[serde(rename = "prompt_tokens")]
-    prompt: i32,
-    #[serde(rename = "completion_tokens")]
-    completion: i32,
-    #[serde(rename = "total_tokens")]
-    total: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
 pub struct ChatCompletion {
-    id: String,
-    object: String,
-    created: i64,
-    model: String,
-    system_fingerprint: String,
-    choices: Vec<Choice>,
-    usage: Usage,
+    pub id: String,
+    pub object: String,
+    pub created: i64,
+    pub model: String,
+    pub system_fingerprint: String,
+    pub choices: Vec<Choice>,
 }
 
-impl ChatCompletion {
-    pub fn get_text(&self) -> String {
-        self.choices
-            .iter()
-            .map(|choice| choice.message.content.clone())
-            .collect::<Vec<String>>()
-            .join("\n")
-    }
+#[derive(Deserialize)]
+pub struct ErrorResponse {
+    pub error: Error,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Deserialize)]
+pub struct Error {
+    pub message: String,
+    pub r#type: String,
+    pub param: String,
+    pub code: String,
+}
+
+#[derive(Deserialize, Serialize)]
 struct Request {
     model: String,
     messages: Vec<Message>,
@@ -60,7 +53,7 @@ pub async fn generate_content(
     api_key: &str,
     http_client: reqwest::Client,
     prompt: &str,
-) -> Result<ChatCompletion, CommandError> {
+) -> Result<Result<ChatCompletion, Error>, CommandError> {
     let response = http_client
         .post(format!("{base_url}/chat/completions"))
         .bearer_auth(api_key)
@@ -72,10 +65,13 @@ pub async fn generate_content(
         })
         .send()
         .await?
-        .server_error()?
-        .error_for_status()?
-        .json::<ChatCompletion>()
-        .await?;
+        .server_error()?;
 
-    Ok(response)
+    if response.status() == StatusCode::OK {
+        let response = response.json::<ChatCompletion>().await?;
+        Ok(Ok(response))
+    } else {
+        let response = response.json::<ErrorResponse>().await?;
+        Ok(Err(response.error))
+    }
 }

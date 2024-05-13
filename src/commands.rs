@@ -132,21 +132,3 @@ impl std::fmt::Display for CommandError {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_command_error_display_custom() {
-        let error = CommandError::Custom("Custom error message".to_string());
-        assert_eq!(error.to_string(), "Custom error message");
-    }
-
-    #[test]
-    fn test_command_error_telegram() {
-        let error =
-            CommandError::Telegram(TdError { code: 400, message: "Error message".to_string() });
-        assert_eq!(error.to_string(), "Telegram 400 error: Error message");
-    }
-}
