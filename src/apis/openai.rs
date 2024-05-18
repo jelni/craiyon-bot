@@ -38,7 +38,7 @@ pub struct Error {
 struct Request {
     model: String,
     messages: Vec<Message>,
-    temperature: f32,
+    temperature: Option<f32>,
     max_tokens: i32,
 }
 
@@ -48,7 +48,7 @@ pub async fn chat_completion(
     base_url: &str,
     model: &str,
     prompt: &str,
-    temperature: f32,
+    temperature: Option<f32>,
 ) -> Result<Result<ChatCompletion, Error>, CommandError> {
     let response = http_client
         .post(format!("{base_url}/chat/completions"))

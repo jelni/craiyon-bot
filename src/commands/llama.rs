@@ -17,7 +17,7 @@ pub struct Llama;
 #[async_trait]
 impl CommandTrait for Llama {
     fn command_names(&self) -> &[&str] {
-        &["llama", "groq", "llama3"]
+        &["llama3", "llama", "groq"]
     }
 
     fn description(&self) -> Option<&'static str> {
@@ -29,45 +29,27 @@ impl CommandTrait for Llama {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let prompt = Option::<StringGreedyOrReply>::convert(ctx, &arguments).await?.0;
+        let prompt: Option<StringGreedyOrReply> = Option::<StringGreedyOrReply>::convert(ctx, &arguments).await?.0;
+        let prompt = prompt.unwrap().0;
 
         ctx.send_typing().await?;
 
         let model = "llama3-70b-8192";
         let token = std::env::var("GROQ_API_KEY").unwrap();
-        let mut parts = Vec::new();
-
-        if let Some(prompt) = prompt {
-            parts.push(Part::Text(prompt.0));
-        }
-
-        if parts.is_empty() {
-            return Err(CommandError::Custom("no prompt provided.".into()));
-        }
-
-        // Convert text parts into a single string
-        let mut parts_str = String::new();
-        for part in parts {
-            if let Part::Text(text) = part {
-                writeln!(parts_str, "{text}").unwrap();
-            }
-        }
 
         let http_client = ctx.bot_state.http_client.clone();
 
         let response = openai::chat_completion(
+            http_client,
+            &token,
             "https://api.groq.com/openai/v1",
             model,
-            &token,
-            http_client,
-            &parts_str,
+            &prompt,
+            None,
         )
         .await;
 
-        if let Err(e) = response {
-            return Err(CommandError::Custom(e.to_string()));
-        }
-        let response = response.unwrap();
+        let response = response?;
 
         match response {
             Ok(response) => {

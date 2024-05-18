@@ -111,24 +111,3 @@ impl From<reqwest::Error> for CommandError {
         Self::Reqwest(value)
     }
 }
-
-impl From<FormattedText> for CommandError {
-    fn from(value: FormattedText) -> Self {
-        Self::CustomFormattedText(value)
-    }
-}
-
-impl std::fmt::Display for CommandError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Custom(message) => write!(f, "{message}"),
-            Self::CustomFormattedText(formatted_text) => {
-                write!(f, "{}", formatted_text.text)
-            }
-            Self::ArgumentConversion(err) => write!(f, "{err}"),
-            Self::Telegram(err) => write!(f, "Telegram {} error: {}", err.code, err.message),
-            Self::Server(status) => write!(f, "Server error: {status}"),
-            Self::Reqwest(err) => write!(f, "{err}"),
-        }
-    }
-}
