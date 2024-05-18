@@ -175,7 +175,7 @@ pub async fn stream_generate_content(
         return;
     }
 
-    let mut buffer = String::new();
+    let mut buffer: Vec<u8> = Vec::new();
     let mut stream = response.bytes_stream();
 
     while let Some(part) = stream.next().await {
@@ -187,23 +187,25 @@ pub async fn stream_generate_content(
             }
         };
 
-        buffer.push_str(&String::from_utf8_lossy(&part));
+        buffer.extend_from_slice(&part);
 
-        if let Some(stripped) = buffer.strip_prefix('[') {
-            buffer = stripped.into();
+        let mut buffer_str = String::from_utf8_lossy(&buffer).into_owned();
+
+        if let Some(stripped) = buffer_str.strip_prefix('[') {
+            buffer_str = stripped.into();
         }
 
-        if let Some(stripped) = buffer.strip_suffix("\n]") {
-            buffer = stripped.into();
+        if let Some(stripped) = buffer_str.strip_suffix("\n]") {
+            buffer_str = stripped.into();
         }
 
-        while let Some((first, rest)) = buffer.split_once("\n,\r\n") {
+        while let Some((first, rest)) = buffer_str.split_once("\n,\r\n") {
             tx.send(Ok(serde_json::from_str(first).unwrap())).unwrap();
-            buffer = rest.into();
+            buffer_str = rest.into();
         }
     }
 
-    tx.send(Ok(serde_json::from_str(&buffer).unwrap())).unwrap();
+    tx.send(Ok(serde_json::from_str(&String::from_utf8_lossy(&buffer)).unwrap())).unwrap();
 }
 
 #[derive(Serialize)]
