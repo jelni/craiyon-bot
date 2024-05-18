@@ -39,6 +39,7 @@ struct Request {
     model: String,
     messages: Vec<Message>,
     temperature: f32,
+    max_tokens: i32,
 }
 
 pub async fn chat_completion(
@@ -57,6 +58,7 @@ pub async fn chat_completion(
             model: model.into(),
             messages: vec![Message { role: "user".into(), content: prompt.into() }],
             temperature,
+            max_tokens: 256,
         })
         .send()
         .await?
