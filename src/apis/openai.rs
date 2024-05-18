@@ -53,8 +53,8 @@ pub async fn generate_content(
         .bearer_auth(api_key)
         .header("Content-Type", "application/json")
         .json(&Request {
-            model: model.to_string(),
-            messages: vec![Message { role: "user".to_string(), content: prompt.to_string() }],
+            model: model.into(),
+            messages: vec![Message { role: "user".into(), content: prompt.into() }],
             temperature: 0.5,
         })
         .send()
