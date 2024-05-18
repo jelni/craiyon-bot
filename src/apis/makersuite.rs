@@ -175,7 +175,7 @@ pub async fn stream_generate_content(
         return;
     }
 
-    let mut buffer: Vec<u8> = Vec::new();
+    let mut buffer = Vec::new();
     let mut stream = response.bytes_stream();
 
     while let Some(part) = stream.next().await {
@@ -189,19 +189,18 @@ pub async fn stream_generate_content(
 
         buffer.extend_from_slice(&part);
 
-        let mut buffer_str = String::from_utf8_lossy(&buffer).into_owned();
-
-        if let Some(stripped) = buffer_str.strip_prefix('[') {
-            buffer_str = stripped.into();
+        if buffer.starts_with(b"[") {
+            buffer = buffer[1..].to_vec();
         }
 
-        if let Some(stripped) = buffer_str.strip_suffix("\n]") {
-            buffer_str = stripped.into();
+        if buffer.ends_with(b"\n]") {
+            buffer = buffer[..buffer.len() - 2].to_vec();
         }
 
-        while let Some((first, rest)) = buffer_str.split_once("\n,\r\n") {
-            tx.send(Ok(serde_json::from_str(first).unwrap())).unwrap();
-            buffer_str = rest.into();
+        while let Some(index) = buffer.windows(3).position(|window| window == b"\n,\r\n") {
+            let (first, rest) = buffer.split_at(index);
+            tx.send(Ok(serde_json::from_str(&String::from_utf8_lossy(first)).unwrap())).unwrap();
+            buffer = rest[3..].to_vec();
         }
     }
 
