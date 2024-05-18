@@ -41,12 +41,13 @@ struct Request {
     temperature: f32,
 }
 
-pub async fn generate_content(
+pub async fn chat_completion(
+    http_client: reqwest::Client,
+    api_key: &str,
     base_url: &str,
     model: &str,
-    api_key: &str,
-    http_client: reqwest::Client,
     prompt: &str,
+    temperature: f32,
 ) -> Result<Result<ChatCompletion, Error>, CommandError> {
     let response = http_client
         .post(format!("{base_url}/chat/completions"))
@@ -55,7 +56,7 @@ pub async fn generate_content(
         .json(&Request {
             model: model.into(),
             messages: vec![Message { role: "user".into(), content: prompt.into() }],
-            temperature: 0.5,
+            temperature,
         })
         .send()
         .await?

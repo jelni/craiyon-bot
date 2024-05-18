@@ -55,7 +55,7 @@ impl CommandTrait for Llama {
 
         let http_client = ctx.bot_state.http_client.clone();
 
-        let response = openai::generate_content(
+        let response = openai::chat_completion(
             "https://api.groq.com/openai/v1",
             model,
             &token,
