@@ -95,32 +95,36 @@ impl CommandTrait for GoogleGemini {
         let mut message = Option::<Message>::None;
 
         loop {
-            let (update_message, finished) =
-                if let Ok(response) = tokio::time::timeout_at(next_update, rx.recv()).await {
-                    match response {
-                        Some(response) => {
-                            let response = response?;
+            let (update_message, finished) = if let Ok(response) =
+                tokio::time::timeout_at(next_update, rx.recv()).await
+            {
+                match response {
+                    Some(response) => {
+                        let response = response?;
 
-                            match progress.as_mut() {
-                                Some(progress) => {
-                                    progress.update(response)?;
-                                }
-                                None => {
-                                    progress = Some(GenerationProgress::new(
-                                        response.candidates.into_iter().next().unwrap(),
-                                    ));
-                                }
+                        match progress.as_mut() {
+                            Some(progress) => {
+                                progress.update(response)?;
                             }
-
-                            changed_after_last_update = true;
-                            (false, false)
+                            None => {
+                                progress = response
+                                    .candidates
+                                    .into_iter()
+                                    .next()
+                                    .map(|candidate| Some(GenerationProgress::new(candidate)))
+                                    .ok_or(CommandError::Custom("No candidates found.".into()))?;
+                            }
                         }
-                        None => (true, true),
+
+                        changed_after_last_update = true;
+                        (false, false)
                     }
-                } else {
-                    next_update = Instant::now() + Duration::from_secs(5);
-                    (true, false)
-                };
+                    None => (true, true),
+                }
+            } else {
+                next_update = Instant::now() + Duration::from_secs(5);
+                (true, false)
+            };
 
             if update_message && changed_after_last_update {
                 let text = match progress.as_ref() {
