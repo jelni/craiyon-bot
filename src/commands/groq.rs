@@ -26,13 +26,14 @@ impl CommandTrait for Llama {
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let prompt: Option<StringGreedyOrReply> = Option::<StringGreedyOrReply>::convert(ctx, &arguments).await?.0;
+        let prompt: Option<StringGreedyOrReply> =
+            Option::<StringGreedyOrReply>::convert(ctx, &arguments).await?.0;
         let prompt = prompt.unwrap().0;
-    
+
         ctx.send_typing().await?;
-        
+
         let token = std::env::var("GROQ_API_KEY").unwrap();
-    
+
         let response = openai::chat_completion(
             ctx.bot_state.http_client.clone(),
             &token,
@@ -42,25 +43,18 @@ impl CommandTrait for Llama {
             None,
         )
         .await;
-    
+
         let response = response?;
-    
-        match response {
-            Ok(response) => {
-                let text = response.choices.into_iter().next().unwrap().message.content;
-    
-                let enums::FormattedText::FormattedText(formatted_text) =
-                    functions::parse_markdown(
-                        FormattedText { text, ..Default::default() },
-                        ctx.client_id,
-                    )
-                    .await?;
-    
-                ctx.reply_formatted_text(formatted_text).await?;
-    
-                Ok(())
-            }
-            Err(e) => Err(CommandError::Custom(e.message)),
-        }
+        let response = response.map_err(|e| CommandError::Custom(e.message))?;
+        
+        let text = response.choices.into_iter().next().unwrap().message.content;
+
+        let enums::FormattedText::FormattedText(formatted_text) =
+            functions::parse_markdown(FormattedText { text, ..Default::default() }, ctx.client_id)
+                .await?;
+
+        ctx.reply_formatted_text(formatted_text).await?;
+
+        Ok(())
     }
 }

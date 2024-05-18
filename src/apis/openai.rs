@@ -3,6 +3,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::{commands::CommandError, utilities::api_utils::DetectServerError};
 
+#[derive(Deserialize, Serialize)]
+struct Request {
+    model: String,
+    messages: Vec<Message>,
+    temperature: Option<f32>,
+    max_tokens: i32,
+}
+
 #[derive(Serialize, Deserialize)]
 pub struct Message {
     pub role: String,
@@ -10,15 +18,15 @@ pub struct Message {
 }
 
 #[derive(Deserialize)]
+pub struct ChatCompletion {
+    pub choices: Vec<Choice>,
+}
+
+#[derive(Deserialize)]
 pub struct Choice {
     pub index: i32,
     pub message: Message,
     // pub finish_reason: String,
-}
-
-#[derive(Deserialize)]
-pub struct ChatCompletion {
-    pub choices: Vec<Choice>,
 }
 
 #[derive(Deserialize)]
@@ -32,14 +40,6 @@ pub struct Error {
     pub r#type: String,
     pub param: String,
     pub code: String,
-}
-
-#[derive(Deserialize, Serialize)]
-struct Request {
-    model: String,
-    messages: Vec<Message>,
-    temperature: Option<f32>,
-    max_tokens: i32,
 }
 
 pub async fn chat_completion(
