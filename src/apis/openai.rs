@@ -1,7 +1,8 @@
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
-use crate::{commands::CommandError, utilities::api_utils::DetectServerError};
+use crate::commands::CommandError;
+use crate::utilities::api_utils::DetectServerError;
 
 #[derive(Deserialize, Serialize)]
 struct Request {

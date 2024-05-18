@@ -1,5 +1,4 @@
 use async_trait::async_trait;
-
 use tdlib::types::FormattedText;
 use tdlib::{enums, functions};
 
@@ -46,7 +45,7 @@ impl CommandTrait for Llama {
 
         let response = response?;
         let response = response.map_err(|e| CommandError::Custom(e.message))?;
-        
+
         let text = response.choices.into_iter().next().unwrap().message.content;
 
         let enums::FormattedText::FormattedText(formatted_text) =

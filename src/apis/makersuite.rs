@@ -187,7 +187,7 @@ pub async fn stream_generate_content(
             }
         };
 
-        buffer.push_str(&String::from_utf8(part.to_vec()).unwrap());
+        buffer.push_str(&String::from_utf8_lossy(&part));
 
         if let Some(stripped) = buffer.strip_prefix('[') {
             buffer = stripped.into();
