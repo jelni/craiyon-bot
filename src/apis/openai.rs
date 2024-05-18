@@ -13,17 +13,11 @@ pub struct Message {
 pub struct Choice {
     pub index: i32,
     pub message: Message,
-    pub logprobs: Option<serde_json::Value>,
-    pub finish_reason: String,
+    // pub finish_reason: String,
 }
 
 #[derive(Deserialize)]
 pub struct ChatCompletion {
-    pub id: String,
-    pub object: String,
-    pub created: i64,
-    pub model: String,
-    pub system_fingerprint: String,
     pub choices: Vec<Choice>,
 }
 
