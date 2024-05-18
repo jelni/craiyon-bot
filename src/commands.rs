@@ -22,7 +22,7 @@ pub mod dice_reply;
 pub mod different_dimension_me;
 pub mod kebab;
 pub mod kiwifarms;
-pub mod llama;
+pub mod groq;
 pub mod makersuite;
 pub mod markov_chain;
 pub mod mevo;

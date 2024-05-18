@@ -56,9 +56,7 @@ impl CommandTrait for Llama {
                     )
                     .await?;
     
-                let unsent_message = ctx.reply_formatted_text(formatted_text).await?;
-                let _message =
-                    ctx.bot_state.message_queue.wait_for_message(unsent_message.id).await?;
+                ctx.reply_formatted_text(formatted_text).await?;
     
                 Ok(())
             }
