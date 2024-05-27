@@ -23,7 +23,7 @@ use crate::utilities::{api_utils, image_utils, text_utils};
 
 pub struct StableHorde {
     command_names: &'static [&'static str],
-    command_description: &'static str,
+    description: &'static str,
     model: &'static str,
     size: (u32, u32),
 }
@@ -32,7 +32,7 @@ impl StableHorde {
     pub const fn stable_diffusion_2() -> Self {
         Self {
             command_names: &["stable_diffusion_2", "sd2"],
-            command_description: "generate images using Stable Diffusion v2.1",
+            description: "generate images using Stable Diffusion v2.1",
             model: "stable_diffusion_2.1",
             size: (512, 512),
         }
@@ -41,7 +41,7 @@ impl StableHorde {
     pub const fn stable_diffusion() -> Self {
         Self {
             command_names: &["stable_diffusion", "sd"],
-            command_description: "generate images using Stable Diffusion v1.5",
+            description: "generate images using Stable Diffusion v1.5",
             model: "stable_diffusion",
             size: (512, 512),
         }
@@ -50,7 +50,7 @@ impl StableHorde {
     pub const fn waifu_diffusion() -> Self {
         Self {
             command_names: &["waifu_diffusion", "wd"],
-            command_description: "generate images using Waifu Diffusion",
+            description: "generate images using Waifu Diffusion",
             model: "waifu_diffusion",
             size: (512, 512),
         }
@@ -59,7 +59,7 @@ impl StableHorde {
     pub const fn furry_diffusion() -> Self {
         Self {
             command_names: &["furry_diffusion", "fd"],
-            command_description: "generate images using Furry Epoch",
+            description: "generate images using Furry Epoch",
             model: "Furry Epoch",
             size: (512, 512),
         }
@@ -73,7 +73,7 @@ impl CommandTrait for StableHorde {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some(self.command_description)
+        Some(self.description)
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {

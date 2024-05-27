@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use rand::rngs::StdRng;
-use rand::seq::IndexedRandom;
+use rand::seq::IteratorRandom;
 use rand::SeedableRng;
 
 use super::{CommandResult, CommandTrait};
@@ -31,7 +31,10 @@ impl CommandTrait for Autocomplete {
         let completions =
             google::complete(ctx.bot_state.http_client.clone(), &query).await.unwrap_or_default();
         ctx.reply(
-            completions.choose(&mut StdRng::from_entropy()).ok_or("no autocompletions")?.into(),
+            completions
+                .into_iter()
+                .choose(&mut StdRng::from_entropy())
+                .ok_or("no autocompletions")?,
         )
         .await?;
 

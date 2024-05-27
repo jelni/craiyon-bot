@@ -37,7 +37,8 @@ async fn main() {
     bot.add_command(commands::trollslate::Trollslate);
     bot.add_command(commands::urbandictionary::UrbanDictionary);
     bot.add_command(commands::screenshot::Screenshot);
-    bot.add_command(commands::cobalt_download::CobaltDownload);
+    bot.add_command(commands::cobalt_download::CobaltDownload::auto());
+    bot.add_command(commands::cobalt_download::CobaltDownload::audio());
     bot.add_command(commands::charinfo::CharInfo);
     bot.add_command(commands::radio_poligon::RadioPoligon);
     bot.add_command(commands::autocomplete::Autocomplete);
