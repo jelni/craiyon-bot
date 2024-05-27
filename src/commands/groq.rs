@@ -45,7 +45,7 @@ impl CommandTrait for Llama {
         let choice = response.choices.into_iter().next().unwrap();
         let mut text = choice.message.content;
 
-        if choice.finish_reason != "STOP" {
+        if choice.finish_reason != "stop" {
             write!(text, " [{}]", choice.finish_reason).unwrap();
         }
 
