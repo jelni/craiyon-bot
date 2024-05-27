@@ -4,7 +4,6 @@ use std::fmt;
 use async_trait::async_trait;
 use tdlib::enums::{Message, MessageReplyTo};
 use tdlib::functions;
-use tdlib::types::MessageReplyToMessage;
 
 use super::command_context::CommandContext;
 use super::telegram_utils;
@@ -88,33 +87,23 @@ impl ConvertArgument for Reply {
         ctx: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        let Some(MessageReplyTo::Message(MessageReplyToMessage {
-            chat_id,
-            message_id,
-            quote,
-            content,
-            ..
-        })) = &ctx.message.reply_to
-        else {
+        let Some(MessageReplyTo::Message(reply)) = &ctx.message.reply_to else {
             return Err(ConversionError::MissingArgument);
         };
 
-        if let Some(quote) = quote {
+        if let Some(quote) = reply.quote.as_ref() {
             return Ok((Self(quote.text.text.clone()), arguments));
         };
 
-        let content = if let Some(content) = content {
+        let content = if let Some(content) = reply.content.as_ref() {
             Cow::Borrowed(content)
         } else {
             let Message::Message(message) =
-                functions::get_message(*chat_id, *message_id, ctx.client_id).await.map_err(
-                    |_| {
-                        ConversionError::BadArgument(concat!(
-                        "replied message cannot be loaded ",
-                        "(i can't see other bots' messages — unless you forward or quote them).",
-                    ))
-                    },
-                )?;
+                functions::get_replied_message(ctx.message.chat_id, ctx.message.id, ctx.client_id)
+                    .await
+                    .map_err(|_| {
+                        ConversionError::BadArgument("replied message couldn't be loaded.")
+                    })?;
 
             Cow::Owned(message.content)
         };
