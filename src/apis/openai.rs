@@ -4,18 +4,17 @@ use serde::{Deserialize, Serialize};
 use crate::commands::CommandError;
 use crate::utilities::api_utils::DetectServerError;
 
-#[derive(Deserialize, Serialize)]
-struct Request {
-    model: String,
-    messages: Vec<Message>,
-    temperature: Option<f32>,
-    max_tokens: i32,
+#[derive(Serialize)]
+struct Request<'a> {
+    model: &'static str,
+    messages: &'a [Message<'a>],
+    max_tokens: u16,
 }
 
-#[derive(Serialize, Deserialize)]
-pub struct Message {
-    pub role: String,
-    pub content: String,
+#[derive(Serialize)]
+pub struct Message<'a> {
+    pub role: &'static str,
+    pub content: &'a str,
 }
 
 #[derive(Deserialize)]
@@ -25,9 +24,13 @@ pub struct ChatCompletion {
 
 #[derive(Deserialize)]
 pub struct Choice {
-    pub index: i32,
-    pub message: Message,
-    // pub finish_reason: String,
+    pub message: MessageResponse,
+    pub finish_reason: String,
+}
+
+#[derive(Deserialize)]
+pub struct MessageResponse {
+    pub content: String,
 }
 
 #[derive(Deserialize)]
@@ -37,30 +40,21 @@ pub struct ErrorResponse {
 
 #[derive(Deserialize)]
 pub struct Error {
-    pub message: String,
-    pub r#type: String,
-    pub param: String,
     pub code: String,
+    pub message: String,
 }
 
 pub async fn chat_completion(
     http_client: reqwest::Client,
-    api_key: &str,
     base_url: &str,
-    model: &str,
-    prompt: &str,
-    temperature: Option<f32>,
+    api_key: &str,
+    model: &'static str,
+    messages: &[Message<'_>],
 ) -> Result<Result<ChatCompletion, Error>, CommandError> {
     let response = http_client
         .post(format!("{base_url}/chat/completions"))
         .bearer_auth(api_key)
-        .header("Content-Type", "application/json")
-        .json(&Request {
-            model: model.into(),
-            messages: vec![Message { role: "user".into(), content: prompt.into() }],
-            temperature,
-            max_tokens: 256,
-        })
+        .json(&Request { model, messages, max_tokens: 256 })
         .send()
         .await?
         .server_error()?;

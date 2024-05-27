@@ -105,18 +105,16 @@ impl CommandTrait for GoogleGemini {
                         match progress.as_mut() {
                             Some(progress) => {
                                 progress.update(response)?;
+                                changed_after_last_update = true;
                             }
                             None => {
-                                progress = response
-                                    .candidates
-                                    .into_iter()
-                                    .next()
-                                    .map(|candidate| Some(GenerationProgress::new(candidate)))
-                                    .ok_or(CommandError::Custom("No candidates found.".into()))?;
+                                if let Some(candidate) = response.candidates.into_iter().next() {
+                                    progress = Some(GenerationProgress::new(candidate));
+                                    changed_after_last_update = true;
+                                }
                             }
                         }
 
-                        changed_after_last_update = true;
                         (false, false)
                     }
                     None => (true, true),
@@ -288,9 +286,10 @@ impl GenerationProgress {
         if let Some(content) = candidate.content {
             self.parts.extend(content.parts);
 
-            if let Some(citation_metadata) = candidate.citation_metadata {
-                self.citation_sources.extend(citation_metadata.citation_sources);
-            }
+            self.citation_sources = candidate
+                .citation_metadata
+                .map(|citation_metadata| citation_metadata.citation_sources)
+                .unwrap_or_default();
         }
 
         self.finish_reason = candidate.finish_reason;

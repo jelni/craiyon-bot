@@ -187,20 +187,20 @@ pub async fn stream_generate_content(
             }
         };
 
-        buffer.extend_from_slice(&part);
+        buffer.extend(&part);
 
-        if buffer.starts_with(b"[") {
-            buffer = buffer[1..].to_vec();
+        if let Some(stripped) = buffer.strip_prefix(b"[") {
+            buffer = stripped.into();
         }
 
-        if buffer.ends_with(b"\n]") {
-            buffer = buffer[..buffer.len() - 2].to_vec();
+        if let Some(stripped) = buffer.strip_suffix(b"\n]") {
+            buffer = stripped.into();
         }
 
-        while let Some(index) = buffer.windows(3).position(|window| window == b"\n,\r\n") {
+        while let Some(index) = buffer.windows(4).position(|window| window == b"\n,\r\n") {
             let (first, rest) = buffer.split_at(index);
             tx.send(Ok(serde_json::from_str(&String::from_utf8_lossy(first)).unwrap())).unwrap();
-            buffer = rest[3..].to_vec();
+            buffer = rest[4..].into();
         }
     }
 
