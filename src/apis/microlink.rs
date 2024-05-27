@@ -46,7 +46,7 @@ pub async fn screenshot(
                     ("viewport.width", "1280"),
                     ("viewport.height", "640"),
                     ("wait_until", "load"),
-                    ("waitForTimeout", "5000")
+                    ("wait_for_timeout", "5000")
                 ],
             )
             .unwrap(),
