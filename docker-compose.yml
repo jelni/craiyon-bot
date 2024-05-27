@@ -5,6 +5,7 @@ services:
     build: .
     environment:
       TDLIB_COMMIT_HASH: fd3154b28727df9e66423d64168fab1202d8c849
+      USER_AGENT: ${USER_AGENT}
       TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
       API_ID: ${API_ID}
       API_HASH: ${API_HASH}

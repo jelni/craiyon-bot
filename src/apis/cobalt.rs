@@ -2,17 +2,17 @@ use reqwest::header::ACCEPT;
 use serde::{Deserialize, Serialize};
 
 use crate::commands::CommandError;
-use crate::utilities::api_utils::DetectServerError;
+use crate::utilities::api_utils::{DetectServerError, ServerError};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Payload<'a> {
     url: &'a str,
-    v_codec: &'a str,
     v_quality: &'a str,
     a_format: &'a str,
-    #[serde(rename = "isNoTTWatermark")]
-    is_no_ttwatermark: bool,
+    is_audio_only: bool,
+    #[serde(rename = "tiktokH265")]
+    tiktok_h265: bool,
 }
 
 #[derive(Deserialize)]
@@ -39,29 +39,60 @@ struct PickerItem {
     url: String,
 }
 
+pub enum Error {
+    Cobalt(String),
+    Server(ServerError),
+    Network(reqwest::Error),
+}
+
 pub async fn query(
     http_client: reqwest::Client,
+    domain: &str,
     url: &str,
-) -> Result<Result<Vec<String>, String>, CommandError> {
+    audio_only: bool,
+) -> Result<Vec<String>, Error> {
     let response = http_client
-        .post("https://co.wuk.sh/api/json")
+        .post(format!("https://{domain}/api/json"))
         .json(&Payload {
             url,
-            v_codec: "h264",
             v_quality: "1080",
             a_format: "best",
-            is_no_ttwatermark: true,
+            is_audio_only: audio_only,
+            tiktok_h265: true,
         })
         .header(ACCEPT, "application/json")
         .send()
-        .await?
-        .server_error()?
+        .await
+        .map_err(Error::Network)?
+        .server_error()
+        .map_err(Error::Server)?
         .json::<Response>()
-        .await?;
+        .await
+        .map_err(Error::Network)?;
 
     match response.status {
-        Status::Stream | Status::Redirect => Ok(Ok(vec![response.url.unwrap()])),
-        Status::Picker => Ok(Ok(response.picker.unwrap().into_iter().map(|i| i.url).collect())),
-        Status::Success | Status::Error | Status::RateLimit => Ok(Err(response.text.unwrap())),
+        Status::Stream | Status::Redirect => Ok(vec![response.url.unwrap()]),
+        Status::Picker => Ok(response.picker.unwrap().into_iter().map(|i| i.url).collect()),
+        Status::Success | Status::Error | Status::RateLimit => {
+            Err(Error::Cobalt(response.text.unwrap()))
+        }
     }
+}
+
+#[derive(Deserialize)]
+pub struct Instance {
+    pub api_online: bool,
+    pub score: f32,
+    pub protocol: String,
+    pub api: String,
+}
+
+pub async fn instances(http_client: reqwest::Client) -> Result<Vec<Instance>, CommandError> {
+    let response = http_client
+        .get("https://instances.hyper.lol/instances.json")
+        .send()
+        .await?
+        .server_error()?;
+
+    Ok(response.json().await?)
 }

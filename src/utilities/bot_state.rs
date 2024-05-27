@@ -1,3 +1,4 @@
+use std::env;
 use std::sync::Mutex;
 use std::time::Duration;
 
@@ -39,6 +40,7 @@ impl BotState {
             config: Mutex::new(Config::load().unwrap()),
             cache: Mutex::new(Cache::default()),
             http_client: Client::builder()
+                .user_agent(env::var("USER_AGENT").unwrap())
                 .redirect(redirect::Policy::none())
                 .timeout(Duration::from_secs(300))
                 .build()
