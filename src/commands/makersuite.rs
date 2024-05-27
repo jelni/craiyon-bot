@@ -95,32 +95,34 @@ impl CommandTrait for GoogleGemini {
         let mut message = Option::<Message>::None;
 
         loop {
-            let (update_message, finished) =
-                if let Ok(response) = tokio::time::timeout_at(next_update, rx.recv()).await {
-                    match response {
-                        Some(response) => {
-                            let response = response?;
+            let (update_message, finished) = if let Ok(response) =
+                tokio::time::timeout_at(next_update, rx.recv()).await
+            {
+                match response {
+                    Some(response) => {
+                        let response = response?;
 
-                            match progress.as_mut() {
-                                Some(progress) => {
-                                    progress.update(response)?;
-                                }
-                                None => {
-                                    progress = Some(GenerationProgress::new(
-                                        response.candidates.into_iter().next().unwrap(),
-                                    ));
+                        match progress.as_mut() {
+                            Some(progress) => {
+                                progress.update(response)?;
+                                changed_after_last_update = true;
+                            }
+                            None => {
+                                if let Some(candidate) = response.candidates.into_iter().next() {
+                                    progress = Some(GenerationProgress::new(candidate));
+                                    changed_after_last_update = true;
                                 }
                             }
-
-                            changed_after_last_update = true;
-                            (false, false)
                         }
-                        None => (true, true),
+
+                        (false, false)
                     }
-                } else {
-                    next_update = Instant::now() + Duration::from_secs(5);
-                    (true, false)
-                };
+                    None => (true, true),
+                }
+            } else {
+                next_update = Instant::now() + Duration::from_secs(5);
+                (true, false)
+            };
 
             if update_message && changed_after_last_update {
                 let text = match progress.as_ref() {
@@ -284,9 +286,10 @@ impl GenerationProgress {
         if let Some(content) = candidate.content {
             self.parts.extend(content.parts);
 
-            if let Some(citation_metadata) = candidate.citation_metadata {
-                self.citation_sources.extend(citation_metadata.citation_sources);
-            }
+            self.citation_sources = candidate
+                .citation_metadata
+                .map(|citation_metadata| citation_metadata.citation_sources)
+                .unwrap_or_default();
         }
 
         self.finish_reason = candidate.finish_reason;

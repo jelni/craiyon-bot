@@ -7,6 +7,7 @@ pub mod makersuite;
 pub mod mathjs;
 pub mod microlink;
 pub mod moveit;
+pub mod openai;
 pub mod poligon;
 pub mod stablehorde;
 pub mod translate;
