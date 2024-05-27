@@ -31,25 +31,26 @@ pub async fn screenshot(
     http_client: reqwest::Client,
     url: Url,
 ) -> Result<Result<Data, Error>, CommandError> {
-    let mut params = vec![
-        ("url", url.as_str()),
-        ("adblock", "false"),
-        ("color_scheme", "dark"),
-        ("ping", "false"),
-        ("prerender", "true"),
-        ("screenshot", "true"),
-        ("timeout", "1m"),
-        ("viewport.width", "1280"),
-        ("viewport.height", "640"),
-        ("wait_until", "load"),
-    ];
-
-    if url.as_str().ends_with(".pdf") {
-        params.push(("waitForTimeout", "5000"));
-    }
-
     let response = http_client
-        .get(Url::parse_with_params("https://api.microlink.io/", params).unwrap())
+        .get(
+            Url::parse_with_params(
+                "https://api.microlink.io/",
+                [
+                    ("url", url.as_str()),
+                    ("adblock", "false"),
+                    ("color_scheme", "dark"),
+                    ("ping", "false"),
+                    ("prerender", "true"),
+                    ("screenshot", "true"),
+                    ("timeout", "1m"),
+                    ("viewport.width", "1280"),
+                    ("viewport.height", "640"),
+                    ("wait_until", "load"),
+                    ("waitForTimeout", "5000")
+                ],
+            )
+            .unwrap(),
+        )
         .send()
         .await?
         .server_error()?;
