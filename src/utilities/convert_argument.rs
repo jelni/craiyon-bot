@@ -147,8 +147,9 @@ impl ConvertArgument for StringGreedyOrReply {
         match Option::<StringGreedy>::convert(ctx, arguments).await? {
             (Some(argument), rest) => Ok((Self(argument.0), rest)),
             (None, rest) => {
-                let (Reply(argument), rest) = ConvertArgument::convert(ctx, rest).await?;
-                Ok((Self(argument), rest))
+                let (Reply(argument), _): (Reply, _) = ConvertArgument::convert(ctx, rest).await?;
+                let (argument, _) = StringGreedy::convert(ctx, &argument).await?;
+                Ok((Self(argument.0), ""))
             }
         }
     }

@@ -6,9 +6,8 @@ use tdlib::enums::{
 };
 use tdlib::functions;
 use tdlib::types::{
-    File, FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message,
-    MessageReplyToMessage, Photo, ReplyMarkupInlineKeyboard, Sticker, UpdateChatMember, User,
-    WebPage,
+    File, FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message, Photo,
+    ReplyMarkupInlineKeyboard, Sticker, UpdateChatMember, User, WebPage,
 };
 
 use super::cache::CompactChat;
@@ -114,17 +113,15 @@ pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Op
         return Some(message_image);
     }
 
-    let MessageReplyTo::Message(MessageReplyToMessage { chat_id, message_id, content, .. }) =
-        message.reply_to.as_ref()?
-    else {
+    let MessageReplyTo::Message(reply) = message.reply_to.as_ref()? else {
         return None;
     };
 
-    let content = if let Some(content) = content {
+    let content = if let Some(content) = reply.content.as_ref() {
         Cow::Borrowed(content)
     } else {
         let enums::Message::Message(message) =
-            functions::get_message(*chat_id, *message_id, client_id).await.ok()?;
+            functions::get_replied_message(message.chat_id, message.id, client_id).await.ok()?;
 
         Cow::Owned(message.content)
     };
