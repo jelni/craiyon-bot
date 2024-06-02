@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::env;
+use std::{env, fmt};
 
 use futures_util::StreamExt;
 use reqwest::StatusCode;
@@ -120,8 +120,22 @@ pub struct ErrorResponse {
 
 #[derive(Deserialize)]
 pub struct Error {
-    pub code: u32,
+    pub code: Option<u32>,
     pub message: String,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Google error").unwrap();
+
+        if let Some(code) = self.code {
+            write!(f, " {code}").unwrap();
+        }
+
+        write!(f, ": {}", self.message).unwrap();
+
+        Ok(())
+    }
 }
 
 pub async fn stream_generate_content(
@@ -168,10 +182,15 @@ pub async fn stream_generate_content(
     };
 
     if response.status() != StatusCode::OK {
-        tx.send(Err(GenerationError::GoogleError(
-            response.json::<ErrorResponse>().await.unwrap().error,
-        )))
-        .unwrap();
+        let error_response = response.json::<ErrorResponse>().await;
+
+        match error_response {
+            Ok(error_response) => {
+                tx.send(Err(GenerationError::GoogleError(error_response.error))).unwrap();
+            }
+            Err(err) => tx.send(Err(GenerationError::NetworkError(err))).unwrap(),
+        }
+
         return;
     }
 
@@ -237,7 +256,7 @@ pub async fn generate_text(
     http_client: reqwest::Client,
     prompt: &str,
     max_output_tokens: u16,
-) -> Result<Result<GenerateTextResponse, ErrorResponse>, CommandError> {
+) -> Result<Result<GenerateTextResponse, Error>, CommandError> {
     let response = http_client
         .post(
             Url::parse_with_params(
@@ -267,6 +286,6 @@ pub async fn generate_text(
     if response.status() == StatusCode::OK {
         Ok(Ok(response.json().await?))
     } else {
-        Ok(Err(response.json().await?))
+        Ok(Err(response.json::<ErrorResponse>().await?.error))
     }
 }

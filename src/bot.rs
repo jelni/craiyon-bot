@@ -1,4 +1,4 @@
-use std::env;
+use std::env::{self, consts};
 use std::future::Future;
 use std::sync::Arc;
 
@@ -55,7 +55,13 @@ impl Bot {
 
         let state = self.state.clone();
         tokio::spawn(async move {
-            let mut signals = Signals::new([Signal::Term, Signal::Int]).unwrap();
+            let signals: &[_] = if consts::FAMILY == "windows" {
+                &[Signal::Int]
+            } else {
+                &[Signal::Term, Signal::Int]
+            };
+
+            let mut signals = Signals::new(signals).unwrap();
             let signal = signals.next().await.unwrap().unwrap();
             log::warn!("{signal:?} received");
             *state.status.lock().unwrap() = BotStatus::WaitingToClose;

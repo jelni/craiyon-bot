@@ -10,6 +10,8 @@ use super::cache::{CompactChat, CompactUser};
 use super::command_context::CommandContext;
 
 pub fn command_context() -> CommandContext {
+    dotenvy::dotenv().ok();
+
     CommandContext {
         client_id: 0,
         chat: CompactChat {

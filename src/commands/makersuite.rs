@@ -56,14 +56,6 @@ impl CommandTrait for GoogleGemini {
                 return Err(CommandError::Custom("the image cannot be larger than 4 MiB.".into()));
             }
 
-            if !["image/png", "image/jpeg", "image/heic", "image/heif", "image/webp"]
-                .contains(&message_image.mime_type.as_ref())
-            {
-                return Err(CommandError::Custom(
-                    "only PNG, JPEG, HEIC, HEIF, and WebP files are supported.".into(),
-                ));
-            }
-
             model = "gemini-1.0-pro-vision-latest";
 
             let File::File(file) =
@@ -188,10 +180,7 @@ impl CommandTrait for GooglePalm {
         let response = match response {
             Ok(response) => response,
             Err(response) => {
-                return Err(CommandError::Custom(format!(
-                    "error {}: {}",
-                    response.error.code, response.error.message
-                )));
+                return Err(CommandError::Custom(response.to_string()));
             }
         };
 

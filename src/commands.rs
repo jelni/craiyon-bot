@@ -87,9 +87,7 @@ impl From<GenerationError> for CommandError {
     fn from(value: GenerationError) -> Self {
         match value {
             GenerationError::NetworkError(err) => Self::Reqwest(err),
-            GenerationError::GoogleError(err) => {
-                Self::Custom(format!("error {}: {}", err.code, err.message))
-            }
+            GenerationError::GoogleError(err) => Self::Custom(err.to_string()),
         }
     }
 }
