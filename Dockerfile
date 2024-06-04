@@ -17,6 +17,7 @@ RUN ldconfig
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src src
+COPY .cargo .cargo
 RUN cargo install --path .
 
 CMD ["craiyon-bot"]
