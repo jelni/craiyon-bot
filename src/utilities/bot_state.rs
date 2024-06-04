@@ -35,12 +35,17 @@ pub struct BotState {
 
 impl BotState {
     pub fn new() -> Self {
+        let mut http_client = Client::builder();
+
+        if let Ok(user_agent) = env::var("USER_AGENT") {
+            http_client = http_client.user_agent(user_agent);
+        }
+
         Self {
             status: Mutex::new(BotStatus::Closed),
             config: Mutex::new(Config::load().unwrap()),
             cache: Mutex::new(Cache::default()),
-            http_client: Client::builder()
-                .user_agent(env::var("USER_AGENT").unwrap())
+            http_client: http_client
                 .redirect(redirect::Policy::none())
                 .timeout(Duration::from_secs(300))
                 .build()
