@@ -235,7 +235,7 @@ impl Bot {
         ));
     }
 
-    fn on_chat_member(&mut self, update: UpdateChatMember) {
+    fn on_chat_member(&self, update: UpdateChatMember) {
         if let MessageSender::User(user) = &update.new_chat_member.member_id {
             if self.my_id.is_some_and(|my_id| user.user_id == my_id) {
                 if let Some(chat) = self.state.cache.lock().unwrap().get_chat(update.chat_id) {
@@ -247,27 +247,27 @@ impl Bot {
         self.state.cache.lock().unwrap().update_chat_member(update);
     }
 
-    fn on_message_send_succeeded(&mut self, update: UpdateMessageSendSucceeded) {
+    fn on_message_send_succeeded(&self, update: UpdateMessageSendSucceeded) {
         self.state.message_queue.message_sent(Ok(update));
     }
 
-    fn on_message_send_failed(&mut self, update: UpdateMessageSendFailed) {
+    fn on_message_send_failed(&self, update: UpdateMessageSendFailed) {
         self.state.message_queue.message_sent(Err(update));
     }
 
-    fn on_new_chat(&mut self, update: UpdateNewChat) {
+    fn on_new_chat(&self, update: UpdateNewChat) {
         self.state.cache.lock().unwrap().update_new_chat(update);
     }
 
-    fn on_chat_title(&mut self, update: UpdateChatTitle) {
+    fn on_chat_title(&self, update: UpdateChatTitle) {
         self.state.cache.lock().unwrap().update_chat_title(update);
     }
 
-    fn on_chat_permissions(&mut self, update: UpdateChatPermissions) {
+    fn on_chat_permissions(&self, update: UpdateChatPermissions) {
         self.state.cache.lock().unwrap().update_chat_permissions(update);
     }
 
-    fn on_user(&mut self, update: UpdateUser) {
+    fn on_user(&self, update: UpdateUser) {
         if self.my_id.is_some_and(|my_id| update.user.id == my_id) {
             let user = CompactUser::from(update.user.clone());
             log::info!("running as {user}");

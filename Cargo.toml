@@ -3,29 +3,32 @@ name = "craiyon-bot"
 version = "1.0.0"
 edition = "2021"
 
-[dependencies]
-markov-chain = { git = "https://github.com/jelni/markov-chain" }
+[lints.clippy]
+pedantic = "warn"
+nursery = "warn"
 
-tdlib = { git = "https://github.com/jelni/tdlib-rs-latest" }
-tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "time", "signal"] }
+[dependencies]
+async-signal = "0.2"
 async-trait = "0.1"
-reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
-url = "2.3"
+base64 = "0.22"
+bytes = "1.4"
+charname = "0.2"
+colored = "2.0"
+counter = "0.5"
+dotenvy = "0.15"
+futures-util = "0.3"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+log = { version = "0.4", features = ["std"] }
+markov-chain = { git = "https://github.com/jelni/markov-chain" }
+md5 = "0.7"
+oneshot = "0.1"
+rand = "0.9.0-alpha"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls", "stream"] }
+rmp-serde = "1.1"
 serde = "1.0"
 serde_json = "1.0"
-rmp-serde = "1.1"
-bytes = "1.4"
-futures-util = "0.3"
-oneshot = "0.1"
-image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
-base64 = "0.22"
-md5 = "0.7"
-time = { version = "0.3", features = ["serde", "serde-well-known", "macros"] }
-dotenvy = "0.15"
+tdlib = { git = "https://github.com/jelni/tdlib-rs-latest" }
 tempfile = "3.4"
-async-signal = "0.2"
-log = { version = "0.4", features = ["std"] }
-colored = "2.0"
-rand = "0.9.0-alpha"
-counter = "0.5"
-charname = "0.2"
+time = { version = "0.3", features = ["macros", "serde", "serde-well-known"] }
+tokio = { version = "1.37", features = ["macros", "rt-multi-thread", "signal", "time"] }
+url = "2.3"

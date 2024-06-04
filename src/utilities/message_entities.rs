@@ -10,8 +10,8 @@ pub trait Utf16Len {
 impl Utf16Len for str {
     fn utf16_len(&self) -> usize {
         self.bytes()
-            .filter(|byte| (byte & 0xC0) != 0x80)
-            .map(|byte| if byte >= 0xF0 { 2 } else { 1 })
+            .filter(|byte| (byte & 0xc0) != 0x80)
+            .map(|byte| if byte >= 0xf0 { 2 } else { 1 })
             .sum()
     }
 }

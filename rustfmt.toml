@@ -1,5 +1,5 @@
 format_code_in_doc_comments = true
-hex_literal_case = "Upper"
+hex_literal_case = "Lower"
 imports_granularity = "Module"
 newline_style = "Unix"
 normalize_comments = true
