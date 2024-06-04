@@ -15,7 +15,8 @@ COPY --from=builder /td/tdlib/lib /usr/local/lib
 RUN ldconfig
 
 WORKDIR /app
-COPY . .
+COPY Cargo.toml Cargo.lock ./
+COPY src src
 RUN cargo install --path .
 
 CMD ["craiyon-bot"]
