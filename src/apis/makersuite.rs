@@ -156,11 +156,16 @@ pub async fn stream_generate_content(
         )
         .json(&GenerateContentRequest {
             contents: &[Content { parts }],
-            #[rustfmt::skip]
             safety_settings: &[
                 SafetySetting { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                SafetySetting { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                SafetySetting { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+                SafetySetting {
+                    category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+                    threshold: "BLOCK_NONE",
+                },
+                SafetySetting {
+                    category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+                    threshold: "BLOCK_NONE",
+                },
                 SafetySetting { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
             ],
             generation_config: GenerationConfig { max_output_tokens },

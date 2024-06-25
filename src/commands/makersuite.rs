@@ -290,7 +290,7 @@ pub struct GooglePalm;
 #[async_trait]
 impl CommandTrait for GooglePalm {
     fn command_names(&self) -> &[&str] {
-        &["palm", "palm2", "p"]
+        &["palm", "palm2"]
     }
 
     fn description(&self) -> Option<&'static str> {

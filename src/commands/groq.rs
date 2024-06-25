@@ -58,5 +58,3 @@ impl CommandTrait for Llama {
         Ok(())
     }
 }
-
-// TODO: Transcribe struct
