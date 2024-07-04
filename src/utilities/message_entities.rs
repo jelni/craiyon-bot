@@ -16,6 +16,7 @@ impl Utf16Len for str {
     }
 }
 
+#[derive(Clone)]
 pub enum Entity<'a> {
     Text(Cow<'a, str>),
     Bold(Vec<Entity<'a>>),

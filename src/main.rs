@@ -38,6 +38,7 @@ async fn main() {
     bot.add_command(commands::cobalt_download::CobaltDownload::auto());
     bot.add_command(commands::cobalt_download::CobaltDownload::audio());
     bot.add_command(commands::charinfo::CharInfo);
+    bot.add_command(commands::radio_sur::RadioSur);
     bot.add_command(commands::radio_poligon::RadioPoligon);
     bot.add_command(commands::autocomplete::Autocomplete);
     bot.add_command(commands::mevo::Mevo);

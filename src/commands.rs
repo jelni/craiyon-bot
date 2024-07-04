@@ -29,6 +29,7 @@ pub mod mevo;
 pub mod moveit_joke;
 pub mod ping;
 pub mod radio_poligon;
+pub mod radio_sur;
 pub mod screenshot;
 pub mod sex;
 pub mod stablehorde;
