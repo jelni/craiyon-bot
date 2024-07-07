@@ -33,6 +33,8 @@ impl NetworkFile {
             .timeout(Duration::from_secs(3600))
             .send()
             .await
+            .map_err(DownloadError::RequestError)?
+            .error_for_status()
             .map_err(DownloadError::RequestError)?;
 
         let content_type = match response.headers().get(CONTENT_TYPE) {

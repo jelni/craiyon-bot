@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use reqwest::header::ACCEPT;
 use serde::{Deserialize, Serialize};
 
@@ -82,9 +84,61 @@ pub async fn query(
 #[derive(Deserialize)]
 pub struct Instance {
     pub api_online: bool,
+    pub services: HashMap<Service, bool>,
     pub score: f32,
     pub protocol: String,
     pub api: String,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Service {
+    Youtube,
+    Rutube,
+    Tumblr,
+    Bilibili,
+    Pinterest,
+    Instagram,
+    Soundcloud,
+    YoutubeMusic,
+    Odnoklassniki,
+    Dailymotion,
+    Twitter,
+    Vimeo,
+    Streamable,
+    Vk,
+    Tiktok,
+    Reddit,
+    TwitchClips,
+    YoutubeShorts,
+    #[serde(untagged)]
+    Unknown,
+}
+
+impl Service {
+    pub const fn name(self) -> Option<&'static str> {
+        match self {
+            Self::Youtube => Some("YouTube"),
+            Self::Rutube => Some("RUTUBE"),
+            Self::Tumblr => Some("Tumblr"),
+            Self::Bilibili => Some("BiliBili"),
+            Self::Pinterest => Some("Pinterest"),
+            Self::Instagram => Some("Instagram"),
+            Self::Soundcloud => Some("SoundCloud"),
+            Self::YoutubeMusic => Some("YouTube Music"),
+            Self::Odnoklassniki => Some("Odnoklassniki"),
+            Self::Dailymotion => Some("Dailymotion"),
+            Self::Twitter => Some("Twitter"),
+            Self::Vimeo => Some("Vimeo"),
+            Self::Streamable => Some("Streamable"),
+            Self::Vk => Some("VK"),
+            Self::Tiktok => Some("TikTok"),
+            Self::Reddit => Some("Reddit"),
+            Self::TwitchClips => Some("Twitch (Clips)"),
+            Self::YoutubeShorts => Some("YouTube (Shorts)"),
+            Self::Unknown => None,
+        }
+    }
 }
 
 pub async fn instances(http_client: reqwest::Client) -> Result<Vec<Instance>, CommandError> {
