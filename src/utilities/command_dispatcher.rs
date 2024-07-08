@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -110,8 +111,13 @@ async fn report_command_error(
                 .await?
         }
         CommandError::Reqwest(err) => {
-            log::error!("HTTP error in the {command} command: {err}");
-            context.reply(err.without_url().to_string()).await?
+            let err = err.without_url();
+
+            let text =
+                err.source().map_or_else(|| err.to_string(), |source| format!("{err}: {source}"));
+
+            log::error!("HTTP error in the {command} command: {text}");
+            context.reply(text).await?
         }
     };
 

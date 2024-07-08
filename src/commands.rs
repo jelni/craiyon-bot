@@ -87,8 +87,10 @@ impl From<ConversionError> for CommandError {
 impl From<GenerationError> for CommandError {
     fn from(value: GenerationError) -> Self {
         match value {
-            GenerationError::NetworkError(err) => Self::Reqwest(err),
-            GenerationError::GoogleError(err) => Self::Custom(err.to_string()),
+            GenerationError::Network(err) => Self::Reqwest(err),
+            GenerationError::Google(err) => Self::Custom(
+                err.into_iter().map(|error| error.to_string()).collect::<Vec<_>>().join("\n"),
+            ),
         }
     }
 }

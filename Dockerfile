@@ -7,6 +7,8 @@ RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../tdlib ..
 RUN cmake --build . --target install
 
 FROM rust as bot-builder
+COPY --from=tdlib-builder /td/tdlib/lib /usr/local/lib
+RUN ldconfig
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY src src

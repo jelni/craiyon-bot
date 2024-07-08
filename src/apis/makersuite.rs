@@ -10,8 +10,8 @@ use url::Url;
 use crate::commands::CommandError;
 
 pub enum GenerationError {
-    NetworkError(reqwest::Error),
-    GoogleError(Error),
+    Network(reqwest::Error),
+    Google(Vec<Error>),
 }
 
 #[derive(Serialize)]
@@ -120,21 +120,13 @@ pub struct ErrorResponse {
 
 #[derive(Deserialize)]
 pub struct Error {
-    pub code: Option<u32>,
+    pub code: u16,
     pub message: String,
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("Google error").unwrap();
-
-        if let Some(code) = self.code {
-            write!(f, " {code}").unwrap();
-        }
-
-        write!(f, ": {}", self.message).unwrap();
-
-        Ok(())
+        write!(f, "Google error {}: {}", self.code, self.message)
     }
 }
 
@@ -176,19 +168,24 @@ pub async fn stream_generate_content(
     let response = match response {
         Ok(response) => response,
         Err(err) => {
-            tx.send(Err(GenerationError::NetworkError(err))).unwrap();
+            tx.send(Err(GenerationError::Network(err))).unwrap();
             return;
         }
     };
 
-    if response.status() != StatusCode::OK {
-        let error_response = response.json::<ErrorResponse>().await;
+    let status = response.status();
+
+    if status != StatusCode::OK {
+        let error_response = response.json::<Vec<ErrorResponse>>().await;
 
         match error_response {
             Ok(error_response) => {
-                tx.send(Err(GenerationError::GoogleError(error_response.error))).unwrap();
+                tx.send(Err(GenerationError::Google(
+                    error_response.into_iter().map(|error| error.error).collect(),
+                )))
+                .unwrap();
             }
-            Err(err) => tx.send(Err(GenerationError::NetworkError(err))).unwrap(),
+            Err(err) => tx.send(Err(GenerationError::Network(err))).unwrap(),
         }
 
         return;
@@ -201,7 +198,7 @@ pub async fn stream_generate_content(
         let part = match part {
             Ok(part) => part,
             Err(err) => {
-                tx.send(Err(GenerationError::NetworkError(err))).unwrap();
+                tx.send(Err(GenerationError::Network(err))).unwrap();
                 return;
             }
         };
