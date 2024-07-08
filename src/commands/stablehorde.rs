@@ -109,6 +109,7 @@ impl CommandTrait for StableHorde {
                     width: image.width().try_into().unwrap(),
                     height: image.height().try_into().unwrap(),
                     caption: Some(format_result_text(generation)),
+                    show_caption_above_media: false,
                     self_destruct_type: None,
                     has_spoiler: false,
                 }),

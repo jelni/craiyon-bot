@@ -77,6 +77,7 @@ impl CommandTrait for DifferentDimensionMe {
                     width: 0,
                     height: 0,
                     caption: Some(formatted_text),
+                    show_caption_above_media: false,
                     self_destruct_type: None,
                     has_spoiler: false,
                 }),

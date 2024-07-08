@@ -1,9 +1,8 @@
 FROM debian as tdlib-builder
 RUN apt update && apt install git make cmake g++ libssl-dev zlib1g-dev gperf -y
 RUN git clone https://github.com/tdlib/td
-WORKDIR /td
-RUN git checkout $TDLIB_COMMIT_HASH
 WORKDIR /td/build
+RUN git checkout $TDLIB_COMMIT_HASH
 RUN cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=../tdlib ..
 RUN cmake --build . --target install
 

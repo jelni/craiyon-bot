@@ -176,6 +176,7 @@ impl CommandTrait for Craiyon {
                     width: image.width().try_into().unwrap(),
                     height: image.height().try_into().unwrap(),
                     caption: Some(message_entities::formatted_text(entities)),
+                    show_caption_above_media: false,
                     self_destruct_type: None,
                     has_spoiler: false,
                 }),

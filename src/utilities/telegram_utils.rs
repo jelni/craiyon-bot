@@ -7,7 +7,7 @@ use tdlib::enums::{
 use tdlib::functions;
 use tdlib::types::{
     File, FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message, Photo,
-    ReplyMarkupInlineKeyboard, Sticker, UpdateChatMember, User, WebPage,
+    ReplyMarkupInlineKeyboard, Sticker, UpdateChatMember, User,
 };
 
 use super::cache::CompactChat;
@@ -53,7 +53,6 @@ pub const fn get_message_text(content: &MessageContent) -> Option<&FormattedText
 
 pub fn get_message_image(content: &MessageContent) -> Option<MessageImage> {
     match content {
-        MessageContent::MessageText(message) => message.web_page.as_ref().and_then(web_page_image),
         MessageContent::MessageDocument(message) => Some(MessageImage {
             file: message.document.document.clone(),
             mime_type: Cow::Owned(message.document.mime_type.clone()),
@@ -64,35 +63,6 @@ pub fn get_message_image(content: &MessageContent) -> Option<MessageImage> {
         MessageContent::MessageSticker(message) => sticker_image(&message.sticker),
         _ => None,
     }
-}
-
-fn web_page_image(web_page: &WebPage) -> Option<MessageImage> {
-    if let Some(photo) = &web_page.photo {
-        if let Some(file) = largest_photo(photo) {
-            return Some(MessageImage {
-                file: file.clone(),
-                mime_type: Cow::Borrowed("image/jpeg"),
-            });
-        }
-    }
-
-    if let Some(document) = &web_page.document {
-        return Some(MessageImage {
-            file: document.document.clone(),
-            mime_type: Cow::Owned(document.mime_type.clone()),
-        });
-    }
-
-    if let Some(sticker) = &web_page.sticker {
-        if sticker.format == StickerFormat::Webp {
-            return Some(MessageImage {
-                file: sticker.sticker.clone(),
-                mime_type: Cow::Borrowed("image/webp"),
-            });
-        }
-    }
-
-    None
 }
 
 fn largest_photo(photo: &Photo) -> Option<&File> {

@@ -226,6 +226,7 @@ fn get_message_content(file: &NetworkFile) -> InputMessageContent {
             height: 0,
             supports_streaming: true,
             caption: None,
+            show_caption_above_media: false,
             self_destruct_type: None,
             has_spoiler: false,
         })
