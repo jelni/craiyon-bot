@@ -104,6 +104,7 @@ pub enum Service {
     Odnoklassniki,
     Dailymotion,
     Twitter,
+    Loom,
     Vimeo,
     Streamable,
     Vk,
@@ -111,7 +112,8 @@ pub enum Service {
     Reddit,
     TwitchClips,
     YoutubeShorts,
-    #[serde(untagged)]
+    Vine,
+    #[serde(other)]
     Unknown,
 }
 
@@ -129,6 +131,7 @@ impl Service {
             Self::Odnoklassniki => Some("Odnoklassniki"),
             Self::Dailymotion => Some("Dailymotion"),
             Self::Twitter => Some("Twitter"),
+            Self::Loom => Some("Loom"),
             Self::Vimeo => Some("Vimeo"),
             Self::Streamable => Some("Streamable"),
             Self::Vk => Some("VK"),
@@ -136,6 +139,7 @@ impl Service {
             Self::Reddit => Some("Reddit"),
             Self::TwitchClips => Some("Twitch (Clips)"),
             Self::YoutubeShorts => Some("YouTube (Shorts)"),
+            Self::Vine => Some("Vine"),
             Self::Unknown => None,
         }
     }

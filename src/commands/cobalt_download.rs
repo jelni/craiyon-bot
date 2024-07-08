@@ -41,13 +41,15 @@ const SERVICE_URLS: &[(Service, &[&str])] = &[
     (Service::Odnoklassniki, &["ok.ru/"]),
     (Service::Dailymotion, &["www.dailymotion.com/video/", "dailymotion.com/video/"]),
     (Service::Twitter, &["x.com/", "twitter.com/"]),
+    (Service::Loom, &["www.loom.com/share/", "loom.com/share/"]),
     (Service::Vimeo, &["vimeo.com/"]),
     (Service::Streamable, &["streamable.com/"]),
-    (Service::Vk, &["https://vk.com/video-"]),
+    (Service::Vk, &["vk.com/video-", "vk.com/clip-"]),
     (Service::Tiktok, &["www.tiktok.com/", "tiktok.com/", "vm.tiktok.com/"]),
     (Service::Reddit, &["www.reddit.com/", "reddit.com/"]),
     (Service::TwitchClips, &["clips.twitch.tv/"]),
     (Service::YoutubeShorts, &["www.youtube.com/shorts/", "youtube.com/shorts/"]),
+    (Service::Vine, &["vine.co/v/"]),
 ];
 
 pub struct CobaltDownload {
