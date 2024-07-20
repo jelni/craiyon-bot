@@ -42,7 +42,6 @@ impl CommandTrait for GoogleGemini {
 
         ctx.send_typing().await?;
 
-        let mut model = "gemini-1.0-pro-latest";
         let mut parts = Vec::new();
 
         if let Some(prompt) = prompt {
@@ -55,8 +54,6 @@ impl CommandTrait for GoogleGemini {
             if message_image.file.expected_size > 4 * MEBIBYTE {
                 return Err(CommandError::Custom("the image cannot be larger than 4 MiB.".into()));
             }
-
-            model = "gemini-1.0-pro-vision-latest";
 
             let File::File(file) =
                 functions::download_file(message_image.file.id, 1, 0, 0, true, ctx.client_id)
@@ -78,7 +75,8 @@ impl CommandTrait for GoogleGemini {
         let (tx, mut rx) = mpsc::unbounded_channel();
 
         tokio::spawn(async move {
-            makersuite::stream_generate_content(http_client, tx, model, &parts, 512).await;
+            makersuite::stream_generate_content(http_client, tx, "gemini-1.5-flash", &parts, 512)
+                .await;
         });
 
         let mut next_update = Instant::now() + Duration::from_secs(5);

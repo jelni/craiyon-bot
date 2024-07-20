@@ -14,6 +14,7 @@ COPY Cargo.toml Cargo.lock ./
 COPY src src
 COPY .cargo .cargo
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/usr/local/cargo/git \
     --mount=type=cache,target=target \
     cargo build --release \
     && cp target/release/craiyon-bot craiyon-bot

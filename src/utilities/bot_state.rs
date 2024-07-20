@@ -62,7 +62,9 @@ impl BotState {
         member_id: i64,
         client_id: i32,
     ) -> TdResult<ChatMemberStatus> {
-        if let Some(status) = self.cache.lock().unwrap().get_member_status(chat_id, member_id) {
+        let status = self.cache.lock().unwrap().get_member_status(chat_id, member_id);
+
+        if let Some(status) = status {
             return Ok(status);
         }
 

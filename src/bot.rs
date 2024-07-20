@@ -98,11 +98,15 @@ impl Bot {
             }
         }
 
-        if let Err(err) = self.state.config.lock().unwrap().save() {
+        let result = self.state.config.lock().unwrap().save();
+
+        if let Err(err) = result {
             log::error!("failed to save bot config: {err}");
         }
 
-        if let Err(err) = markov_chain_manager::save(&self.state.markov_chain.lock().unwrap()) {
+        let result = markov_chain_manager::save(&self.state.markov_chain.lock().unwrap());
+
+        if let Err(err) = result {
             log::error!("failed to save Markov chain: {err}");
         }
     }
@@ -238,7 +242,9 @@ impl Bot {
     fn on_chat_member(&self, update: UpdateChatMember) {
         if let MessageSender::User(user) = &update.new_chat_member.member_id {
             if self.my_id.is_some_and(|my_id| user.user_id == my_id) {
-                if let Some(chat) = self.state.cache.lock().unwrap().get_chat(update.chat_id) {
+                let chat = self.state.cache.lock().unwrap().get_chat(update.chat_id);
+
+                if let Some(chat) = chat {
                     telegram_utils::log_status_update(&update, &chat);
                 }
             }

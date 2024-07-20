@@ -48,7 +48,9 @@ impl MessageQueue {
             ),
         };
 
-        if let Some(tx) = self.queue.lock().unwrap().remove(&old_message_id) {
+        let tx = self.queue.lock().unwrap().remove(&old_message_id);
+
+        if let Some(tx) = tx {
             tx.send(result).unwrap();
         }
     }
