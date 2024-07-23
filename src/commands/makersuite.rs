@@ -51,8 +51,8 @@ impl CommandTrait for GoogleGemini {
         if let Some(message_image) =
             telegram_utils::get_message_or_reply_attachment(&ctx.message, ctx.client_id).await
         {
-            if message_image.filesize() > 50 * MEBIBYTE {
-                return Err(CommandError::Custom("the file cannot be larger than 50 MiB.".into()));
+            if message_image.filesize() > 64 * MEBIBYTE {
+                return Err(CommandError::Custom("the file cannot be larger than 64 MiB.".into()));
             }
 
             let File::File(file) =
