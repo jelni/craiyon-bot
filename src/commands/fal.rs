@@ -1,9 +1,6 @@
-use std::io::Write;
-
 use async_trait::async_trait;
 use tdlib::enums::{InputFile, InputMessageContent};
-use tdlib::types::{InputFileLocal, InputMessagePhoto};
-use tempfile::NamedTempFile;
+use tdlib::types::{InputFileRemote, InputMessagePhoto};
 
 use crate::apis::fal::{generate, FalRequest, ImageSize};
 use crate::commands::{CommandResult, CommandTrait};
@@ -78,20 +75,17 @@ impl CommandTrait for Fal {
 
         let response = generate(&ctx.bot_state.http_client, request).await?;
 
-        let mut temp_file = NamedTempFile::new().unwrap();
-        temp_file.write_all(response.images[0].as_bytes()).unwrap();
-
         let message = ctx
             .reply_custom(
                 InputMessageContent::InputMessagePhoto(InputMessagePhoto {
-                    photo: InputFile::Local(InputFileLocal {
-                        path: temp_file.path().to_str().unwrap().into(),
+                    photo: InputFile::Remote(InputFileRemote {
+                        id: response.images[0].url.clone(),
                     }),
                     thumbnail: None,
                     added_sticker_file_ids: Vec::new(),
                     width: 0,
                     height: 0,
-                    caption: Some(formatted_text(vec!["generated ".text(), response.images[0].text()])),
+                    caption: Some(formatted_text(vec!["generated ".text(), response.prompt.text()])),
                     show_caption_above_media: false,
                     self_destruct_type: None,
                     has_spoiler: false,
@@ -101,7 +95,6 @@ impl CommandTrait for Fal {
             .await?;
 
         ctx.bot_state.message_queue.wait_for_message(message.id).await?;
-        temp_file.close().unwrap();
 
         Ok(())
     }

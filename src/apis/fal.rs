@@ -27,7 +27,14 @@ pub struct ImageSize {
 
 #[derive(Deserialize)]
 pub struct FalResponse {
-    pub images: Vec<String>,
+    pub images: Vec<Image>,
+    pub prompt: String,
+}
+
+#[derive(Deserialize)]
+pub struct Image {
+    pub url: String,
+    pub content_type: String,
 }
 
 #[derive(Deserialize)]
