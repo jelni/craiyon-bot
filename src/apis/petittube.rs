@@ -1,28 +1,14 @@
-use url::Url;
+use crate::{commands::CommandError, utilities::api_utils::DetectServerError};
 
-use crate::commands::CommandError;
-
-pub async fn petittube() -> Result<Url, CommandError> {
-    let url = "https://petittube.com/";
-    let body = reqwest::get(url).await.unwrap().text().await.unwrap();
-
-    // Search for the video URL in the HTML content
-    // https://www.youtube.com/embed/ is the prefix of the video URL
+pub async fn random_video(http_client: &reqwest::Client) -> Result<String, CommandError> {
+    // This requires web scraping, because the site doesn't have an API
+    let url = "https://petittube.com";
+    let body = http_client.get(url).send().await?.server_error()?.text().await?;
     let video_split: Vec<&str> = body
         .split("https://www.youtube.com/embed/")
         .collect::<Vec<&str>>();
+    let identifier = video_split[1].split('?').collect::<Vec<&str>>()[0];
+    let url = format!("https://youtu.be/{}", identifier); 
 
-    // Up until the '?'
-    let video = video_split[1].split('?').collect::<Vec<&str>>()[0];
-
-    // Construct the complete YouTube video URL
-    let video = "https://www.youtube.com/watch?v=".to_string() + video; 
-    let video = Url::parse(&video);
-
-    let res = match video {
-        Ok(video) => Ok(video),
-        Err(_) => Err(CommandError::Custom("Failed to parse video URL".to_string())),
-    };
-
-    res
+    Ok(url)
 }

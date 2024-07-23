@@ -51,8 +51,8 @@ impl CommandTrait for GoogleGemini {
         if let Some(message_image) =
             telegram_utils::get_message_or_reply_attachment(&ctx.message, ctx.client_id).await
         {
-            if message_image.filesize() > 20 * MEBIBYTE {
-                return Err(CommandError::Custom("the media file cannot be larger than 20 MiB.".into()));
+            if message_image.filesize() > 50 * MEBIBYTE {
+                return Err(CommandError::Custom("the file cannot be larger than 50 MiB.".into()));
             }
 
             let File::File(file) =
@@ -68,7 +68,7 @@ impl CommandTrait for GoogleGemini {
         }
 
         if parts.is_empty() {
-            return Err(CommandError::Custom("no prompt or media provided.".into()));
+            return Err(CommandError::Custom("no prompt or file provided.".into()));
         }
 
         let http_client = ctx.bot_state.http_client.clone();

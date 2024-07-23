@@ -17,8 +17,8 @@ impl CommandTrait for Petittube {
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        let joke = petittube::petittube().await?;
-        ctx.reply(joke.to_string()).await?;
+        let url = petittube::random_video(&ctx.bot_state.http_client).await?;
+        ctx.reply_webpage(url.to_string()).await?;
 
         Ok(())
     }

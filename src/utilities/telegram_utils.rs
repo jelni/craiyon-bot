@@ -1,12 +1,11 @@
 use std::borrow::Cow;
 
 use tdlib::enums::{
-    self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, MessageReplyTo,
-    ReplyMarkup,
+    self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, MessageReplyTo, ReplyMarkup, StickerFormat, StoryContent
 };
 use tdlib::functions;
 use tdlib::types::{
-    Animation, Audio, Document, File, FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message, Photo, ReplyMarkupInlineKeyboard, UpdateChatMember, User, Video, VoiceNote
+    Animation, Audio, Document, File, FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message, Photo, ReplyMarkupInlineKeyboard, Sticker, Story, UpdateChatMember, User, Video, VideoNote, VoiceNote
 };
 
 use super::cache::CompactChat;
@@ -22,56 +21,65 @@ impl MainUsername for User {
 }
 
 pub enum MessageAttachment {
-    Photo(Photo),
-    Video(Video),
     Animation(Animation),
     Audio(Audio),
-    Voice(VoiceNote),
     Document(Document),
+    Photo(Photo),
+    Sticker(Sticker),
+    Video(Video),
+    VideoNote(VideoNote),
+    VoiceNote(VoiceNote),
+    Story(Story),
 }
 
 impl MessageAttachment {
     pub fn filesize(&self) -> i64 {
         match self {
-            MessageAttachment::Photo(photo) => largest_photo(photo).map(|file| file.size).unwrap_or(0),
-            MessageAttachment::Video(video) => video.video.size,
             MessageAttachment::Animation(animation) => animation.animation.size,
             MessageAttachment::Audio(audio) => audio.audio.size,
-            MessageAttachment::Voice(voice) => voice.voice.size,
             MessageAttachment::Document(document) => document.document.size,
+            MessageAttachment::Photo(photo) => {
+                largest_photo(photo).map(|file| file.size).unwrap_or(0)
+            }
+            MessageAttachment::Sticker(sticker) => sticker.sticker.size,
+            MessageAttachment::Video(video) => video.video.size,
+            MessageAttachment::VideoNote(video_note) => video_note.video.size,
+            MessageAttachment::VoiceNote(voice_note) => voice_note.voice.size,
+            MessageAttachment::Story(story) => get_story_size(story),
         }
     }
 
     pub fn file_id(&self) -> i32 {
         match self {
-            MessageAttachment::Photo(photo) => largest_photo(photo).map(|file| file.id).unwrap_or(0),
-            MessageAttachment::Video(video) => video.video.id,
             MessageAttachment::Animation(animation) => animation.animation.id,
             MessageAttachment::Audio(audio) => audio.audio.id,
-            MessageAttachment::Voice(voice) => voice.voice.id,
             MessageAttachment::Document(document) => document.document.id,
+            MessageAttachment::Photo(photo) => {
+                largest_photo(photo).map(|file| file.id).unwrap_or(0)
+            }
+            MessageAttachment::Sticker(sticker) => sticker.sticker.id,
+            MessageAttachment::Video(video) => video.video.id,
+            MessageAttachment::VideoNote(video_note) => video_note.video.id,
+            MessageAttachment::VoiceNote(voice_note) => voice_note.voice.id,
+            MessageAttachment::Story(story) => story.id,
         }
     }
 
     pub fn mime_type(&self) -> Cow<'static, str> {
         match self {
-            MessageAttachment::Photo(_) => Cow::Borrowed("image/jpeg"),
-            MessageAttachment::Video(video) => Cow::Owned(video.mime_type.clone()),
-            MessageAttachment::Animation(_) => Cow::Borrowed("video/mp4"),
+            MessageAttachment::Animation(animation) => Cow::Owned(animation.mime_type.clone()),
             MessageAttachment::Audio(audio) => Cow::Owned(audio.mime_type.clone()),
-            MessageAttachment::Voice(voice) => Cow::Owned(voice.mime_type.clone()),
             MessageAttachment::Document(document) => Cow::Owned(document.mime_type.clone()),
+            MessageAttachment::Photo(_) => {
+                Cow::Owned("image/jpeg".to_string())
+            }
+            MessageAttachment::Sticker(sticker) => get_sticker_format(sticker).clone(),
+            MessageAttachment::Video(video) => Cow::Owned(video.mime_type.clone()),
+            MessageAttachment::VideoNote(_) => Cow::Owned("video/mp4".to_string()),
+            MessageAttachment::VoiceNote(voice_note) => Cow::Owned(voice_note.mime_type.clone()),
+            MessageAttachment::Story(story) => get_story_type(story),
         }
     }
-}
-
-pub fn donate_markup(name: &str, url: impl Into<String>) -> ReplyMarkup {
-    ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
-        rows: vec![vec![InlineKeyboardButton {
-            text: format!("donate to {name}"),
-            r#type: InlineKeyboardButtonType::Url(InlineKeyboardButtonTypeUrl { url: url.into() }),
-        }]],
-    })
 }
 
 pub const fn get_message_text(content: &MessageContent) -> Option<&FormattedText> {
@@ -96,9 +104,52 @@ pub fn get_message_attachment(content: &MessageContent) -> Option<MessageAttachm
         MessageContent::MessageVideo(message) => Some(MessageAttachment::Video(message.video.clone())),
         MessageContent::MessageAnimation(message) => Some(MessageAttachment::Animation(message.animation.clone())),
         MessageContent::MessageAudio(message) => Some(MessageAttachment::Audio(message.audio.clone())),
-        MessageContent::MessageVoiceNote(message) => Some(MessageAttachment::Voice(message.voice_note.clone())),
+        MessageContent::MessageVoiceNote(message) => Some(MessageAttachment::VoiceNote(message.voice_note.clone())),
+        MessageContent::MessageSticker(message) => Some(MessageAttachment::Sticker(message.sticker.clone())),
         _ => None,
     }
+}
+
+pub fn get_story_size(story: &Story) -> i64 {
+    let content = &story.content;
+    match content {
+        StoryContent::Photo(photo) => {
+            let photo = &photo.photo;
+            let photo = photo.sizes.iter().rfind(|photo_size| photo_size.photo.local.can_be_downloaded).unwrap();
+            photo.photo.size
+        }
+        StoryContent::Video(video) => {
+            let video = &video.video;
+            video.video.size
+        }
+        StoryContent::Unsupported => 0,
+    }
+}
+
+pub fn get_story_type(story: &Story) -> Cow<'static, str> {
+    let content = &story.content;
+    match content {
+        StoryContent::Photo(_) => Cow::Borrowed("image/jpeg"),
+        StoryContent::Video(_) => Cow::Borrowed("video/mp4"),
+        StoryContent::Unsupported => Cow::Borrowed(""),
+    }
+}
+
+pub fn get_sticker_format(sticker: &Sticker) -> Cow<'static, str> {
+    match sticker.format {
+        StickerFormat::Webp => Cow::Borrowed("image/webp"),
+        StickerFormat::Tgs => Cow::Borrowed("application/x-tgsticker"),
+        StickerFormat::Webm => Cow::Borrowed("video/webm"),
+    }
+}
+
+pub fn donate_markup(name: &str, url: impl Into<String>) -> ReplyMarkup {
+    ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
+        rows: vec![vec![InlineKeyboardButton {
+            text: format!("donate to {name}"),
+            r#type: InlineKeyboardButtonType::Url(InlineKeyboardButtonTypeUrl { url: url.into() }),
+        }]],
+    })
 }
 
 pub fn get_message_image(content: &MessageContent) -> Option<MessageAttachment> {

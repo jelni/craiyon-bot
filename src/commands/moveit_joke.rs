@@ -9,11 +9,7 @@ pub struct MoveitJoke;
 #[async_trait]
 impl CommandTrait for MoveitJoke {
     fn command_names(&self) -> &[&str] {
-        &["moveit", "moveit_joke", "muwit"]
-    }
-
-    fn description(&self) -> Option<&'static str> {
-        Some("get a random joke about Moveit")
+        &["moveit_joke", "moveit", "muwit"]
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {

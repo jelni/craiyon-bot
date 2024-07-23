@@ -60,6 +60,24 @@ impl CommandContext {
         self.reply_formatted_text(FormattedText { text, ..Default::default() }).await
     }
 
+    pub async fn reply_webpage(&self, url: String) -> TdResult<Message> {
+        self.reply_custom(
+            InputMessageContent::InputMessageText(InputMessageText {
+                text: FormattedText {
+                    text: url,
+                    ..Default::default()
+                },
+                link_preview_options: Some(LinkPreviewOptions {
+                    is_disabled: false,
+                    ..Default::default()
+                }),
+                ..Default::default()
+            }),
+            None,
+        )
+        .await
+    }
+
     pub async fn edit_message_formatted_text(
         &self,
         message_id: i64,

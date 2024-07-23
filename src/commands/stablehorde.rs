@@ -185,6 +185,7 @@ impl StableHorde {
     }
 }
 
+
 async fn wait_for_generation(
     ctx: &CommandContext,
     request_id: &str,
