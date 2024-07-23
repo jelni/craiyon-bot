@@ -28,12 +28,12 @@ impl CommandTrait for DifferentDimensionMe {
             .await
             .ok_or("send or reply to an image.")?;
 
-        if message_image.file.expected_size > 4 * MEBIBYTE {
+        if message_image.filesize() > 4 * MEBIBYTE {
             Err("the image cannot be larger than 4 MiB.")?;
         }
 
         let File::File(file) =
-            functions::download_file(message_image.file.id, 1, 0, 0, true, ctx.client_id).await?;
+            functions::download_file(message_image.file_id(), 1, 0, 0, true, ctx.client_id).await?;
 
         ctx.send_typing().await?;
 
