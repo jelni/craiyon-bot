@@ -13,6 +13,7 @@ pub struct FalRequest {
     pub negative_prompt: String,
     pub image_size: ImageSize,
     pub num_inference_steps: u8,
+    pub expand_prompt: bool,
     pub guidance_scale: u8,
     pub num_images: u8,
     pub enable_safety_checker: bool,

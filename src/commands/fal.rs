@@ -67,6 +67,7 @@ impl CommandTrait for Fal {
             negative_prompt: String::new(),
             image_size: ImageSize { height: 1024, width: 1024 },
             num_inference_steps: self.num_inference_steps,
+            expand_prompt: false,
             guidance_scale: 5,
             num_images: 1,
             enable_safety_checker: true,
