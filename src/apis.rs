@@ -2,6 +2,7 @@ pub mod azuracast;
 pub mod cobalt;
 pub mod craiyon;
 pub mod different_dimension_me;
+pub mod fal;
 pub mod google;
 pub mod kiwifarms;
 pub mod makersuite;

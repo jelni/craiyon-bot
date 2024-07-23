@@ -1,16 +1,12 @@
-use std::env;
 use std::io::Write;
 
 use async_trait::async_trait;
-use reqwest::header::AUTHORIZATION;
-use reqwest::StatusCode;
-use serde::{Deserialize, Serialize};
 use tdlib::enums::{InputFile, InputMessageContent};
 use tdlib::types::{InputFileLocal, InputMessagePhoto};
 use tempfile::NamedTempFile;
 
-use crate::commands::{CommandError, CommandResult, CommandTrait};
-use crate::utilities::api_utils::DetectServerError;
+use crate::apis::fal::{generate, FalRequest, ImageSize};
+use crate::commands::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::message_entities::{formatted_text, ToEntity};
@@ -68,9 +64,22 @@ impl CommandTrait for Fal {
 
         ctx.send_typing().await?;
 
-        let generation = self.generate(&ctx.bot_state.http_client, prompt).await?;
+        let request = FalRequest {
+            model_name: self.model_name,
+            prompt,
+            negative_prompt: String::new(),
+            image_size: ImageSize { height: 1024, width: 1024 },
+            num_inference_steps: self.num_inference_steps,
+            guidance_scale: 5,
+            num_images: 1,
+            enable_safety_checker: true,
+            format: "png",
+        };
+
+        let response = generate(&ctx.bot_state.http_client, request).await?;
+
         let mut temp_file = NamedTempFile::new().unwrap();
-        temp_file.write_all(&generation.image.as_bytes()).unwrap();
+        temp_file.write_all(response.images[0].as_bytes()).unwrap();
 
         let message = ctx
             .reply_custom(
@@ -82,7 +91,7 @@ impl CommandTrait for Fal {
                     added_sticker_file_ids: Vec::new(),
                     width: 0,
                     height: 0,
-                    caption: Some(formatted_text(vec!["generated ".text(), generation.image.text()])),
+                    caption: Some(formatted_text(vec!["generated ".text(), response.images[0].text()])),
                     show_caption_above_media: false,
                     self_destruct_type: None,
                     has_spoiler: false,
@@ -96,78 +105,4 @@ impl CommandTrait for Fal {
 
         Ok(())
     }
-}
-
-impl Fal {
-    async fn generate(
-        &self,
-        http_client: &reqwest::Client,
-        prompt: String,
-    ) -> Result<Generation, CommandError> {
-        let request = FalRequest {
-            model_name: self.model_name,
-            prompt,
-            negative_prompt: String::new(),
-            image_size: ImageSize { height: 1024, width: 1024 },
-            num_inference_steps: self.num_inference_steps,
-            guidance_scale: 5,
-            num_images: 1, // this variable is potentially changable - this is so cheap anyways
-            enable_safety_checker: true,
-            format: "png",
-        };
-
-        let response = http_client
-            .post(format!("https://fal.run/fal-ai/{}", self.model_name))
-            .header(AUTHORIZATION, format!("Key {}", env::var("FAL_API_KEY").unwrap()))
-            .json(&request)
-            .send()
-            .await?
-            .server_error()?;
-
-        if response.status() == StatusCode::OK {
-            let response = response.json::<FalResponse>().await?;
-            Ok(Generation { image: response.images.into_iter().next().unwrap(), })
-        } else {
-            let response = response.json::<ErrorResponse>().await?;
-            Err(CommandError::Custom(response.error.message))
-        }
-    }
-}
-
-struct Generation {
-    image: String,
-}
-
-#[derive(Serialize)]
-pub struct FalRequest {
-    pub model_name: &'static str,
-    pub prompt: String,
-    pub negative_prompt: String,
-    pub image_size: ImageSize,
-    pub num_inference_steps: u8,
-    pub guidance_scale: u8,
-    pub num_images: u8,
-    pub enable_safety_checker: bool,
-    pub format: &'static str,
-}
-
-#[derive(Serialize)]
-pub struct ImageSize {
-    pub height: u16,
-    pub width: u16,
-}
-
-#[derive(Deserialize)]
-pub struct FalResponse {
-    pub images: Vec<String>,
-}
-
-#[derive(Deserialize)]
-pub struct ErrorResponse {
-    pub error: Error,
-}
-
-#[derive(Deserialize)]
-pub struct Error {
-    pub message: String,
 }
