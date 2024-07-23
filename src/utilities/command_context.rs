@@ -63,10 +63,7 @@ impl CommandContext {
     pub async fn reply_webpage(&self, url: String) -> TdResult<Message> {
         self.reply_custom(
             InputMessageContent::InputMessageText(InputMessageText {
-                text: FormattedText {
-                    text: url,
-                    ..Default::default()
-                },
+                text: FormattedText { text: url, ..Default::default() },
                 link_preview_options: Some(LinkPreviewOptions {
                     is_disabled: false,
                     ..Default::default()

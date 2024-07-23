@@ -90,7 +90,10 @@ impl CommandTrait for Fal {
                     added_sticker_file_ids: Vec::new(),
                     width: 0,
                     height: 0,
-                    caption: Some(formatted_text(vec!["generated ".text(), response.prompt.text()])),
+                    caption: Some(formatted_text(vec![
+                        "generated ".text(),
+                        response.prompt.text(),
+                    ])),
                     show_caption_above_media: false,
                     self_destruct_type: None,
                     has_spoiler: false,

@@ -1,11 +1,14 @@
 use std::borrow::Cow;
 
 use tdlib::enums::{
-    self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, MessageReplyTo, ReplyMarkup, StickerFormat
+    self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, MessageReplyTo,
+    ReplyMarkup, StickerFormat,
 };
 use tdlib::functions;
 use tdlib::types::{
-    Animation, Audio, Document, File, FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message, Photo, ReplyMarkupInlineKeyboard, Sticker, UpdateChatMember, User, Video, VideoNote, VoiceNote
+    Animation, Audio, Document, File, FormattedText, InlineKeyboardButton,
+    InlineKeyboardButtonTypeUrl, Message, Photo, ReplyMarkupInlineKeyboard, Sticker,
+    UpdateChatMember, User, Video, VideoNote, VoiceNote,
 };
 
 use super::cache::CompactChat;
@@ -29,7 +32,6 @@ pub enum MessageAttachment {
     Video(Video),
     VideoNote(VideoNote),
     VoiceNote(VoiceNote),
-
 }
 
 impl MessageAttachment {
@@ -43,16 +45,15 @@ impl MessageAttachment {
             MessageAttachment::Video(video) => &video.video,
             MessageAttachment::VideoNote(video_note) => &video_note.video,
             MessageAttachment::VoiceNote(voice_note) => &voice_note.voice,
-    }}
+        }
+    }
 
     pub fn mime_type(&self) -> Cow<'static, str> {
         match self {
             MessageAttachment::Animation(animation) => Cow::Owned(animation.mime_type.clone()),
             MessageAttachment::Audio(audio) => Cow::Owned(audio.mime_type.clone()),
             MessageAttachment::Document(document) => Cow::Owned(document.mime_type.clone()),
-            MessageAttachment::Photo(_) => {
-                Cow::Owned("image/jpeg".to_string())
-            }
+            MessageAttachment::Photo(_) => Cow::Owned("image/jpeg".to_string()),
             MessageAttachment::Sticker(sticker) => get_sticker_format(sticker).clone(),
             MessageAttachment::Video(video) => Cow::Owned(video.mime_type.clone()),
             MessageAttachment::VideoNote(_) => Cow::Owned("video/mp4".to_string()),
@@ -78,14 +79,30 @@ pub const fn get_message_text(content: &MessageContent) -> Option<&FormattedText
 
 pub fn get_message_attachment(content: &MessageContent) -> Option<MessageAttachment> {
     match content {
-        MessageContent::MessageDocument(message) => Some(MessageAttachment::Document(message.document.clone())),
-        MessageContent::MessagePhoto(message) => Some(MessageAttachment::Photo(message.photo.clone())),
-        MessageContent::MessageVideo(message) => Some(MessageAttachment::Video(message.video.clone())),
-        MessageContent::MessageAnimation(message) => Some(MessageAttachment::Animation(message.animation.clone())),
-        MessageContent::MessageAudio(message) => Some(MessageAttachment::Audio(message.audio.clone())),
-        MessageContent::MessageVideoNote(message) => Some(MessageAttachment::VideoNote(message.video_note.clone())),
-        MessageContent::MessageVoiceNote(message) => Some(MessageAttachment::VoiceNote(message.voice_note.clone())),
-        MessageContent::MessageSticker(message) => Some(MessageAttachment::Sticker(message.sticker.clone())),
+        MessageContent::MessageDocument(message) => {
+            Some(MessageAttachment::Document(message.document.clone()))
+        }
+        MessageContent::MessagePhoto(message) => {
+            Some(MessageAttachment::Photo(message.photo.clone()))
+        }
+        MessageContent::MessageVideo(message) => {
+            Some(MessageAttachment::Video(message.video.clone()))
+        }
+        MessageContent::MessageAnimation(message) => {
+            Some(MessageAttachment::Animation(message.animation.clone()))
+        }
+        MessageContent::MessageAudio(message) => {
+            Some(MessageAttachment::Audio(message.audio.clone()))
+        }
+        MessageContent::MessageVideoNote(message) => {
+            Some(MessageAttachment::VideoNote(message.video_note.clone()))
+        }
+        MessageContent::MessageVoiceNote(message) => {
+            Some(MessageAttachment::VoiceNote(message.voice_note.clone()))
+        }
+        MessageContent::MessageSticker(message) => {
+            Some(MessageAttachment::Sticker(message.sticker.clone()))
+        }
         _ => None,
     }
 }
@@ -109,8 +126,12 @@ pub fn donate_markup(name: &str, url: impl Into<String>) -> ReplyMarkup {
 
 pub fn get_message_image(content: &MessageContent) -> Option<MessageAttachment> {
     match content {
-        MessageContent::MessageDocument(message) => Some(MessageAttachment::Document(message.document.clone())),
-        MessageContent::MessagePhoto(message) => Some(MessageAttachment::Photo(message.photo.clone())),
+        MessageContent::MessageDocument(message) => {
+            Some(MessageAttachment::Document(message.document.clone()))
+        }
+        MessageContent::MessagePhoto(message) => {
+            Some(MessageAttachment::Photo(message.photo.clone()))
+        }
         _ => None,
     }
 }
@@ -123,7 +144,10 @@ fn largest_photo(photo: &Photo) -> Option<&File> {
         .map(|photo_size| &photo_size.photo)
 }
 
-pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Option<MessageAttachment> {
+pub async fn get_message_or_reply_image(
+    message: &Message,
+    client_id: i32,
+) -> Option<MessageAttachment> {
     if let Some(message_image) = get_message_image(&message.content) {
         return Some(message_image);
     }
@@ -144,7 +168,10 @@ pub async fn get_message_or_reply_image(message: &Message, client_id: i32) -> Op
     get_message_image(&content)
 }
 
-pub async fn get_message_or_reply_attachment(message: &Message, client_id: i32) -> Option<MessageAttachment> {
+pub async fn get_message_or_reply_attachment(
+    message: &Message,
+    client_id: i32,
+) -> Option<MessageAttachment> {
     if let Some(attachment) = get_message_attachment(&message.content) {
         return Some(attachment);
     }
