@@ -1,11 +1,11 @@
 use std::borrow::Cow;
 
 use tdlib::enums::{
-    self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, MessageReplyTo, ReplyMarkup, StickerFormat, StoryContent
+    self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, MessageReplyTo, ReplyMarkup, StickerFormat
 };
 use tdlib::functions;
 use tdlib::types::{
-    Animation, Audio, Document, File, FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message, Photo, ReplyMarkupInlineKeyboard, Sticker, Story, UpdateChatMember, User, Video, VideoNote, VoiceNote
+    Animation, Audio, Document, File, FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, Message, Photo, ReplyMarkupInlineKeyboard, Sticker, UpdateChatMember, User, Video, VideoNote, VoiceNote
 };
 
 use super::cache::CompactChat;
@@ -29,7 +29,6 @@ pub enum MessageAttachment {
     Video(Video),
     VideoNote(VideoNote),
     VoiceNote(VoiceNote),
-    Story(Story),
 
 }
 
@@ -44,11 +43,6 @@ impl MessageAttachment {
             MessageAttachment::Video(video) => &video.video,
             MessageAttachment::VideoNote(video_note) => &video_note.video,
             MessageAttachment::VoiceNote(voice_note) => &voice_note.voice,
-            MessageAttachment::Story(story) => match &story.content {
-                StoryContent::Photo(storyphoto) => largest_photo(&storyphoto.photo).unwrap(),
-                StoryContent::Video(storyvideo) => &storyvideo.video.video,
-                StoryContent::Unsupported => panic!("unsupported story content"),
-            },
     }}
 
     pub fn mime_type(&self) -> Cow<'static, str> {
@@ -63,7 +57,6 @@ impl MessageAttachment {
             MessageAttachment::Video(video) => Cow::Owned(video.mime_type.clone()),
             MessageAttachment::VideoNote(_) => Cow::Owned("video/mp4".to_string()),
             MessageAttachment::VoiceNote(voice_note) => Cow::Owned(voice_note.mime_type.clone()),
-            MessageAttachment::Story(story) => get_story_type(story),
         }
     }
 }
@@ -90,34 +83,10 @@ pub fn get_message_attachment(content: &MessageContent) -> Option<MessageAttachm
         MessageContent::MessageVideo(message) => Some(MessageAttachment::Video(message.video.clone())),
         MessageContent::MessageAnimation(message) => Some(MessageAttachment::Animation(message.animation.clone())),
         MessageContent::MessageAudio(message) => Some(MessageAttachment::Audio(message.audio.clone())),
+        MessageContent::MessageVideoNote(message) => Some(MessageAttachment::VideoNote(message.video_note.clone())),
         MessageContent::MessageVoiceNote(message) => Some(MessageAttachment::VoiceNote(message.voice_note.clone())),
         MessageContent::MessageSticker(message) => Some(MessageAttachment::Sticker(message.sticker.clone())),
         _ => None,
-    }
-}
-
-pub fn get_story_size(story: &Story) -> i64 {
-    let content = &story.content;
-    match content {
-        StoryContent::Photo(photo) => {
-            let photo = &photo.photo;
-            let photo = photo.sizes.iter().rfind(|photo_size| photo_size.photo.local.can_be_downloaded).unwrap();
-            photo.photo.size
-        }
-        StoryContent::Video(video) => {
-            let video = &video.video;
-            video.video.size
-        }
-        StoryContent::Unsupported => 0,
-    }
-}
-
-pub fn get_story_type(story: &Story) -> Cow<'static, str> {
-    let content = &story.content;
-    match content {
-        StoryContent::Photo(_) => Cow::Borrowed("image/jpeg"),
-        StoryContent::Video(_) => Cow::Borrowed("video/mp4"),
-        StoryContent::Unsupported => Cow::Borrowed(""),
     }
 }
 

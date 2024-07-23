@@ -38,7 +38,6 @@ pub struct FalResponse {
 #[derive(Deserialize)]
 pub struct Image {
     pub url: String,
-    pub content_type: String,
 }
 
 #[derive(Deserialize)]
