@@ -28,6 +28,7 @@ pub mod makersuite;
 pub mod markov_chain;
 pub mod mevo;
 pub mod moveit_joke;
+pub mod petittube;
 pub mod ping;
 pub mod radio_poligon;
 pub mod radio_sur;

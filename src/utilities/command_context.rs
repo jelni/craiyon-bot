@@ -60,21 +60,6 @@ impl CommandContext {
         self.reply_formatted_text(FormattedText { text, ..Default::default() }).await
     }
 
-    pub async fn reply_image(&self, image_url: String, caption: String) -> TdResult<Message> {
-        self.reply_custom(
-            InputMessageContent::InputMessagePhoto(enums::InputMessagePhoto {
-                photo: enums::InputFile::InputFileRemote(image_url),
-                caption: Some(FormattedText {
-                    text: caption
-                    ..Default::default()
-                }),
-                ..Default::default()
-            }),
-            None,
-        )
-        .await
-    }
-
     pub async fn edit_message_formatted_text(
         &self,
         message_id: i64,

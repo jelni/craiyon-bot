@@ -1,24 +1,24 @@
 use async_trait::async_trait;
 
 use super::{CommandResult, CommandTrait};
-use crate::apis::moveit;
+use crate::apis::petittube;
 use crate::utilities::command_context::CommandContext;
 
-pub struct MoveitJoke;
+pub struct Petittube;
 
 #[async_trait]
-impl CommandTrait for MoveitJoke {
+impl CommandTrait for Petittube {
     fn command_names(&self) -> &[&str] {
-        &["moveit", "moveit_joke", "muwit"]
+        &["petittube", "noviews"]
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("get a random joke about Moveit")
+        Some("get a random YouTube video with almost no views")
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        let joke = moveit::joke(ctx.bot_state.http_client.clone()).await?;
-        ctx.reply(format!("[{}] {}", joke.id, joke.joke)).await?;
+        let joke = petittube::petittube().await?;
+        ctx.reply(joke.to_string()).await?;
 
         Ok(())
     }

@@ -11,6 +11,7 @@ pub mod microlink;
 pub mod moveit;
 pub mod openai;
 pub mod poligon;
+pub mod petittube;
 pub mod stablehorde;
 pub mod translate;
 pub mod urbandictionary;
