@@ -30,40 +30,26 @@ pub enum MessageAttachment {
     VideoNote(VideoNote),
     VoiceNote(VoiceNote),
     Story(Story),
+
 }
 
 impl MessageAttachment {
-    pub fn filesize(&self) -> i64 {
+    pub fn file(&self) -> &File {
         match self {
-            MessageAttachment::Animation(animation) => animation.animation.size,
-            MessageAttachment::Audio(audio) => audio.audio.size,
-            MessageAttachment::Document(document) => document.document.size,
-            MessageAttachment::Photo(photo) => {
-                largest_photo(photo).map(|file| file.size).unwrap_or(0)
-            }
-            MessageAttachment::Sticker(sticker) => sticker.sticker.size,
-            MessageAttachment::Video(video) => video.video.size,
-            MessageAttachment::VideoNote(video_note) => video_note.video.size,
-            MessageAttachment::VoiceNote(voice_note) => voice_note.voice.size,
-            MessageAttachment::Story(story) => get_story_size(story),
-        }
-    }
-
-    pub fn file_id(&self) -> i32 {
-        match self {
-            MessageAttachment::Animation(animation) => animation.animation.id,
-            MessageAttachment::Audio(audio) => audio.audio.id,
-            MessageAttachment::Document(document) => document.document.id,
-            MessageAttachment::Photo(photo) => {
-                largest_photo(photo).map(|file| file.id).unwrap_or(0)
-            }
-            MessageAttachment::Sticker(sticker) => sticker.sticker.id,
-            MessageAttachment::Video(video) => video.video.id,
-            MessageAttachment::VideoNote(video_note) => video_note.video.id,
-            MessageAttachment::VoiceNote(voice_note) => voice_note.voice.id,
-            MessageAttachment::Story(story) => story.id,
-        }
-    }
+            MessageAttachment::Animation(animation) => &animation.animation,
+            MessageAttachment::Audio(audio) => &audio.audio,
+            MessageAttachment::Document(document) => &document.document,
+            MessageAttachment::Photo(photo) => largest_photo(photo).unwrap(),
+            MessageAttachment::Sticker(sticker) => &sticker.sticker,
+            MessageAttachment::Video(video) => &video.video,
+            MessageAttachment::VideoNote(video_note) => &video_note.video,
+            MessageAttachment::VoiceNote(voice_note) => &voice_note.voice,
+            MessageAttachment::Story(story) => match &story.content {
+                StoryContent::Photo(storyphoto) => largest_photo(&storyphoto.photo).unwrap(),
+                StoryContent::Video(storyvideo) => &storyvideo.video.video,
+                StoryContent::Unsupported => panic!("unsupported story content"),
+            },
+    }}
 
     pub fn mime_type(&self) -> Cow<'static, str> {
         match self {

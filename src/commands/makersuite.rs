@@ -51,12 +51,12 @@ impl CommandTrait for GoogleGemini {
         if let Some(message_image) =
             telegram_utils::get_message_or_reply_attachment(&ctx.message, ctx.client_id).await
         {
-            if message_image.filesize() > 64 * MEBIBYTE {
+            if message_image.file().size > 64 * MEBIBYTE {
                 return Err(CommandError::Custom("the file cannot be larger than 64 MiB.".into()));
             }
 
             let File::File(file) =
-                functions::download_file(message_image.file_id(), 1, 0, 0, true, ctx.client_id)
+                functions::download_file(message_image.file().id, 1, 0, 0, true, ctx.client_id)
                     .await?;
 
             let file = fs::read(file.local.path).unwrap();

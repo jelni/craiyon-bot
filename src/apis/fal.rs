@@ -1,5 +1,6 @@
 use std::env;
 
+use log::info;
 use reqwest::header::AUTHORIZATION;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -9,6 +10,8 @@ use crate::{commands::CommandError, utilities::api_utils::DetectServerError};
 #[derive(Serialize)]
 pub struct FalRequest {
     pub model_name: &'static str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub submodel_name: Option<&'static str>,
     pub prompt: String,
     pub negative_prompt: String,
     pub image_size: ImageSize,
@@ -40,12 +43,7 @@ pub struct Image {
 
 #[derive(Deserialize)]
 pub struct ErrorResponse {
-    pub error: Error,
-}
-
-#[derive(Deserialize)]
-pub struct Error {
-    pub message: String,
+    pub error: String,
 }
 
 pub async fn generate(
@@ -60,9 +58,11 @@ pub async fn generate(
         .await?
         .server_error()?;
 
+    info!("response: {response:?}");
+    info!("status: {}", response.status());
     if response.status() == StatusCode::OK {
         Ok(response.json::<FalResponse>().await?)
     } else {
-        Err(response.json::<ErrorResponse>().await?.error.message.into())
+        Err(response.json::<ErrorResponse>().await?.error.into())
     }
 }

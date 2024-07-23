@@ -14,6 +14,7 @@ pub struct Fal {
     command_names: &'static [&'static str],
     description: &'static str,
     model_name: &'static str,
+    submodel_name: Option<&'static str>,
     num_inference_steps: u8,
 }
 
@@ -22,8 +23,9 @@ impl Fal {
         Self {
             command_names: &["realistic_vision", "rv"],
             description: "generate images using Realistic Vision",
-            model_name: "SG161222/RealVisXL_V4.0",
-            num_inference_steps: 6,
+            model_name: "realistic-vision",
+            submodel_name: Some("SG161222/Realistic_Vision_V6.0_B1_noVAE"),
+            num_inference_steps: 35,
         }
     }
 
@@ -32,6 +34,7 @@ impl Fal {
             command_names: &["sdxl_lightning", "sdxl"],
             description: "generate images using SDXL Lightning",
             model_name: "fast-lightning-sdxl",
+            submodel_name: None,
             num_inference_steps: 4,
         }
     }
@@ -63,6 +66,7 @@ impl CommandTrait for Fal {
 
         let request = FalRequest {
             model_name: self.model_name,
+            submodel_name: self.submodel_name,
             prompt,
             negative_prompt: String::new(),
             image_size: ImageSize { height: 1024, width: 1024 },
@@ -70,7 +74,7 @@ impl CommandTrait for Fal {
             expand_prompt: false,
             guidance_scale: 5,
             num_images: 1,
-            enable_safety_checker: true,
+            enable_safety_checker: false,
             format: "png",
         };
 
