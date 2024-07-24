@@ -126,12 +126,3 @@ Contributions are welcome! If you have suggestions or improvements, feel free to
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
-
-## Acknowledgments
-
-- Thanks to the creators of the APIs used in this bot.
-- Special thanks to the Rust community for their support and resources.
-
----
-
-This README provides a comprehensive overview of the Craiyon Bot project, detailing its features, usage, command structure, API integrations, and more. Feel free to modify it as needed to fit your project's specific details and requirements.
