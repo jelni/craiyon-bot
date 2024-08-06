@@ -37,27 +37,27 @@ pub enum MessageAttachment {
 impl MessageAttachment {
     pub fn file(&self) -> &File {
         match self {
-            MessageAttachment::Animation(animation) => &animation.animation,
-            MessageAttachment::Audio(audio) => &audio.audio,
-            MessageAttachment::Document(document) => &document.document,
-            MessageAttachment::Photo(photo) => largest_photo(photo).unwrap(),
-            MessageAttachment::Sticker(sticker) => &sticker.sticker,
-            MessageAttachment::Video(video) => &video.video,
-            MessageAttachment::VideoNote(video_note) => &video_note.video,
-            MessageAttachment::VoiceNote(voice_note) => &voice_note.voice,
+            Self::Animation(animation) => &animation.animation,
+            Self::Audio(audio) => &audio.audio,
+            Self::Document(document) => &document.document,
+            Self::Photo(photo) => largest_photo(photo).unwrap(),
+            Self::Sticker(sticker) => &sticker.sticker,
+            Self::Video(video) => &video.video,
+            Self::VideoNote(video_note) => &video_note.video,
+            Self::VoiceNote(voice_note) => &voice_note.voice,
         }
     }
 
     pub fn mime_type(&self) -> Cow<'static, str> {
         match self {
-            MessageAttachment::Animation(animation) => Cow::Owned(animation.mime_type.clone()),
-            MessageAttachment::Audio(audio) => Cow::Owned(audio.mime_type.clone()),
-            MessageAttachment::Document(document) => Cow::Owned(document.mime_type.clone()),
-            MessageAttachment::Photo(_) => Cow::Owned("image/jpeg".to_string()),
-            MessageAttachment::Sticker(sticker) => get_sticker_format(sticker).clone(),
-            MessageAttachment::Video(video) => Cow::Owned(video.mime_type.clone()),
-            MessageAttachment::VideoNote(_) => Cow::Owned("video/mp4".to_string()),
-            MessageAttachment::VoiceNote(voice_note) => Cow::Owned(voice_note.mime_type.clone()),
+            Self::Animation(animation) => Cow::Owned(animation.mime_type.clone()),
+            Self::Audio(audio) => Cow::Owned(audio.mime_type.clone()),
+            Self::Document(document) => Cow::Owned(document.mime_type.clone()),
+            Self::Photo(_) => Cow::Owned("image/jpeg".to_string()),
+            Self::Sticker(sticker) => get_sticker_format(sticker),
+            Self::Video(video) => Cow::Owned(video.mime_type.clone()),
+            Self::VideoNote(_) => Cow::Owned("video/mp4".to_string()),
+            Self::VoiceNote(voice_note) => Cow::Owned(voice_note.mime_type.clone()),
         }
     }
 }

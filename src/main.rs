@@ -49,6 +49,7 @@ async fn main() {
     bot.add_command(commands::moveit_joke::MoveitJoke);
     bot.add_command(commands::kebab::Kebab);
     bot.add_command(commands::ping::Ping);
+    bot.add_command(commands::httpcat::Httpcat);
     bot.add_command(commands::delete::Delete);
     bot.add_command(commands::sex::Sex);
 

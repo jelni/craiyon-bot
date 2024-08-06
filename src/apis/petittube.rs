@@ -10,7 +10,7 @@ pub async fn random_video(http_client: &reqwest::Client) -> Result<String, Comma
         body.find(YOUTUBE_EMBED).ok_or(CommandError::Custom("YOUTUBE_EMBED not found".into()))?;
     let identifier: String =
         body[index + YOUTUBE_EMBED.len()..].chars().take_while(|&c| c != '?').collect();
-    let url = format!("https://youtu.be/{}", identifier);
+    let url = format!("https://youtu.be/{identifier}");
 
     Ok(url)
 }
