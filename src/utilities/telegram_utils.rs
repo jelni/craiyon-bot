@@ -107,7 +107,7 @@ pub fn get_message_attachment(content: &MessageContent) -> Option<MessageAttachm
     }
 }
 
-pub fn get_sticker_format(sticker: &Sticker) -> Cow<'static, str> {
+pub const fn get_sticker_format(sticker: &Sticker) -> Cow<'static, str> {
     match sticker.format {
         StickerFormat::Webp => Cow::Borrowed("image/webp"),
         StickerFormat::Tgs => Cow::Borrowed("application/x-tgsticker"),

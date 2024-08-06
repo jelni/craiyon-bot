@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use tdlib::enums::{InputFile, InputMessageContent};
 use tdlib::types::{InputFileRemote, InputMessagePhoto};
 
-use crate::apis::fal::{generate, FalRequest, ImageSize};
+use crate::apis::fal::{generate, Request, ImageSize};
 use crate::commands::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
@@ -64,7 +64,7 @@ impl CommandTrait for Fal {
 
         ctx.send_typing().await?;
 
-        let request = FalRequest {
+        let request = Request {
             model_name: self.model_name,
             submodel_name: self.submodel_name,
             prompt,

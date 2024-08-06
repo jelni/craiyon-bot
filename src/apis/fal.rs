@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::{commands::CommandError, utilities::api_utils::DetectServerError};
 
 #[derive(Serialize)]
-pub struct FalRequest {
+pub struct Request {
     pub model_name: &'static str,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub submodel_name: Option<&'static str>,
@@ -30,7 +30,7 @@ pub struct ImageSize {
 }
 
 #[derive(Deserialize)]
-pub struct FalResponse {
+pub struct Response {
     pub images: Vec<Image>,
     pub prompt: String,
 }
@@ -47,8 +47,8 @@ pub struct ErrorResponse {
 
 pub async fn generate(
     http_client: &reqwest::Client,
-    request: FalRequest,
-) -> Result<FalResponse, CommandError> {
+    request: Request,
+) -> Result<Response, CommandError> {
     let response = http_client
         .post(format!("https://fal.run/fal-ai/{}", request.model_name))
         .header(AUTHORIZATION, format!("Key {}", env::var("FAL_API_KEY").unwrap()))
@@ -60,7 +60,7 @@ pub async fn generate(
     info!("response: {response:?}");
     info!("status: {}", response.status());
     if response.status() == StatusCode::OK {
-        Ok(response.json::<FalResponse>().await?)
+        Ok(response.json::<Response>().await?)
     } else {
         Err(response.json::<ErrorResponse>().await?.error.into())
     }

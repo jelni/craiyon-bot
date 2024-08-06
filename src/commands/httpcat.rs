@@ -29,7 +29,7 @@ impl CommandTrait for Httpcat {
             _ => return Err(CommandError::Custom("error: invalid HTTP status code".to_string())),
         };
 
-        let url = format!("https://http.cat/{}", status);
+        let url = format!("https://http.cat/{status}");
         ctx.reply_webpage(url).await?;
         Ok(())
     }
