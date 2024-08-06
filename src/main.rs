@@ -20,6 +20,8 @@ async fn main() {
     bot.add_command(commands::craiyon::Craiyon::photo());
     bot.add_command(commands::craiyon::Craiyon::none());
     bot.add_command(commands::craiyon_search::CraiyonSearch);
+    bot.add_command(commands::fal::Fal::realistic_vision());
+    bot.add_command(commands::fal::Fal::sdxl_lightning());
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion());
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion_2());
     bot.add_command(commands::stablehorde::StableHorde::waifu_diffusion());
@@ -47,6 +49,7 @@ async fn main() {
     bot.add_command(commands::moveit_joke::MoveitJoke);
     bot.add_command(commands::kebab::Kebab);
     bot.add_command(commands::ping::Ping);
+    bot.add_command(commands::httpcat::Httpcat);
     bot.add_command(commands::delete::Delete);
     bot.add_command(commands::sex::Sex);
 

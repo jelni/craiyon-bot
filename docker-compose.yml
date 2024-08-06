@@ -12,6 +12,7 @@ services:
       STABLEHORDE_CLIENT: ${STABLEHORDE_CLIENT}
       MAKERSUITE_API_KEY: ${MAKERSUITE_API_KEY}
       GROQ_API_KEY: ${GROQ_API_KEY}
+      FAL_API_KEY: ${FAL_API_KEY}
     volumes:
       - craiyon-bot:/data
 
