@@ -1,5 +1,6 @@
 FROM debian as tdlib-builder
 RUN apt update && apt install git make cmake g++ libssl-dev zlib1g-dev gperf -y
+RUN git config --global http.postBuffer 1048576000
 RUN git clone https://github.com/tdlib/td
 WORKDIR /td/build
 RUN git checkout $TDLIB_COMMIT_HASH
