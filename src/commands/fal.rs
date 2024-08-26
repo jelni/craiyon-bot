@@ -2,11 +2,11 @@ use async_trait::async_trait;
 use tdlib::enums::{InputFile, InputMessageContent};
 use tdlib::types::{InputFileRemote, InputMessagePhoto};
 
-use crate::apis::fal::{generate, Request, ImageSize};
-use crate::commands::{CommandResult, CommandTrait};
+use crate::apis::fal;
+use crate::commands::{CommandError, CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
-use crate::utilities::message_entities::{formatted_text, ToEntity};
+use crate::utilities::message_entities::{formatted_text, ToEntity, ToEntityOwned};
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils;
 
@@ -14,28 +14,22 @@ pub struct Fal {
     command_names: &'static [&'static str],
     description: &'static str,
     model_name: &'static str,
-    submodel_name: Option<&'static str>,
-    num_inference_steps: u8,
 }
 
 impl Fal {
-    pub const fn realistic_vision() -> Self {
-        Self {
-            command_names: &["realistic_vision", "rv"],
-            description: "generate images using Realistic Vision",
-            model_name: "realistic-vision",
-            submodel_name: Some("SG161222/Realistic_Vision_V6.0_B1_noVAE"),
-            num_inference_steps: 35,
-        }
-    }
-
     pub const fn sdxl_lightning() -> Self {
         Self {
             command_names: &["sdxl_lightning", "sdxl"],
-            description: "generate images using SDXL Lightning",
+            description: "generate an image using Stable Diffusion XL Lightning",
             model_name: "fast-lightning-sdxl",
-            submodel_name: None,
-            num_inference_steps: 4,
+        }
+    }
+
+    pub const fn realistic_vision() -> Self {
+        Self {
+            command_names: &["realistic_vision", "rv"],
+            description: "generate an image using Realistic Vision",
+            model_name: "realistic-vision",
         }
     }
 }
@@ -59,50 +53,35 @@ impl CommandTrait for Fal {
 
         if let Some(issue) = text_utils::check_prompt(&prompt) {
             log::info!("prompt rejected: {issue:?}");
-            Err(issue)?;
+            return Err(CommandError::Custom(issue.into()));
         }
 
         ctx.send_typing().await?;
+        let response =
+            fal::generate(ctx.bot_state.http_client.clone(), self.model_name, &prompt).await?;
+        let image = response.images.into_iter().next().unwrap();
 
-        let request = Request {
-            model_name: self.model_name,
-            submodel_name: self.submodel_name,
-            prompt,
-            negative_prompt: String::new(),
-            image_size: ImageSize { height: 1024, width: 1024 },
-            num_inference_steps: self.num_inference_steps,
-            expand_prompt: false,
-            guidance_scale: 5,
-            num_images: 1,
-            enable_safety_checker: false,
-            format: "png",
-        };
-
-        let response = generate(&ctx.bot_state.http_client, request).await?;
-
-        let message = ctx
-            .reply_custom(
-                InputMessageContent::InputMessagePhoto(InputMessagePhoto {
-                    photo: InputFile::Remote(InputFileRemote {
-                        id: response.images[0].url.clone(),
-                    }),
-                    thumbnail: None,
-                    added_sticker_file_ids: Vec::new(),
-                    width: 0,
-                    height: 0,
-                    caption: Some(formatted_text(vec![
-                        "generated ".text(),
-                        response.prompt.text(),
-                    ])),
-                    show_caption_above_media: false,
-                    self_destruct_type: None,
-                    has_spoiler: false,
-                }),
-                None,
-            )
-            .await?;
-
-        ctx.bot_state.message_queue.wait_for_message(message.id).await?;
+        ctx.reply_custom(
+            InputMessageContent::InputMessagePhoto(InputMessagePhoto {
+                photo: InputFile::Remote(InputFileRemote { id: image.url.clone() }),
+                thumbnail: None,
+                added_sticker_file_ids: Vec::new(),
+                width: image.width.try_into().unwrap(),
+                height: image.height.try_into().unwrap(),
+                caption: Some(formatted_text(vec![
+                    "generated ".text(),
+                    response.prompt.bold(),
+                    " in ".text(),
+                    format!("in {:.2}s.\n", response.timings.inference).text_owned(),
+                    "download".text_url(image.url),
+                ])),
+                show_caption_above_media: false,
+                self_destruct_type: None,
+                has_spoiler: false,
+            }),
+            None,
+        )
+        .await?;
 
         Ok(())
     }

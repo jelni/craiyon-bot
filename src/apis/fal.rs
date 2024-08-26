@@ -1,67 +1,58 @@
 use std::env;
 
-use log::info;
 use reqwest::header::AUTHORIZATION;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
-use crate::{commands::CommandError, utilities::api_utils::DetectServerError};
+use crate::commands::CommandError;
+use crate::utilities::api_utils::DetectServerError;
 
 #[derive(Serialize)]
-pub struct Request {
-    pub model_name: &'static str,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub submodel_name: Option<&'static str>,
-    pub prompt: String,
-    pub negative_prompt: String,
-    pub image_size: ImageSize,
-    pub num_inference_steps: u8,
-    pub expand_prompt: bool,
-    pub guidance_scale: u8,
-    pub num_images: u8,
-    pub enable_safety_checker: bool,
-    pub format: &'static str,
-}
-
-#[derive(Serialize)]
-pub struct ImageSize {
-    pub height: u16,
-    pub width: u16,
+struct Payload<'a> {
+    prompt: &'a str,
+    format: &'static str,
 }
 
 #[derive(Deserialize)]
 pub struct Response {
     pub images: Vec<Image>,
+    pub timings: Timings,
     pub prompt: String,
 }
 
 #[derive(Deserialize)]
 pub struct Image {
     pub url: String,
+    pub width: u32,
+    pub height: u32,
 }
 
 #[derive(Deserialize)]
-pub struct ErrorResponse {
-    pub error: String,
+pub struct Timings {
+    pub inference: f64,
+}
+
+#[derive(Deserialize)]
+struct ErrorResponse {
+    detail: String,
 }
 
 pub async fn generate(
-    http_client: &reqwest::Client,
-    request: Request,
+    http_client: reqwest::Client,
+    model: &str,
+    prompt: &str,
 ) -> Result<Response, CommandError> {
     let response = http_client
-        .post(format!("https://fal.run/fal-ai/{}", request.model_name))
+        .post(format!("https://fal.run/fal-ai/{model}"))
         .header(AUTHORIZATION, format!("Key {}", env::var("FAL_API_KEY").unwrap()))
-        .json(&request)
+        .json(&Payload { prompt, format: "png" })
         .send()
         .await?
         .server_error()?;
 
-    info!("response: {response:?}");
-    info!("status: {}", response.status());
     if response.status() == StatusCode::OK {
-        Ok(response.json::<Response>().await?)
+        Ok(response.json().await?)
     } else {
-        Err(response.json::<ErrorResponse>().await?.error.into())
+        Err(response.json::<ErrorResponse>().await?.detail.into())
     }
 }

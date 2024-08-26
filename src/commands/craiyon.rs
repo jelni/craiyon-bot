@@ -8,6 +8,7 @@ use tempfile::NamedTempFile;
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::craiyon::{self, Model};
+use crate::commands::CommandError;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::message_entities::{ToEntity, ToEntityOwned};
@@ -100,7 +101,7 @@ impl CommandTrait for Craiyon {
 
         if let Some(issue) = text_utils::check_prompt(&prompt) {
             log::info!("prompt rejected: {issue:?}");
-            Err(issue)?;
+            return Err(CommandError::Custom(issue.into()));
         }
 
         let truncated_prompt = prompt.clone().truncate_with_ellipsis(256);
