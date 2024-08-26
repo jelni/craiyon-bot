@@ -222,7 +222,7 @@ impl Bot {
                     ));
                 }
                 MessageDestination::Dice { message } => {
-                    self.run_task(dice_reply::execute(message, self.client_id));
+                    self.run_task(dice_reply::execute(*message, self.client_id));
                 }
                 MessageDestination::MarkovChain { text } => {
                     markov_chain_manager::train(&mut self.state.markov_chain.lock().unwrap(), text);

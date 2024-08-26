@@ -85,7 +85,7 @@ impl CommandTrait for StableHorde {
 
         if let Some(issue) = text_utils::check_prompt(&prompt) {
             log::info!("prompt rejected: {issue:?}");
-            Err(issue)?;
+            return Err(CommandError::Custom(issue.into()));
         }
 
         ctx.send_typing().await?;

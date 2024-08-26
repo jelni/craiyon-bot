@@ -1,9 +1,10 @@
-use std::borrow::Cow;
+use std::time::Duration;
 use std::{env, fmt};
 
 use futures_util::StreamExt;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 use tokio::sync::mpsc;
 use url::Url;
 
@@ -12,6 +13,108 @@ use crate::commands::CommandError;
 pub enum GenerationError {
     Network(reqwest::Error),
     Google(Vec<Error>),
+}
+
+#[derive(Deserialize)]
+pub struct FileResponse {
+    file: File,
+}
+
+#[derive(Deserialize)]
+pub struct File {
+    name: String,
+    pub uri: String,
+    state: State,
+    error: Option<Status>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+enum State {
+    Processing,
+    Active,
+    Failed,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Status {
+    code: u32,
+    message: String,
+}
+
+#[derive(Deserialize)]
+pub struct ErrorResponse {
+    pub error: Error,
+}
+
+#[derive(Deserialize)]
+pub struct Error {
+    pub code: u16,
+    pub message: String,
+}
+
+pub async fn upload_file(
+    http_client: reqwest::Client,
+    file: tokio::fs::File,
+    size: u64,
+    mime_type: &str,
+) -> Result<File, CommandError> {
+    // what the hell
+    let response = http_client
+        .post(
+            Url::parse_with_params(
+                "https://generativelanguage.googleapis.com/upload/v1beta/files",
+                [("key", env::var("MAKERSUITE_API_KEY").unwrap())],
+            )
+            .unwrap(),
+        )
+        .header("X-Goog-Upload-Protocol", "resumable")
+        .header("X-Goog-Upload-Command", "start")
+        .header("X-Goog-Upload-Header-Content-Length", &size.to_string())
+        .header("X-Goog-Upload-Header-Content-Type", mime_type)
+        .json(&Value::Object(Map::new()))
+        .send()
+        .await?;
+
+    let upload_url = response.headers()["X-Goog-Upload-URL"].to_str().unwrap();
+
+    let mut file = http_client
+        .post(upload_url)
+        .header("X-Goog-Upload-Offset", "0")
+        .header("X-Goog-Upload-Command", "upload, finalize")
+        .body(file)
+        .send()
+        .await?
+        .json::<FileResponse>()
+        .await?
+        .file;
+
+    while matches!(file.state, State::Processing) {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
+        file = http_client
+            .get(
+                Url::parse_with_params(
+                    &format!("https://generativelanguage.googleapis.com/v1beta/{}", file.name),
+                    [("key", env::var("MAKERSUITE_API_KEY").unwrap())],
+                )
+                .unwrap(),
+            )
+            .send()
+            .await?
+            .json::<File>()
+            .await?;
+    }
+
+    if let Some(error) = file.error {
+        return Err(CommandError::Custom(format!(
+            "Google error {}: {}",
+            error.code, error.message
+        )));
+    }
+
+    Ok(file)
 }
 
 #[derive(Serialize)]
@@ -31,14 +134,13 @@ struct Content<'a> {
 #[serde(rename_all = "camelCase")]
 pub enum Part {
     Text(String),
-    InlineData(Blob),
+    FileData(FileData),
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct Blob {
-    pub mime_type: Cow<'static, str>,
-    pub data: String,
+pub struct FileData {
+    pub file_uri: String,
 }
 
 #[derive(Serialize)]
@@ -100,7 +202,7 @@ pub struct PromptFeedback {
     pub safety_ratings: Option<Vec<SafetyRating>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct SafetyRating {
     pub category: String,
     #[serde(default)]
@@ -111,17 +213,6 @@ pub struct SafetyRating {
 pub struct ContentFilter {
     pub reason: String,
     pub message: Option<String>,
-}
-
-#[derive(Deserialize)]
-pub struct ErrorResponse {
-    pub error: Error,
-}
-
-#[derive(Deserialize)]
-pub struct Error {
-    pub code: u16,
-    pub message: String,
 }
 
 impl fmt::Display for Error {

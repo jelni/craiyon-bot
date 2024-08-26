@@ -1,10 +1,7 @@
 use std::fmt::Write;
-use std::fs;
 use std::time::Duration;
 
 use async_trait::async_trait;
-use base64::engine::general_purpose::STANDARD;
-use base64::Engine;
 use tdlib::enums::File;
 use tdlib::types::{FormattedText, Message};
 use tdlib::{enums, functions};
@@ -13,7 +10,7 @@ use tokio::time::Instant;
 
 use super::{CommandError, CommandResult, CommandTrait};
 use crate::apis::makersuite::{
-    self, Blob, Candidate, CitationSource, GenerateContentResponse, Part, PartResponse,
+    self, Candidate, CitationSource, FileData, GenerateContentResponse, Part, PartResponse,
 };
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
@@ -30,7 +27,7 @@ impl CommandTrait for GoogleGemini {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("ask Gemini Pro or Gemini Pro Vision")
+        Some("ask Gemini 1.0 Pro or 1.5 Flash")
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
@@ -41,7 +38,7 @@ impl CommandTrait for GoogleGemini {
         let prompt = Option::<StringGreedyOrReply>::convert(ctx, &arguments).await?.0;
 
         ctx.send_typing().await?;
-
+        let mut model = "gemini-1.0-pro-latest";
         let mut parts = Vec::new();
 
         if let Some(prompt) = prompt {
@@ -49,34 +46,41 @@ impl CommandTrait for GoogleGemini {
         }
 
         if let Some(message_image) =
-            telegram_utils::get_message_or_reply_image(&ctx.message, ctx.client_id).await
+            telegram_utils::get_message_or_reply_attachment(&ctx.message, true, ctx.client_id)
+                .await?
         {
-            if message_image.file.expected_size > 4 * MEBIBYTE {
-                return Err(CommandError::Custom("the image cannot be larger than 4 MiB.".into()));
+            let file = message_image.file()?;
+
+            if file.size > 64 * MEBIBYTE {
+                return Err(CommandError::Custom("the file cannot be larger than 64 MiB.".into()));
             }
 
             let File::File(file) =
-                functions::download_file(message_image.file.id, 1, 0, 0, true, ctx.client_id)
-                    .await?;
+                functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
 
-            let file = fs::read(file.local.path).unwrap();
+            let open_file = tokio::fs::File::open(file.local.path).await.unwrap();
 
-            parts.push(Part::InlineData(Blob {
-                mime_type: message_image.mime_type,
-                data: STANDARD.encode(file),
-            }));
+            let file = makersuite::upload_file(
+                ctx.bot_state.http_client.clone(),
+                open_file,
+                file.size.try_into().unwrap(),
+                message_image.mime_type()?,
+            )
+            .await?;
+
+            parts.push(Part::FileData(FileData { file_uri: file.uri }));
+            model = "gemini-1.5-flash-latest";
         }
 
         if parts.is_empty() {
-            return Err(CommandError::Custom("no prompt or image provided.".into()));
+            return Err(CommandError::Custom("no prompt or file provided.".into()));
         }
 
         let http_client = ctx.bot_state.http_client.clone();
         let (tx, mut rx) = mpsc::unbounded_channel();
 
         tokio::spawn(async move {
-            makersuite::stream_generate_content(http_client, tx, "gemini-1.5-flash", &parts, 512)
-                .await;
+            makersuite::stream_generate_content(http_client, tx, model, &parts, 512).await;
         });
 
         let mut next_update = Instant::now() + Duration::from_secs(5);
@@ -195,7 +199,7 @@ impl CommandTrait for GooglePalm {
                 .collect::<Vec<_>>()
                 .join(", ");
 
-            ctx.reply(format!("request blocked by Google: {reasons}.",)).await?;
+            ctx.reply(format!("request blocked by Google: {reasons}.")).await?;
             return Ok(());
         }
 

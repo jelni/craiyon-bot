@@ -12,7 +12,7 @@ use crate::bot::Bot;
 
 pub enum MessageDestination {
     Command { command: Arc<CommandInstance>, arguments: String, context: CommandContext },
-    Dice { message: Message },
+    Dice { message: Box<Message> },
     MarkovChain { text: String },
 }
 
@@ -44,7 +44,7 @@ pub fn message_destination(
     };
 
     if let MessageContent::MessageDice(_) = message.content {
-        return Some(MessageDestination::Dice { message });
+        return Some(MessageDestination::Dice { message: Box::new(message) });
     }
 
     let Some(text) = telegram_utils::get_message_text(&message.content) else {
