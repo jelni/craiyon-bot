@@ -17,7 +17,7 @@ other useless commands.
 3. run `docker compose up`
 
 > [!NOTE]  
-> This will build [TDLib](https://github.com/tdlib/td) first, which may take
+> this will build [TDLib](https://github.com/tdlib/td) first, which may take
 > some time.
 
 ## contributing
