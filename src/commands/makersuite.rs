@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::Write;
 use std::time::Duration;
 
@@ -18,6 +19,9 @@ use crate::utilities::file_download::MEBIBYTE;
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::telegram_utils;
 
+const SYSTEM_INSTRUCTION: &str =
+    "Be concise and precise. Don't be verbose. Answer in the user's language.";
+
 pub struct GoogleGemini;
 
 #[async_trait]
@@ -34,18 +38,12 @@ impl CommandTrait for GoogleGemini {
         RateLimiter::new(3, 45)
     }
 
+    #[allow(clippy::too_many_lines)]
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let prompt = Option::<StringGreedyOrReply>::convert(ctx, &arguments).await?.0;
-
         ctx.send_typing().await?;
-        let mut model = "gemini-1.0-pro-latest";
-        let mut parts = Vec::new();
 
-        if let Some(prompt) = prompt {
-            parts.push(Part::Text(prompt.0));
-        }
-
-        if let Some(message_image) =
+        let (model, system_instruction, parts) = if let Some(message_image) =
             telegram_utils::get_message_or_reply_attachment(&ctx.message, true, ctx.client_id)
                 .await?
         {
@@ -68,19 +66,44 @@ impl CommandTrait for GoogleGemini {
             )
             .await?;
 
-            parts.push(Part::FileData(FileData { file_uri: file.uri }));
-            model = "gemini-1.5-flash-latest";
-        }
+            let mut parts = if let Some(prompt) = prompt {
+                vec![Part::Text(Cow::Owned(prompt.0))]
+            } else {
+                Vec::new()
+            };
 
-        if parts.is_empty() {
-            return Err(CommandError::Custom("no prompt or file provided.".into()));
-        }
+            parts.push(Part::FileData(FileData { file_uri: file.uri }));
+
+            (
+                "gemini-1.5-flash-latest",
+                Some([Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))].as_slice()),
+                parts,
+            )
+        } else {
+            let mut parts = vec![Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))];
+
+            if let Some(prompt) = prompt {
+                parts.push(Part::Text(Cow::Owned(prompt.0)));
+            } else {
+                return Err(CommandError::Custom("no prompt or file provided.".into()));
+            }
+
+            ("gemini-1.0-pro-latest", None, parts)
+        };
 
         let http_client = ctx.bot_state.http_client.clone();
         let (tx, mut rx) = mpsc::unbounded_channel();
 
         tokio::spawn(async move {
-            makersuite::stream_generate_content(http_client, tx, model, &parts, 512).await;
+            makersuite::stream_generate_content(
+                http_client,
+                tx,
+                model,
+                &parts,
+                system_instruction,
+                512,
+            )
+            .await;
         });
 
         let mut next_update = Instant::now() + Duration::from_secs(5);

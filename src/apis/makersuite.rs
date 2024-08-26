@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::time::Duration;
 use std::{env, fmt};
 
@@ -122,18 +123,19 @@ pub async fn upload_file(
 struct GenerateContentRequest<'a> {
     contents: &'a [Content<'a>],
     safety_settings: &'static [SafetySetting],
+    system_instruction: Option<Content<'a>>,
     generation_config: GenerationConfig,
 }
 
 #[derive(Serialize)]
 struct Content<'a> {
-    parts: &'a [Part],
+    parts: &'a [Part<'a>],
 }
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-pub enum Part {
-    Text(String),
+pub enum Part<'a> {
+    Text(Cow<'a, str>),
     FileData(FileData),
 }
 
@@ -225,7 +227,8 @@ pub async fn stream_generate_content(
     http_client: reqwest::Client,
     tx: mpsc::UnboundedSender<Result<GenerateContentResponse, GenerationError>>,
     model: &str,
-    parts: &[Part],
+    parts: &[Part<'_>],
+    system_instruction: Option<&[Part<'_>]>,
     max_output_tokens: u16,
 ) {
     let url = format!(
@@ -251,6 +254,8 @@ pub async fn stream_generate_content(
                 },
                 SafetySetting { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
             ],
+            system_instruction: system_instruction
+                .map(|system_instruction| Content { parts: system_instruction }),
             generation_config: GenerationConfig { max_output_tokens },
         })
         .send()
