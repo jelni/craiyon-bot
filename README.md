@@ -1,9 +1,26 @@
-# Craiyon Bot
+# craiyon-bot
 
-## Overview
+a multipurpose Telegram bot with various text and image generation, utility, and
+other useless commands.
 
-Craiyon Bot is a versatile Telegram bot implemented in Rust that provides a wide range of functionalities, including image generation, translation, jokes, and more. Initially focused on generating images using the Craiyon model, the bot has since expanded to include numerous features, making it a comprehensive tool for users on Telegram. The bot is designed to be modular, with each command encapsulated in its own module, allowing for easy maintenance and extensibility.
+<a href="https://brainmade.org/">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://brainmade.org/white-logo.svg">
+    <img alt="Brainmade mark" src="https://brainmade.org/black-logo.svg">
+  </picture>
+</a>
 
-## Contributing
+## deployment
 
-Contributions are welcome! If you have suggestions or improvements, feel free to open an issue or submit a pull request.
+1. clone the repo
+2. copy [`.env.example`](.env.example) to `.env`, and fill the variables
+3. run `docker compose up`
+
+> [!NOTE]  
+> This will build [TDLib](https://github.com/tdlib/td) first, which may take
+> some time.
+
+## contributing
+
+the codebase is undocumented, but you can _learn by example_. i dislike
+ai-generated code, and will not merge low quality pull requests.
