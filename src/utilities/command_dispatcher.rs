@@ -29,7 +29,7 @@ pub async fn dispatch_command(
     if let Err(err) = command.command.execute(&context, arguments).await {
         if let Err(err) = report_command_error(command, &context, err).await {
             log::error!(
-                "TDLib error occurred while handling the previous error: {}: {}",
+                "TDLib error occurred while handling the previous error {}: {}",
                 err.code,
                 err.message
             );

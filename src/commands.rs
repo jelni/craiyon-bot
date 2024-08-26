@@ -22,7 +22,6 @@ pub mod dice_reply;
 pub mod different_dimension_me;
 pub mod fal;
 pub mod groq;
-pub mod httpcat;
 pub mod kebab;
 pub mod kiwifarms;
 pub mod makersuite;

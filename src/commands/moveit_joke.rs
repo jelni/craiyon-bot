@@ -9,7 +9,7 @@ pub struct MoveitJoke;
 #[async_trait]
 impl CommandTrait for MoveitJoke {
     fn command_names(&self) -> &[&str] {
-        &["moveit_joke", "moveit", "muwit"]
+        &["moveit_joke", "moveit"]
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {

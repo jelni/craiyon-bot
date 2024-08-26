@@ -7,11 +7,13 @@ use tdlib::functions;
 
 use super::command_context::CommandContext;
 use super::telegram_utils;
+use crate::bot::TdError;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum ConversionError {
     MissingArgument,
     BadArgument(&'static str),
+    TdError(TdError),
 }
 
 impl fmt::Display for ConversionError {
@@ -19,6 +21,7 @@ impl fmt::Display for ConversionError {
         match self {
             Self::MissingArgument => write!(f, "missing command argument"),
             Self::BadArgument(reason) => write!(f, "bad command argument: {reason}"),
+            Self::TdError(err) => write!(f, "error {}: {}", err.code, err.message),
         }
     }
 }
@@ -101,9 +104,7 @@ impl ConvertArgument for Reply {
             let Message::Message(message) =
                 functions::get_replied_message(ctx.message.chat_id, ctx.message.id, ctx.client_id)
                     .await
-                    .map_err(|_| {
-                        ConversionError::BadArgument("replied message couldn't be loaded.")
-                    })?;
+                    .map_err(ConversionError::TdError)?;
 
             Cow::Owned(message.content)
         };
@@ -186,7 +187,7 @@ mod test {
         let ctx = test_fixtures::command_context();
 
         let result = String::convert(&ctx, "").await;
-        assert_eq!(result, Err(ConversionError::MissingArgument));
+        assert!(matches!(result, Err(ConversionError::MissingArgument)));
 
         let (argument, rest) = String::convert(&ctx, "foo").await.unwrap();
         assert_eq!(argument, "foo");
@@ -223,10 +224,10 @@ mod test {
         let ctx = test_fixtures::command_context();
 
         let result = <(String, String)>::convert(&ctx, "").await;
-        assert_eq!(result, Err(ConversionError::MissingArgument));
+        assert!(matches!(result, Err(ConversionError::MissingArgument)));
 
         let result = <(String, String)>::convert(&ctx, "foo").await;
-        assert_eq!(result, Err(ConversionError::MissingArgument));
+        assert!(matches!(result, Err(ConversionError::MissingArgument)));
 
         let (argument, rest) = <(String, String)>::convert(&ctx, "foo bar").await.unwrap();
         assert_eq!(argument, ("foo".into(), "bar".into()));
@@ -246,13 +247,13 @@ mod test {
         assert_eq!(rest, "");
 
         let result = <(Option<String>, String)>::convert(&ctx, "").await;
-        assert_eq!(result, Err(ConversionError::MissingArgument));
+        assert!(matches!(result, Err(ConversionError::MissingArgument)));
 
         let result = <(String, Option<String>)>::convert(&ctx, "").await;
-        assert_eq!(result, Err(ConversionError::MissingArgument));
+        assert!(matches!(result, Err(ConversionError::MissingArgument)));
 
         let result = <(Option<String>, String)>::convert(&ctx, "foo").await;
-        assert_eq!(result, Err(ConversionError::MissingArgument));
+        assert!(matches!(result, Err(ConversionError::MissingArgument)));
 
         let (argument, rest) = <(String, Option<String>)>::convert(&ctx, "foo").await.unwrap();
         assert_eq!(argument, ("foo".into(), None));
@@ -279,7 +280,7 @@ mod test {
         let ctx = test_fixtures::command_context();
 
         let result = StringGreedy::convert(&ctx, "").await;
-        assert_eq!(result, Err(ConversionError::MissingArgument));
+        assert!(matches!(result, Err(ConversionError::MissingArgument)));
 
         let (StringGreedy(argument), rest) = ConvertArgument::convert(&ctx, "foo").await.unwrap();
         assert_eq!(argument, "foo");

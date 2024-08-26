@@ -72,7 +72,7 @@ impl CommandTrait for Fal {
                     "generated ".text(),
                     response.prompt.bold(),
                     " in ".text(),
-                    format!("in {:.2}s.\n", response.timings.inference).text_owned(),
+                    format!("in {:.2}s. ", response.timings.inference).text_owned(),
                     "download".text_url(image.url),
                 ])),
                 show_caption_above_media: false,

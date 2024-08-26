@@ -1,16 +1,12 @@
-use crate::{commands::CommandError, utilities::api_utils::DetectServerError};
+use crate::commands::CommandError;
 
-const YOUTUBE_EMBED: &str = "https://www.youtube.com/embed/";
+const EMBED_URL: &str = "https://www.youtube.com/embed/";
 
 pub async fn random_video(http_client: &reqwest::Client) -> Result<String, CommandError> {
-    // This requires web scraping, because the site doesn't have an API
-    let body =
-        http_client.get("https://petittube.com").send().await?.server_error()?.text().await?;
-    let index =
-        body.find(YOUTUBE_EMBED).ok_or(CommandError::Custom("YOUTUBE_EMBED not found".into()))?;
-    let identifier: String =
-        body[index + YOUTUBE_EMBED.len()..].chars().take_while(|&c| c != '?').collect();
-    let url = format!("https://youtu.be/{identifier}");
+    let body = http_client.get("https://petittube.com/").send().await?.text().await?;
+    let index = body.find(EMBED_URL).unwrap();
+    let identifier =
+        body[index + EMBED_URL.len()..].chars().take_while(|&c| c != '?').collect::<String>();
 
-    Ok(url)
+    Ok(identifier)
 }

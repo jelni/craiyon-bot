@@ -219,7 +219,7 @@ mod test {
         let ctx = test_fixtures::command_context();
 
         let result = Language::convert(&ctx, "").await;
-        assert_eq!(result, Err(ConversionError::MissingArgument));
+        assert!(matches!(result, Err(ConversionError::MissingArgument)));
 
         let result = <Language>::convert(&ctx, "foo").await;
         let Err(ConversionError::BadArgument(_)) = result else {
