@@ -78,36 +78,3 @@ pub async fn query(
         }
     }
 }
-
-
-// #[derive(Deserialize)]
-// pub struct CobaltInfo {
-//     pub cobalt: Cobalt,
-//     pub git: Git,
-// }
-
-// #[derive(Deserialize)]
-// pub struct Cobalt {
-//     pub version: String,
-//     pub url: String,
-//     pub start_time: String,
-//     pub duration_limit: u64,
-//     pub services: Vec<String>,
-// }
-
-// #[derive(Deserialize)]
-// pub struct Git {
-//     pub branch: String,
-//     pub commit: String,
-//     pub remote: String,
-// }
-
-// pub async fn info(http_client: reqwest::Client) -> Result<CobaltInfo, CommandError> {
-//     let response = http_client
-//         .get(COBALT_URL)
-//         .send()
-//         .await?
-//         .server_error()?;
-
-//     Ok(response.json().await?)
-// }
