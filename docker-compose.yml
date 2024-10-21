@@ -15,27 +15,6 @@ services:
       GROQ_API_KEY:
     volumes:
       - craiyon-bot:/data
-    depends_on:
-      - cobalt-api
-
-  cobalt-api:
-    image: ghcr.io/imputnet/cobalt:10
-    restart: unless-stopped
-    container_name: cobalt-api
-    init: true
-    ports:
-      - 127.0.0.1:9000:9000/tcp
-    environment:
-      API_URL: "http://127.0.0.1:9000/"
-    labels:
-      - com.centurylinklabs.watchtower.scope=cobalt
-
-  watchtower:
-    image: ghcr.io/containrrr/watchtower
-    restart: unless-stopped
-    command: --cleanup --scope cobalt --interval 900 --include-restarting
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
 
 volumes:
   craiyon-bot:
