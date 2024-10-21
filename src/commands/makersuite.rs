@@ -263,7 +263,7 @@ impl GenerationProgress {
     fn new(candidate: Candidate) -> Self {
         Self {
             parts: candidate.content.map(|content| content.parts).unwrap_or_default(),
-            finish_reason: candidate.finish_reason,
+            finish_reason: Some(candidate.finish_reason),
             citation_sources: candidate
                 .citation_metadata
                 .map(|citation_metadata| citation_metadata.citation_sources)
@@ -306,7 +306,7 @@ impl GenerationProgress {
                 .unwrap_or_default();
         }
 
-        self.finish_reason = candidate.finish_reason;
+        self.finish_reason = Some(candidate.finish_reason);
 
         Ok(())
     }
@@ -326,8 +326,7 @@ impl GenerationProgress {
             text.push('…');
         }
 
-        if self.finish_reason.is_some() {
-            let finish_reason = self.finish_reason.as_ref().unwrap();
+        if let Some(finish_reason) = &self.finish_reason {
             if finish_reason != "STOP" {
                 write!(text, " [{finish_reason}]").unwrap();
             }
