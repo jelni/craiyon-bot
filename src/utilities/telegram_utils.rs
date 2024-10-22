@@ -34,7 +34,7 @@ pub enum MessageAttachment<'a> {
     Video(Cow<'a, Video>),
     VideoNote(Cow<'a, VideoNote>),
     VoiceNote(Cow<'a, VoiceNote>),
-    Story(Cow<'a, StoryContent>),
+    Story(Box<Cow<'a, StoryContent>>),
     ChatChangePhoto(Cow<'a, ChatPhoto>),
 }
 
@@ -49,7 +49,7 @@ impl MessageAttachment<'_> {
             Self::Video(video) => &video.video,
             Self::VideoNote(video_note) => &video_note.video,
             Self::VoiceNote(voice_note) => &voice_note.voice,
-            Self::Story(story) => match story.borrow() {
+            Self::Story(story) => match story.as_ref().borrow() {
                 enums::StoryContent::Photo(photo) => largest_photo(&photo.photo.sizes).unwrap(),
                 enums::StoryContent::Video(video) => &video.video.video,
                 enums::StoryContent::Unsupported => {
@@ -78,7 +78,7 @@ impl MessageAttachment<'_> {
             Self::Video(video) => &video.mime_type,
             Self::VideoNote(_) => "video/mp4",
             Self::VoiceNote(voice_note) => &voice_note.mime_type,
-            Self::Story(story) => match story.borrow() {
+            Self::Story(story) => match story.as_ref().borrow() {
                 enums::StoryContent::Photo(_) => "image/jpeg",
                 enums::StoryContent::Video(_) => "video/mp4",
                 enums::StoryContent::Unsupported => {
@@ -154,10 +154,10 @@ pub async fn get_message_attachment(
 
                 match story.content {
                     enums::StoryContent::Photo(_) => {
-                        MessageAttachment::Story(Cow::Owned(story.content))
+                        MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
                     }
                     enums::StoryContent::Video(_) if not_only_images => {
-                        MessageAttachment::Story(Cow::Owned(story.content))
+                        MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
                     }
                     _ => return Ok(None),
                 }
@@ -207,10 +207,10 @@ pub async fn get_message_attachment(
 
                 match story.content {
                     enums::StoryContent::Photo(_) => {
-                        MessageAttachment::Story(Cow::Owned(story.content))
+                        MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
                     }
                     enums::StoryContent::Video(_) if not_only_images => {
-                        MessageAttachment::Story(Cow::Owned(story.content))
+                        MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
                     }
                     _ => return Ok(None),
                 }
@@ -281,7 +281,7 @@ pub fn log_status_update(update: &UpdateChatMember, chat: &CompactChat) {
     }
 
     let status = match update.new_chat_member.status {
-        ChatMemberStatus::Member => "joined",
+        ChatMemberStatus::Member(_) => "joined",
         ChatMemberStatus::Left => "left",
         _ => return,
     };

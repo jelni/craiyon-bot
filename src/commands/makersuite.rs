@@ -255,7 +255,7 @@ impl CommandTrait for GooglePalm {
 
 struct GenerationProgress {
     parts: Vec<PartResponse>,
-    finish_reason: String,
+    finish_reason: Option<String>,
     citation_sources: Vec<CitationSource>,
 }
 
@@ -326,8 +326,10 @@ impl GenerationProgress {
             text.push('…');
         }
 
-        if self.finish_reason != "STOP" {
-            write!(text, " [{}]", self.finish_reason).unwrap();
+        if let Some(finish_reason) = self.finish_reason.as_ref() {
+            if finish_reason != "STOP" {
+                write!(text, " [finish reason: {finish_reason}]").unwrap();
+            }
         }
 
         if !self.citation_sources.is_empty() {
