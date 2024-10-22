@@ -326,10 +326,9 @@ impl GenerationProgress {
             text.push('…');
         }
 
-        if self.finish_reason.is_some() {
-            let finish_reason = self.finish_reason.as_ref().unwrap();
+        if let Some(finish_reason) = self.finish_reason.as_ref() {
             if finish_reason != "STOP" {
-                write!(text, " [{finish_reason}]").unwrap();
+                write!(text, " [finish reason: {finish_reason}]").unwrap();
             }
         }
 

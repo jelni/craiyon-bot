@@ -60,6 +60,7 @@ pub fn command_context() -> CommandContext {
             author_signature: "message_author_signature".into(),
             media_album_id: 0,
             effect_id: 0,
+            has_sensitive_content: false,
             restriction_reason: "message_restriction_reason".into(),
             content: MessageContent::MessageText(MessageText {
                 text: FormattedText { text: "message_content_text".into(), ..Default::default() },
@@ -67,7 +68,6 @@ pub fn command_context() -> CommandContext {
                 link_preview_options: None,
             }),
             reply_markup: None,
-            has_sensitive_content: false,
         },
         bot_state: Arc::new(BotState::new()),
     }
