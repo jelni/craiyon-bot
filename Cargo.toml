@@ -11,8 +11,8 @@ nursery = "warn"
 async-signal = "0.2"
 async-trait = "0.1"
 base64 = "0.22"
-bytes = "1.4"
-charname = "0.2"
+bytes = "1.8"
+charname = "1.15"
 colored = "2.0"
 counter = "0.6"
 dotenvy = "0.15"
@@ -22,13 +22,13 @@ log = { version = "0.4", features = ["std"] }
 markov-chain = { git = "https://github.com/jelni/markov-chain" }
 md5 = "0.7"
 oneshot = "0.1"
-rand = "0.9.0-alpha"
+rand = "0.8"
 reqwest = { version = "0.12", features = ["json", "stream"] }
 rmp-serde = "1.1"
 serde = "1.0"
 serde_json = "1.0"
 tdlib = { git = "https://github.com/jelni/tdlib-rs-latest" }
-tempfile = "3.4"
+tempfile = "3.13"
 time = { version = "0.3", features = ["macros", "serde", "serde-well-known"] }
-tokio = { version = "1.37", features = ["macros", "rt-multi-thread", "signal", "time"] }
-url = "2.3"
+tokio = { version = "1.41", features = ["macros", "rt-multi-thread", "signal", "time"] }
+url = "2.5"
