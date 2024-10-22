@@ -169,7 +169,7 @@ pub struct GenerateContentResponse {
 #[serde(rename_all = "camelCase")]
 pub struct Candidate {
     pub content: Option<ContentResponse>,
-    pub finish_reason: String,
+    pub finish_reason: Option<String>,
     pub citation_metadata: Option<CitationMetadata>,
 }
 

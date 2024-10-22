@@ -2,7 +2,7 @@ services:
   craiyon-bot:
     build: .
     environment:
-      TDLIB_COMMIT_HASH: cb164927417f22811c74cd8678ed4a5ab7cb80ba
+      TDLIB_COMMIT_HASH: d321984b75fccdb76239529e8aadcf7f80b0e35a
       USER_AGENT:
       TELEGRAM_TOKEN:
       API_ID:
