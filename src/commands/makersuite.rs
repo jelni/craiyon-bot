@@ -88,7 +88,7 @@ impl CommandTrait for GoogleGemini {
                 return Err(CommandError::Custom("no prompt or file provided.".into()));
             }
 
-            ("gemini-1.0-pro-latest", None, parts)
+            ("gemini-1.5-flash-latest", None, parts)
         };
 
         let http_client = ctx.bot_state.http_client.clone();
