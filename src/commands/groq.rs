@@ -20,7 +20,7 @@ impl CommandTrait for Llama {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("ask Llama 3.2 90B")
+        Some("ask Llama 3.1 70B")
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
@@ -36,7 +36,7 @@ impl CommandTrait for Llama {
             ctx.bot_state.http_client.clone(),
             "https://api.groq.com/openai/v1",
             &env::var("GROQ_API_KEY").unwrap(),
-            "llama-3.2-90b-text-preview",
+            "llama-3.1-70b-versatile",
             &[Message { role: "user", content: &prompt }],
         )
         .await?
