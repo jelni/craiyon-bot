@@ -211,12 +211,6 @@ pub struct SafetyRating {
     pub blocked: bool,
 }
 
-#[derive(Deserialize)]
-pub struct ContentFilter {
-    pub reason: String,
-    pub message: Option<String>,
-}
-
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Google error {}: {}", self.code, self.message)
@@ -320,65 +314,6 @@ pub async fn stream_generate_content(
 }
 
 #[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-struct GenerateTextRequest<'a> {
-    prompt: TextPrompt<'a>,
-    safety_settings: &'a [SafetySetting],
-    max_output_tokens: u16,
-}
-
-#[derive(Serialize)]
 pub struct TextPrompt<'a> {
     text: &'a str,
-}
-
-#[derive(Deserialize)]
-pub struct GenerateTextResponse {
-    pub candidates: Option<Vec<TextCompletionResponse>>,
-    pub filters: Option<Vec<ContentFilter>>,
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TextCompletionResponse {
-    pub output: String,
-    pub citation_metadata: Option<CitationMetadata>,
-}
-
-pub async fn generate_text(
-    http_client: reqwest::Client,
-    prompt: &str,
-    max_output_tokens: u16,
-) -> Result<Result<GenerateTextResponse, Error>, CommandError> {
-    let response = http_client
-        .post(
-            Url::parse_with_params(
-                concat!(
-                    "https://generativelanguage.googleapis.com",
-                    "/v1beta/models/text-bison-001:generateText"
-                ),
-                [("key", env::var("MAKERSUITE_API_KEY").unwrap())],
-            )
-            .unwrap(),
-        )
-        .json(&GenerateTextRequest {
-            prompt: TextPrompt { text: prompt },
-            max_output_tokens,
-            safety_settings: &[
-                SafetySetting { category: "HARM_CATEGORY_DEROGATORY", threshold: "BLOCK_NONE" },
-                SafetySetting { category: "HARM_CATEGORY_TOXICITY", threshold: "BLOCK_NONE" },
-                SafetySetting { category: "HARM_CATEGORY_VIOLENCE", threshold: "BLOCK_NONE" },
-                SafetySetting { category: "HARM_CATEGORY_SEXUAL", threshold: "BLOCK_NONE" },
-                SafetySetting { category: "HARM_CATEGORY_MEDICAL", threshold: "BLOCK_NONE" },
-                SafetySetting { category: "HARM_CATEGORY_DANGEROUS", threshold: "BLOCK_NONE" },
-            ],
-        })
-        .send()
-        .await?;
-
-    if response.status() == StatusCode::OK {
-        Ok(Ok(response.json().await?))
-    } else {
-        Ok(Err(response.json::<ErrorResponse>().await?.error))
-    }
 }
