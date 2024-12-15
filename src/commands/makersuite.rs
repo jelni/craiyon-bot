@@ -31,7 +31,7 @@ impl CommandTrait for GoogleGemini {
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("ask Gemini 1.0 Pro or 1.5 Flash")
+        Some("ask Gemini 1.5 Flash")
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
