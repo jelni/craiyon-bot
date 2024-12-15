@@ -178,6 +178,162 @@ impl CommandTrait for GoogleGemini {
     }
 }
 
+pub struct GoogleGemini2;
+
+#[async_trait]
+impl CommandTrait for GoogleGemini2 {
+    fn command_names(&self) -> &[&str] {
+        &["gemini2", "g2"]
+    }
+
+    fn description(&self) -> Option<&'static str> {
+        Some("ask Gemini 2.0 Flash")
+    }
+
+    fn rate_limit(&self) -> RateLimiter<i64> {
+        RateLimiter::new(3, 45)
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
+        let prompt = Option::<StringGreedyOrReply>::convert(ctx, &arguments).await?.0;
+        ctx.send_typing().await?;
+
+        let (model, system_instruction, parts) = if let Some(message_image) =
+            telegram_utils::get_message_or_reply_attachment(&ctx.message, true, ctx.client_id)
+                .await?
+        {
+            let file = message_image.file()?;
+
+            if file.size > 64 * MEBIBYTE {
+                return Err(CommandError::Custom("the file cannot be larger than 64 MiB.".into()));
+            }
+
+            let File::File(file) =
+                functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
+
+            let open_file = tokio::fs::File::open(file.local.path).await.unwrap();
+
+            let file = makersuite::upload_file(
+                ctx.bot_state.http_client.clone(),
+                open_file,
+                file.size.try_into().unwrap(),
+                message_image.mime_type()?,
+            )
+            .await?;
+
+            let mut parts = if let Some(prompt) = prompt {
+                vec![Part::Text(Cow::Owned(prompt.0))]
+            } else {
+                Vec::new()
+            };
+
+            parts.push(Part::FileData(FileData { file_uri: file.uri }));
+
+            (
+                "gemini-2.0-flash-exp",
+                Some([Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))].as_slice()),
+                parts,
+            )
+        } else {
+            let mut parts = vec![Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))];
+
+            if let Some(prompt) = prompt {
+                parts.push(Part::Text(Cow::Owned(prompt.0)));
+            } else {
+                return Err(CommandError::Custom("no prompt or file provided.".into()));
+            }
+
+            ("gemini-2.0-flash-exp", None, parts)
+        };
+
+        let http_client = ctx.bot_state.http_client.clone();
+        let (tx, mut rx) = mpsc::unbounded_channel();
+
+        tokio::spawn(async move {
+            makersuite::stream_generate_content(
+                http_client,
+                tx,
+                model,
+                &parts,
+                system_instruction,
+                512,
+            )
+            .await;
+        });
+
+        let mut next_update = Instant::now() + Duration::from_secs(5);
+        let mut changed_after_last_update = false;
+        let mut progress = Option::<GenerationProgress>::None;
+        let mut message = Option::<Message>::None;
+
+        loop {
+            let (update_message, finished) = if let Ok(response) =
+                tokio::time::timeout_at(next_update, rx.recv()).await
+            {
+                match response {
+                    Some(response) => {
+                        let response = response?;
+
+                        match progress.as_mut() {
+                            Some(progress) => {
+                                progress.update(response)?;
+                                changed_after_last_update = true;
+                            }
+                            None => {
+                                if let Some(candidate) = response.candidates.into_iter().next() {
+                                    progress = Some(GenerationProgress::new(candidate));
+                                    changed_after_last_update = true;
+                                }
+                            }
+                        }
+
+                        (false, false)
+                    }
+                    None => (true, true),
+                }
+            } else {
+                next_update = Instant::now() + Duration::from_secs(5);
+                (true, false)
+            };
+
+            if update_message && changed_after_last_update {
+                let text = match progress.as_ref() {
+                    Some(progress) => progress.format(finished),
+                    None => {
+                        continue;
+                    }
+                };
+
+                let enums::FormattedText::FormattedText(formatted_text) =
+                    functions::parse_markdown(
+                        FormattedText { text, ..Default::default() },
+                        ctx.client_id,
+                    )
+                    .await?;
+
+                if let Some(message) = message.as_ref() {
+                    ctx.edit_message_formatted_text(message.id, formatted_text).await?;
+                } else {
+                    let unsent_message = ctx.reply_formatted_text(formatted_text).await?;
+                    message = Some(
+                        ctx.bot_state.message_queue.wait_for_message(unsent_message.id).await?,
+                    );
+                }
+
+                next_update = Instant::now() + Duration::from_secs(5);
+                changed_after_last_update = false;
+            }
+
+            if finished {
+                break;
+            }
+        }
+
+        Ok(())
+    }
+}
+
 pub struct GooglePalm;
 
 #[async_trait]
