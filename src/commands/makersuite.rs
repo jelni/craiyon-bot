@@ -25,7 +25,7 @@ const SYSTEM_INSTRUCTION: &str =
 pub struct GoogleGemini {
     command_names: &'static [&'static str],
     description: &'static str,
-    model_id: &'static str,
+    model: &'static str,
 }
 
 impl GoogleGemini {
@@ -33,7 +33,7 @@ impl GoogleGemini {
         Self {
             command_names: &["gemini", "g"],
             description: "ask Gemini 1.5 Flash",
-            model_id: "gemini-1.5-flash-latest",
+            model: "gemini-1.5-flash-latest",
         }
     }
 
@@ -41,7 +41,7 @@ impl GoogleGemini {
         Self {
             command_names: &["gemini2", "g2"],
             description: "ask Gemini 2.0 Flash",
-            model_id: "gemini-2.0-flash-exp",
+            model: "gemini-2.0-flash-exp",
         }
     }
 }
@@ -97,7 +97,7 @@ impl CommandTrait for GoogleGemini {
             parts.push(Part::FileData(FileData { file_uri: file.uri }));
 
             (
-                self.model_id,
+                self.model,
                 Some([Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))].as_slice()),
                 parts,
             )
@@ -110,7 +110,7 @@ impl CommandTrait for GoogleGemini {
                 return Err(CommandError::Custom("no prompt or file provided.".into()));
             }
 
-            (self.model_id, None, parts)
+            (self.model, None, parts)
         };
 
         let http_client = ctx.bot_state.http_client.clone();
