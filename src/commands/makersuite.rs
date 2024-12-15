@@ -22,16 +22,38 @@ use crate::utilities::telegram_utils;
 const SYSTEM_INSTRUCTION: &str =
     "Be concise and precise. Don't be verbose. Answer in the user's language.";
 
-pub struct GoogleGemini;
+pub struct GoogleGemini {
+    command_names: &'static [&'static str],
+    description: &'static str,
+    model: &'static str,
+}
+
+impl GoogleGemini {
+    pub const fn gemini() -> Self {
+        Self {
+            command_names: &["gemini", "g"],
+            description: "ask Gemini 1.5 Flash",
+            model: "gemini-1.5-flash-latest",
+        }
+    }
+
+    pub const fn gemini2() -> Self {
+        Self {
+            command_names: &["gemini2", "g2"],
+            description: "ask Gemini 2.0 Flash",
+            model: "gemini-2.0-flash-exp",
+        }
+    }
+}
 
 #[async_trait]
 impl CommandTrait for GoogleGemini {
     fn command_names(&self) -> &[&str] {
-        &["gemini", "g"]
+        self.command_names
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("ask Gemini 1.0 Pro or 1.5 Flash")
+        Some(self.description)
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
@@ -75,7 +97,7 @@ impl CommandTrait for GoogleGemini {
             parts.push(Part::FileData(FileData { file_uri: file.uri }));
 
             (
-                "gemini-1.5-flash-latest",
+                self.model,
                 Some([Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))].as_slice()),
                 parts,
             )
@@ -88,7 +110,7 @@ impl CommandTrait for GoogleGemini {
                 return Err(CommandError::Custom("no prompt or file provided.".into()));
             }
 
-            ("gemini-1.5-flash-latest", None, parts)
+            (self.model, None, parts)
         };
 
         let http_client = ctx.bot_state.http_client.clone();
