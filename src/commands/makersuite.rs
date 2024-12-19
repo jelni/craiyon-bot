@@ -91,7 +91,7 @@ impl CommandTrait for GoogleGemini {
             let mut parts = if let Some(prompt) = prompt {
                 vec![Part::Text(Cow::Owned(prompt.0))]
             } else {
-                Vec::new()
+                vec![Part::Text(Cow::Borrowed("Comment briefly on what you see."))]
             };
 
             parts.push(Part::FileData(FileData { file_uri: file.uri }));
