@@ -20,7 +20,7 @@ use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::telegram_utils;
 
 const SYSTEM_INSTRUCTION: &str =
-    "Be concise and precise. Don't be verbose. Answer in the user's language.";
+    "Be concise and precise. Don't be verbose. Answer in the language the user wrote in.";
 
 pub struct GoogleGemini {
     command_names: &'static [&'static str],
