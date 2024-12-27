@@ -7,6 +7,7 @@ use crate::bot::TdError;
 use crate::utilities::api_utils::ServerError;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::ConversionError;
+use crate::utilities::file_download::DownloadError;
 use crate::utilities::rate_limit::RateLimiter;
 
 pub mod autocomplete;
@@ -66,6 +67,7 @@ pub enum CommandError {
     Telegram(TdError),
     Server(StatusCode),
     Reqwest(reqwest::Error),
+    Download(DownloadError),
 }
 
 impl From<String> for CommandError {
@@ -112,5 +114,11 @@ impl From<ServerError> for CommandError {
 impl From<reqwest::Error> for CommandError {
     fn from(value: reqwest::Error) -> Self {
         Self::Reqwest(value)
+    }
+}
+
+impl From<DownloadError> for CommandError {
+    fn from(value: DownloadError) -> Self {
+        Self::Download(value)
     }
 }

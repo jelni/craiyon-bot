@@ -170,7 +170,7 @@ impl ConvertArgument for Language {
             for prefix in [language_code, &language.to_ascii_lowercase()] {
                 if lowercase.starts_with(prefix) {
                     let rest = &arguments[prefix.len()..];
-                    if rest.chars().next().map_or(true, |char| char.is_ascii_whitespace()) {
+                    if rest.chars().next().is_none_or(|char| char.is_ascii_whitespace()) {
                         return Ok((Self(language_code), rest));
                     }
                 }

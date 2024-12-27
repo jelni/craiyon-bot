@@ -5,7 +5,7 @@ use tdlib::types::MessageReplyToMessage;
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
 
-#[allow(clippy::unreadable_literal)]
+#[expect(clippy::unreadable_literal)]
 const OWNER_ID: i64 = 807128293;
 
 pub struct Delete;

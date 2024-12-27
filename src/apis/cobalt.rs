@@ -1,156 +1,106 @@
 use std::collections::HashMap;
 
-use reqwest::header::ACCEPT;
+use reqwest::header::{ACCEPT, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
 
-use crate::commands::CommandError;
 use crate::utilities::api_utils::{DetectServerError, ServerError};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct Payload<'a> {
     url: &'a str,
-    v_quality: &'a str,
-    a_format: &'a str,
-    is_audio_only: bool,
-    #[serde(rename = "tiktokH265")]
-    tiktok_h265: bool,
-}
-
-#[derive(Deserialize)]
-struct Response {
-    status: Status,
-    text: Option<String>,
-    url: Option<String>,
-    picker: Option<Vec<PickerItem>>,
+    video_quality: &'a str,
+    audio_format: &'a str,
+    download_mode: &'a str,
+    tiktok_full_audio: bool,
+    twitter_gif: bool,
 }
 
 #[derive(Deserialize)]
 #[serde(rename_all = "kebab-case")]
-enum Status {
-    Stream,
-    Redirect,
-    Picker,
-    Success,
-    Error,
-    RateLimit,
+#[serde(tag = "status")]
+pub enum Response {
+    Redirect(File),
+    Tunnel(File),
+    Picker(Picker),
+    Error(CobaltError),
 }
 
 #[derive(Deserialize)]
-struct PickerItem {
-    url: String,
+pub struct File {
+    pub url: String,
+    pub filename: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Picker {
+    pub audio: Option<String>,
+    pub audio_filename: Option<String>,
+    #[expect(clippy::struct_field_names)]
+    pub picker: Vec<PickerItem>,
+}
+
+#[derive(Deserialize)]
+pub struct PickerItem {
+    pub url: String,
+    pub thumb: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct CobaltError {
+    pub error: ErrorContext,
+}
+
+#[derive(Deserialize)]
+pub struct ErrorContext {
+    pub code: String,
 }
 
 pub enum Error {
-    Cobalt(String),
     Server(ServerError),
     Network(reqwest::Error),
 }
 
 pub async fn query(
-    http_client: reqwest::Client,
-    domain: &str,
+    http_client: &reqwest::Client,
+    instance: &str,
+    api_key: Option<&str>,
     url: &str,
     audio_only: bool,
-) -> Result<Vec<String>, Error> {
-    let response = http_client
-        .post(format!("https://{domain}/api/json"))
+) -> Result<Response, Error> {
+    let mut request = http_client
+        .post(instance)
         .json(&Payload {
             url,
-            v_quality: "1080",
-            a_format: "best",
-            is_audio_only: audio_only,
-            tiktok_h265: true,
+            video_quality: "1080",
+            audio_format: "best",
+            download_mode: if audio_only { "audio" } else { "auto" },
+            tiktok_full_audio: true,
+            twitter_gif: false,
         })
-        .header(ACCEPT, "application/json")
-        .send()
-        .await
-        .map_err(Error::Network)?
-        .server_error()
-        .map_err(Error::Server)?
-        .json::<Response>()
-        .await
-        .map_err(Error::Network)?;
+        .header(ACCEPT, "application/json");
 
-    match response.status {
-        Status::Stream | Status::Redirect => Ok(vec![response.url.unwrap()]),
-        Status::Picker => Ok(response.picker.unwrap().into_iter().map(|i| i.url).collect()),
-        Status::Success | Status::Error | Status::RateLimit => {
-            Err(Error::Cobalt(response.text.unwrap()))
-        }
+    if let Some(api_key) = api_key {
+        request = request.header(AUTHORIZATION, format!("Api-Key {api_key}"));
     }
+
+    let response =
+        request.send().await.map_err(Error::Network)?.server_error().map_err(Error::Server)?;
+
+    response.json::<Response>().await.map_err(Error::Network)
 }
 
-#[derive(Deserialize)]
-pub struct Instance {
-    pub api_online: bool,
-    pub services: HashMap<Service, bool>,
-    pub score: f32,
-    pub protocol: String,
-    pub api: String,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Service {
-    Youtube,
-    Rutube,
-    Tumblr,
-    Bilibili,
-    Pinterest,
-    Instagram,
-    Soundcloud,
-    YoutubeMusic,
-    Odnoklassniki,
-    Dailymotion,
-    Twitter,
-    Loom,
-    Vimeo,
-    Streamable,
-    Vk,
-    Tiktok,
-    Reddit,
-    TwitchClips,
-    YoutubeShorts,
-    Vine,
-    #[serde(other)]
-    Unknown,
-}
-
-impl Service {
-    pub const fn name(self) -> Option<&'static str> {
-        match self {
-            Self::Youtube => Some("YouTube"),
-            Self::Rutube => Some("RUTUBE"),
-            Self::Tumblr => Some("Tumblr"),
-            Self::Bilibili => Some("BiliBili"),
-            Self::Pinterest => Some("Pinterest"),
-            Self::Instagram => Some("Instagram"),
-            Self::Soundcloud => Some("SoundCloud"),
-            Self::YoutubeMusic => Some("YouTube Music"),
-            Self::Odnoklassniki => Some("Odnoklassniki"),
-            Self::Dailymotion => Some("Dailymotion"),
-            Self::Twitter => Some("Twitter"),
-            Self::Loom => Some("Loom"),
-            Self::Vimeo => Some("Vimeo"),
-            Self::Streamable => Some("Streamable"),
-            Self::Vk => Some("VK"),
-            Self::Tiktok => Some("TikTok"),
-            Self::Reddit => Some("Reddit"),
-            Self::TwitchClips => Some("Twitch (Clips)"),
-            Self::YoutubeShorts => Some("YouTube (Shorts)"),
-            Self::Vine => Some("Vine"),
-            Self::Unknown => None,
-        }
-    }
-}
-
-pub async fn instances(http_client: reqwest::Client) -> Result<Vec<Instance>, CommandError> {
-    let response = http_client
-        .get("https://instances.hyper.lol/instances.json")
+pub async fn get_error_localization(
+    http_client: &reqwest::Client,
+) -> reqwest::Result<HashMap<String, String>> {
+    let request = http_client
+        .get(concat!(
+            "https://raw.githubusercontent.com",
+            "/imputnet/cobalt/refs/heads/main/web/i18n/en/error.json"
+        ))
         .send()
-        .await?
-        .server_error()?;
+        .await?;
 
-    Ok(response.json().await?)
+    request.json().await
 }

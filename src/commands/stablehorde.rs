@@ -218,7 +218,7 @@ async fn wait_for_generation(
 
         if last_status.as_ref() != Some(&status) {
             // the message doesn't exist yet or was edited more than 12 seconds ago
-            if last_edit.map_or(true, |last_edit| last_edit.elapsed() >= Duration::from_secs(12)) {
+            if last_edit.is_none_or(|last_edit| last_edit.elapsed() >= Duration::from_secs(12)) {
                 let formatted_text =
                     format_status_text(&status, escaped_prompt, show_volunteer_notice);
                 status_msg_id = Some(match status_msg_id {

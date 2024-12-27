@@ -36,9 +36,9 @@ pub fn progress_bar(current: u32, max: u32) -> String {
         return "[====================]".into();
     }
 
-    #[allow(clippy::cast_precision_loss)]
+    #[expect(clippy::cast_precision_loss)]
     let step = max as f32 / 20.;
-    #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss, clippy::cast_sign_loss)]
+    #[expect(clippy::cast_possible_truncation, clippy::cast_precision_loss, clippy::cast_sign_loss)]
     let char_count = (current as f32 / step) as usize;
 
     let mut progress = String::with_capacity(22);

@@ -60,7 +60,7 @@ impl CommandTrait for GoogleGemini {
         RateLimiter::new(3, 45)
     }
 
-    #[allow(clippy::too_many_lines)]
+    #[expect(clippy::too_many_lines)]
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let prompt = Option::<StringGreedyOrReply>::convert(ctx, &arguments).await?.0;
         ctx.send_typing().await?;
@@ -96,11 +96,7 @@ impl CommandTrait for GoogleGemini {
 
             parts.push(Part::FileData(FileData { file_uri: file.uri }));
 
-            (
-                self.model,
-                Some([Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))].as_slice()),
-                parts,
-            )
+            (self.model, Some([Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))].as_slice()), parts)
         } else {
             let mut parts = vec![Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))];
 

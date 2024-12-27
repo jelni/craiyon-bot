@@ -4,6 +4,7 @@ use std::time::{Duration, Instant};
 
 use super::command_context::CommandContext;
 use super::command_manager::CommandInstance;
+use super::file_download::DownloadError;
 use crate::bot::TdResult;
 use crate::commands::CommandError;
 use crate::utilities::text_utils;
@@ -90,6 +91,7 @@ async fn report_rate_limit(context: &CommandContext, cooldown: u64) -> TdResult<
     Ok(())
 }
 
+#[expect(clippy::large_stack_frames)]
 async fn report_command_error(
     command: Arc<CommandInstance>,
     context: &CommandContext,
@@ -119,6 +121,15 @@ async fn report_command_error(
             log::error!("HTTP error in the {command} command: {text}");
             context.reply(text).await?
         }
+        CommandError::Download(err) => match err {
+            DownloadError::RequestError(err) => {
+                log::warn!("cobalt download failed: {err}");
+                context.reply(format!("≫ cobalt download failed: {}", err.without_url())).await?
+            }
+            DownloadError::FilesystemError => {
+                context.reply("failed to save the file to the hard drive.".into()).await?
+            }
+        },
     };
 
     Ok(())

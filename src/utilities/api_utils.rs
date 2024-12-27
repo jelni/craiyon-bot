@@ -13,8 +13,8 @@ pub trait DetectServerError {
 impl DetectServerError for Response {
     fn server_error(self) -> Result<Response, ServerError> {
         if self.status().is_server_error()
-            && self.headers().get(CONTENT_TYPE).map_or(false, |header| {
-                header.to_str().map_or(false, |header| header.starts_with("text/html"))
+            && self.headers().get(CONTENT_TYPE).is_some_and(|header| {
+                header.to_str().is_ok_and(|header| header.starts_with("text/html"))
             })
         {
             return Err(ServerError(self.status()));

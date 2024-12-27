@@ -107,7 +107,7 @@ pub const fn get_message_text(content: &MessageContent) -> Option<&FormattedText
     Some(formatted_text)
 }
 
-#[allow(clippy::too_many_lines)] // this code duplication is horrible
+#[expect(clippy::too_many_lines, reason = "this code duplication is horrible")]
 pub async fn get_message_attachment(
     content: Cow<'_, MessageContent>,
     not_only_images: bool,

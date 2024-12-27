@@ -8,6 +8,7 @@ services:
       API_ID:
       API_HASH:
       DB_ENCRYPTION_KEY:
+      COBALT_INSTANCES:
       FAL_API_KEY:
       STABLEHORDE_TOKEN:
       STABLEHORDE_CLIENT:

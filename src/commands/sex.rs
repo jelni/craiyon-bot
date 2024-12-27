@@ -21,7 +21,7 @@ impl CommandTrait for Sex {
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let argument = Option::<StringGreedy>::convert(ctx, &arguments).await?.0;
-        let question_mark = argument.map_or(false, |argument| argument.0.starts_with('?'));
+        let question_mark = argument.is_some_and(|argument| argument.0.starts_with('?'));
 
         ctx.reply_custom(
             InputMessageContent::InputMessageSticker(InputMessageSticker {

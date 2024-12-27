@@ -18,7 +18,7 @@ impl CommandTrait for Mevo {
         let stats =
             urbansharing::system_stats(ctx.bot_state.http_client.clone(), "inurba-gdansk").await?;
 
-        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         ctx.reply_formatted_text(message_entities::formatted_text(vec![
             "jadący teraz: ".text(),
             stats.system_active_trip_count.count.to_string().bold(),

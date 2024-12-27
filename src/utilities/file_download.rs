@@ -4,28 +4,28 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use futures_util::StreamExt;
-use reqwest::header::{CONTENT_DISPOSITION, CONTENT_TYPE};
+use reqwest::header::CONTENT_DISPOSITION;
 use tdlib::{enums, functions};
 use tempfile::TempDir;
 
 pub const MEBIBYTE: i64 = 1024 * 1024;
 
+#[derive(Debug)]
 pub enum DownloadError {
     RequestError(reqwest::Error),
     FilesystemError,
-    InvalidResponse,
 }
 
 pub struct NetworkFile {
     temp_dir: TempDir,
     pub file_path: PathBuf,
-    pub content_type: Option<String>,
 }
 
 impl NetworkFile {
     pub async fn download(
-        http_client: reqwest::Client,
+        http_client: &reqwest::Client,
         url: &str,
+        filename: Option<String>,
         client_id: i32,
     ) -> Result<Self, DownloadError> {
         let response = http_client
@@ -37,26 +37,23 @@ impl NetworkFile {
             .error_for_status()
             .map_err(DownloadError::RequestError)?;
 
-        let content_type = match response.headers().get(CONTENT_TYPE) {
-            Some(header) => {
-                Some(header.to_str().map_err(|_| DownloadError::InvalidResponse)?.to_string())
-            }
-            None => None,
-        };
-
-        let enums::Text::Text(filename) =
-            functions::clean_file_name(get_filename(&response).to_string(), client_id)
-                .await
-                .unwrap();
+        let enums::Text::Text(filename) = functions::clean_file_name(
+            filename.unwrap_or_else(|| get_filename(&response).to_string()),
+            client_id,
+        )
+        .await
+        .unwrap();
 
         let temp_dir = TempDir::new().map_err(|_| DownloadError::FilesystemError)?;
         let file_path = temp_dir.path().join(filename.text);
+
         let mut file = BufWriter::with_capacity(
             4 * 1024 * 1024,
             File::create(&file_path).map_err(|_| DownloadError::FilesystemError)?,
         );
 
         let mut stream = response.bytes_stream();
+
         while let Some(bytes) = stream.next().await {
             let bytes = bytes.map_err(DownloadError::RequestError)?;
             file.write_all(&bytes).map_err(|_| DownloadError::FilesystemError)?;
@@ -64,7 +61,7 @@ impl NetworkFile {
 
         file.flush().map_err(|_| DownloadError::FilesystemError)?;
 
-        Ok(Self { temp_dir, file_path, content_type })
+        Ok(Self { temp_dir, file_path })
     }
 
     pub fn close(self) -> io::Result<()> {
