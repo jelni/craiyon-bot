@@ -1,15 +1,11 @@
 use async_trait::async_trait;
-use tdlib::enums::{InputFile, InputMessageContent};
+use tdlib::enums::{InputFile, InputMessageContent, StickerSet};
+use tdlib::functions;
 use tdlib::types::{InputFileRemote, InputMessageSticker};
 
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedy};
-
-const SEX: [&str; 2] = [
-    "CAACAgQAAxkBAAIHfGOBPouzDkVHO9WAvBrBcMShtX5PAAKxDAACEpVpUwgV5MV2yef8JAQ",
-    "CAACAgQAAxkBAAIHe2OBPolUMdfqvn_-38aWQ3bJ0NojAAJ_CwACFtZwU-fyDIVsfDCjJAQ",
-];
 
 pub struct Sex;
 
@@ -22,11 +18,18 @@ impl CommandTrait for Sex {
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
         let argument = Option::<StringGreedy>::convert(ctx, &arguments).await?.0;
         let question_mark = argument.is_some_and(|argument| argument.0.starts_with('?'));
+        let StickerSet::StickerSet(mut sticker_set) =
+            functions::search_sticker_set("fratik_sex".into(), false, ctx.client_id).await?;
 
         ctx.reply_custom(
             InputMessageContent::InputMessageSticker(InputMessageSticker {
                 sticker: InputFile::Remote(InputFileRemote {
-                    id: SEX[usize::from(question_mark)].into(),
+                    id: sticker_set
+                        .stickers
+                        .swap_remove(if question_mark { 0 } else { 1 })
+                        .sticker
+                        .remote
+                        .id,
                 }),
                 thumbnail: None,
                 width: 0,
