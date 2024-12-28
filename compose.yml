@@ -14,8 +14,14 @@ services:
       STABLEHORDE_CLIENT:
       MAKERSUITE_API_KEY:
       GROQ_API_KEY:
+    networks:
+      - cobalt-api
     volumes:
       - craiyon-bot:/data
+
+networks:
+  cobalt-api:
+    external: true
 
 volumes:
   craiyon-bot:
