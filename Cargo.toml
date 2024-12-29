@@ -6,14 +6,15 @@ edition = "2021"
 [lints.clippy]
 pedantic = "warn"
 nursery = "warn"
+allow_attributes = "warn"
 
 [dependencies]
 async-signal = "0.2"
 async-trait = "0.1"
 base64 = "0.22"
-bytes = "1.8"
+bytes = "1.9"
 charname = "1.15"
-colored = "2.0"
+colored = "2.2"
 counter = "0.6"
 dotenvy = "0.15"
 futures-util = "0.3"
@@ -28,7 +29,7 @@ rmp-serde = "1.1"
 serde = "1.0"
 serde_json = "1.0"
 tdlib = { git = "https://github.com/jelni/tdlib-rs-latest" }
-tempfile = "3.13"
+tempfile = "3.14"
 time = { version = "0.3", features = ["macros", "serde", "serde-well-known"] }
-tokio = { version = "1.41", features = ["macros", "rt-multi-thread", "signal", "time"] }
+tokio = { version = "1.42", features = ["macros", "rt-multi-thread", "signal", "time"] }
 url = "2.5"

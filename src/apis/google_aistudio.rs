@@ -56,7 +56,7 @@ pub struct Error {
 }
 
 pub async fn upload_file(
-    http_client: reqwest::Client,
+    http_client: &reqwest::Client,
     file: tokio::fs::File,
     size: u64,
     mime_type: &str,
@@ -121,25 +121,26 @@ pub async fn upload_file(
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct GenerateContentRequest<'a> {
-    contents: &'a [Content<'a>],
+    contents: Cow<'a, [Content<'a>]>,
     safety_settings: &'static [SafetySetting],
     system_instruction: Option<Content<'a>>,
     generation_config: GenerationConfig,
 }
 
-#[derive(Serialize)]
-struct Content<'a> {
-    parts: &'a [Part<'a>],
+#[derive(Clone, Serialize)]
+pub struct Content<'a> {
+    pub parts: Cow<'a, [Part<'a>]>,
+    pub role: Option<&'static str>,
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Part<'a> {
     Text(Cow<'a, str>),
     FileData(FileData),
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FileData {
     pub file_uri: String,
@@ -217,12 +218,12 @@ impl fmt::Display for Error {
     }
 }
 
-pub async fn stream_generate_content(
+pub async fn stream_generate_content<'a>(
     http_client: reqwest::Client,
     tx: mpsc::UnboundedSender<Result<GenerateContentResponse, GenerationError>>,
     model: &str,
-    parts: &[Part<'_>],
-    system_instruction: Option<&[Part<'_>]>,
+    contents: Cow<'a, [Content<'a>]>,
+    system_instruction: Option<Content<'a>>,
     max_output_tokens: u16,
 ) {
     let url = format!(
@@ -235,8 +236,9 @@ pub async fn stream_generate_content(
                 .unwrap(),
         )
         .json(&GenerateContentRequest {
-            contents: &[Content { parts }],
+            contents,
             safety_settings: &[
+                SafetySetting { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
                 SafetySetting { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
                 SafetySetting {
                     category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
@@ -246,10 +248,12 @@ pub async fn stream_generate_content(
                     category: "HARM_CATEGORY_DANGEROUS_CONTENT",
                     threshold: "BLOCK_NONE",
                 },
-                SafetySetting { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+                SafetySetting {
+                    category: "HARM_CATEGORY_CIVIC_INTEGRITY",
+                    threshold: "BLOCK_NONE",
+                },
             ],
-            system_instruction: system_instruction
-                .map(|system_instruction| Content { parts: system_instruction }),
+            system_instruction,
             generation_config: GenerationConfig { max_output_tokens },
         })
         .send()

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 
@@ -14,7 +16,7 @@ struct Request<'a> {
 #[derive(Serialize)]
 pub struct Message<'a> {
     pub role: &'static str,
-    pub content: &'a str,
+    pub content: Cow<'a, str>,
 }
 
 #[derive(Deserialize)]

@@ -110,15 +110,15 @@ pub const fn get_message_text(content: &MessageContent) -> Option<&FormattedText
 #[expect(clippy::too_many_lines, reason = "this code duplication is horrible")]
 pub async fn get_message_attachment(
     content: Cow<'_, MessageContent>,
-    not_only_images: bool,
+    include_non_images: bool,
     client_id: i32,
 ) -> TdResult<Option<MessageAttachment<'_>>> {
     let attachment = match content {
         Cow::Borrowed(content) => match content {
-            MessageContent::MessageAnimation(message) if not_only_images => {
+            MessageContent::MessageAnimation(message) if include_non_images => {
                 MessageAttachment::Animation(Cow::Borrowed(&message.animation))
             }
-            MessageContent::MessageAudio(message) if not_only_images => {
+            MessageContent::MessageAudio(message) if include_non_images => {
                 MessageAttachment::Audio(Cow::Borrowed(&message.audio))
             }
             MessageContent::MessageDocument(message) => {
@@ -129,18 +129,18 @@ pub async fn get_message_attachment(
             }
             MessageContent::MessageSticker(message) => match message.sticker.format {
                 StickerFormat::Webp => MessageAttachment::Sticker(Cow::Borrowed(&message.sticker)),
-                StickerFormat::Tgs | StickerFormat::Webm if not_only_images => {
+                StickerFormat::Tgs | StickerFormat::Webm if include_non_images => {
                     MessageAttachment::Sticker(Cow::Borrowed(&message.sticker))
                 }
                 _ => return Ok(None),
             },
-            MessageContent::MessageVideo(message) if not_only_images => {
+            MessageContent::MessageVideo(message) if include_non_images => {
                 MessageAttachment::Video(Cow::Borrowed(&message.video))
             }
-            MessageContent::MessageVideoNote(message) if not_only_images => {
+            MessageContent::MessageVideoNote(message) if include_non_images => {
                 MessageAttachment::VideoNote(Cow::Borrowed(&message.video_note))
             }
-            MessageContent::MessageVoiceNote(message) if not_only_images => {
+            MessageContent::MessageVoiceNote(message) if include_non_images => {
                 MessageAttachment::VoiceNote(Cow::Borrowed(&message.voice_note))
             }
             MessageContent::MessageStory(message) => {
@@ -156,7 +156,7 @@ pub async fn get_message_attachment(
                     enums::StoryContent::Photo(_) => {
                         MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
                     }
-                    enums::StoryContent::Video(_) if not_only_images => {
+                    enums::StoryContent::Video(_) if include_non_images => {
                         MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
                     }
                     _ => return Ok(None),
@@ -182,7 +182,7 @@ pub async fn get_message_attachment(
             }
             MessageContent::MessageSticker(message) => match message.sticker.format {
                 StickerFormat::Webp => MessageAttachment::Sticker(Cow::Owned(message.sticker)),
-                StickerFormat::Tgs | StickerFormat::Webm if not_only_images => {
+                StickerFormat::Tgs | StickerFormat::Webm if include_non_images => {
                     MessageAttachment::Sticker(Cow::Owned(message.sticker))
                 }
                 _ => return Ok(None),
@@ -209,7 +209,7 @@ pub async fn get_message_attachment(
                     enums::StoryContent::Photo(_) => {
                         MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
                     }
-                    enums::StoryContent::Video(_) if not_only_images => {
+                    enums::StoryContent::Video(_) if include_non_images => {
                         MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
                     }
                     _ => return Ok(None),
@@ -234,11 +234,12 @@ fn largest_photo(sizes: &[PhotoSize]) -> Option<&File> {
 
 pub async fn get_message_or_reply_attachment(
     message: &Message,
-    not_only_images: bool,
+    include_non_images: bool,
     client_id: i32,
 ) -> TdResult<Option<MessageAttachment>> {
     if let Some(attachment) =
-        get_message_attachment(Cow::Borrowed(&message.content), not_only_images, client_id).await?
+        get_message_attachment(Cow::Borrowed(&message.content), include_non_images, client_id)
+            .await?
     {
         return Ok(Some(attachment));
     }
@@ -259,7 +260,7 @@ pub async fn get_message_or_reply_attachment(
         Cow::Owned(message.content)
     };
 
-    get_message_attachment(content, not_only_images, client_id).await
+    get_message_attachment(content, include_non_images, client_id).await
 }
 
 pub fn donate_markup(name: &str, url: impl Into<String>) -> ReplyMarkup {

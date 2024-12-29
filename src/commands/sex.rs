@@ -24,12 +24,7 @@ impl CommandTrait for Sex {
         ctx.reply_custom(
             InputMessageContent::InputMessageSticker(InputMessageSticker {
                 sticker: InputFile::Remote(InputFileRemote {
-                    id: sticker_set
-                        .stickers
-                        .swap_remove(if question_mark { 0 } else { 1 })
-                        .sticker
-                        .remote
-                        .id,
+                    id: sticker_set.stickers.swap_remove((!question_mark).into()).sticker.remote.id,
                 }),
                 thumbnail: None,
                 width: 0,

@@ -1,11 +1,13 @@
 use std::borrow::Cow;
+use std::collections::VecDeque;
 use std::fmt;
 
 use async_trait::async_trait;
-use tdlib::enums::{Message, MessageReplyTo};
+use tdlib::enums::{Message, MessageContent, MessageReplyTo};
 use tdlib::functions;
 
 use super::command_context::CommandContext;
+use super::parsed_command::ParsedCommand;
 use super::telegram_utils;
 use crate::bot::TdError;
 
@@ -118,7 +120,7 @@ impl ConvertArgument for Reply {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub struct StringGreedy(pub String);
 
 #[async_trait]
@@ -153,6 +155,74 @@ impl ConvertArgument for StringGreedyOrReply {
                 Ok((Self(argument.0), ""))
             }
         }
+    }
+}
+
+pub struct ReplyChainMessage {
+    pub text: Option<String>,
+    pub content: MessageContent,
+    pub my: bool,
+}
+
+pub struct ReplyChain(pub Vec<ReplyChainMessage>);
+
+#[async_trait]
+impl ConvertArgument for ReplyChain {
+    async fn convert<'a>(
+        ctx: &CommandContext,
+        arguments: &'a str,
+    ) -> Result<(Self, &'a str), ConversionError> {
+        let mut message = ctx.message.clone();
+
+        let mut messages = VecDeque::from([ReplyChainMessage {
+            text: if arguments.is_empty() { None } else { Some(arguments.into()) },
+            content: message.content,
+            my: ctx.message.is_outgoing,
+        }]);
+
+        for _ in 0..15 {
+            let Some(MessageReplyTo::Message(reply)) = &message.reply_to else {
+                break;
+            };
+
+            let mut text = None;
+
+            if let Some(quote) = reply.quote.as_ref() {
+                text = Some(quote.text.text.clone());
+            };
+
+            Message::Message(message) =
+                functions::get_replied_message(message.chat_id, message.id, ctx.client_id)
+                    .await
+                    .map_err(ConversionError::TdError)?;
+
+            messages.push_front(ReplyChainMessage {
+                text: text.or_else(|| {
+                    telegram_utils::get_message_text(&message.content).and_then(|text| {
+                        match ParsedCommand::parse(text) {
+                            Some(command) => {
+                                if command.arguments.is_empty() {
+                                    None
+                                } else {
+                                    Some(command.arguments)
+                                }
+                            }
+                            None => {
+                                if text.text.is_empty() {
+                                    None
+                                } else {
+                                    Some(text.text.clone())
+                                }
+                            }
+                        }
+                    })
+                }),
+                content: message.content,
+                my: message.is_outgoing,
+            });
+        }
+
+        Ok((Self(messages.into()), ""))
     }
 }
 

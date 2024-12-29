@@ -10,25 +10,26 @@ use tokio::sync::mpsc;
 use tokio::time::Instant;
 
 use super::{CommandError, CommandResult, CommandTrait};
-use crate::apis::makersuite::{
-    self, Candidate, CitationSource, FileData, GenerateContentResponse, Part, PartResponse,
+use crate::apis::google_aistudio::{
+    self, Candidate, CitationSource, Content, FileData, GenerateContentResponse, Part, PartResponse,
 };
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
+use crate::utilities::convert_argument::{ConvertArgument, ReplyChain};
 use crate::utilities::file_download::MEBIBYTE;
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::telegram_utils;
 
-const SYSTEM_INSTRUCTION: &str =
+pub const SYSTEM_INSTRUCTION: &str =
     "Be concise and precise. Don't be verbose. Answer in the language the user wrote in.";
 
-pub struct GoogleGemini {
+pub struct Gemini {
     command_names: &'static [&'static str],
     description: &'static str,
     model: &'static str,
 }
 
-impl GoogleGemini {
+impl Gemini {
+    #[expect(clippy::self_named_constructors)]
     pub const fn gemini() -> Self {
         Self {
             command_names: &["gemini", "g"],
@@ -47,7 +48,7 @@ impl GoogleGemini {
 }
 
 #[async_trait]
-impl CommandTrait for GoogleGemini {
+impl CommandTrait for Gemini {
     fn command_names(&self) -> &[&str] {
         self.command_names
     }
@@ -57,81 +58,107 @@ impl CommandTrait for GoogleGemini {
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
-        RateLimiter::new(3, 45)
+        RateLimiter::new(6, 60)
     }
 
     #[expect(clippy::too_many_lines)]
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
-        let prompt = Option::<StringGreedyOrReply>::convert(ctx, &arguments).await?.0;
+        let ReplyChain(messages) = ConvertArgument::convert(ctx, &arguments).await?.0;
         ctx.send_typing().await?;
 
-        let (model, system_instruction, parts) = if let Some(message_image) =
-            telegram_utils::get_message_or_reply_attachment(&ctx.message, true, ctx.client_id)
-                .await?
-        {
-            let file = message_image.file()?;
+        let mut contents = Vec::new();
 
-            if file.size > 64 * MEBIBYTE {
-                return Err(CommandError::Custom("the file cannot be larger than 64 MiB.".into()));
+        for message in messages {
+            let mut parts = Vec::new();
+
+            if let Some(text) = message.text {
+                parts.push(Part::Text(Cow::Owned(text)));
             }
 
-            let File::File(file) =
-                functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
-
-            let open_file = tokio::fs::File::open(file.local.path).await.unwrap();
-
-            let file = makersuite::upload_file(
-                ctx.bot_state.http_client.clone(),
-                open_file,
-                file.size.try_into().unwrap(),
-                message_image.mime_type()?,
+            if let Some(message_image) = telegram_utils::get_message_attachment(
+                Cow::Owned(message.content),
+                true,
+                ctx.client_id,
             )
-            .await?;
+            .await?
+            {
+                let file = message_image.file()?;
 
-            let mut parts = if let Some(prompt) = prompt {
-                vec![Part::Text(Cow::Owned(prompt.0))]
-            } else {
-                vec![Part::Text(Cow::Borrowed("Comment briefly on what you see."))]
-            };
+                if file.size > 64 * MEBIBYTE {
+                    return Err(CommandError::Custom("files cannot be larger than 64 MiB.".into()));
+                }
 
-            parts.push(Part::FileData(FileData { file_uri: file.uri }));
+                let File::File(file) =
+                    functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
 
-            (self.model, Some([Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))].as_slice()), parts)
-        } else {
-            let mut parts = vec![Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))];
+                let open_file = tokio::fs::File::open(file.local.path).await.unwrap();
 
-            if let Some(prompt) = prompt {
-                parts.push(Part::Text(Cow::Owned(prompt.0)));
-            } else {
-                return Err(CommandError::Custom("no prompt or file provided.".into()));
+                let file = google_aistudio::upload_file(
+                    &ctx.bot_state.http_client,
+                    open_file,
+                    file.size.try_into().unwrap(),
+                    message_image.mime_type()?,
+                )
+                .await?;
+
+                parts.push(Part::FileData(FileData { file_uri: file.uri }));
             }
 
-            (self.model, None, parts)
+            if !parts.is_empty() {
+                contents.push(Content {
+                    parts: Cow::Owned(parts),
+                    role: Some(if message.my { "model" } else { "user" }),
+                });
+            }
+        }
+
+        if contents.is_empty() {
+            return Err(CommandError::Custom("no prompt or file provided.".into()));
+        }
+
+        let system_instruction = if contents
+            .iter()
+            .any(|content| content.parts.iter().any(|part| matches!(part, Part::Text(..))))
+        {
+            Some(Content {
+                parts: Cow::Borrowed([Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))].as_slice()),
+                role: None,
+            })
+        } else {
+            contents.push(Content {
+                parts: Cow::Borrowed(
+                    [Part::Text(Cow::Borrowed("Comment briefly on what you see."))].as_slice(),
+                ),
+                role: Some("user"),
+            });
+
+            None
         };
 
         let http_client = ctx.bot_state.http_client.clone();
         let (tx, mut rx) = mpsc::unbounded_channel();
+        let model = self.model;
 
         tokio::spawn(async move {
-            makersuite::stream_generate_content(
+            google_aistudio::stream_generate_content(
                 http_client,
                 tx,
                 model,
-                &parts,
+                Cow::Owned(contents),
                 system_instruction,
                 512,
             )
             .await;
         });
 
-        let mut next_update = Instant::now() + Duration::from_secs(5);
+        let mut last_update = Instant::now();
         let mut changed_after_last_update = false;
         let mut progress = Option::<GenerationProgress>::None;
         let mut message = Option::<Message>::None;
 
         loop {
             let (update_message, finished) = if let Ok(response) =
-                tokio::time::timeout_at(next_update, rx.recv()).await
+                tokio::time::timeout_at(last_update + Duration::from_secs(5), rx.recv()).await
             {
                 match response {
                     Some(response) => {
@@ -155,7 +182,7 @@ impl CommandTrait for GoogleGemini {
                     None => (true, true),
                 }
             } else {
-                next_update = Instant::now() + Duration::from_secs(5);
+                last_update = Instant::now();
                 (true, false)
             };
 
@@ -183,7 +210,7 @@ impl CommandTrait for GoogleGemini {
                     );
                 }
 
-                next_update = Instant::now() + Duration::from_secs(5);
+                last_update = Instant::now();
                 changed_after_last_update = false;
             }
 
