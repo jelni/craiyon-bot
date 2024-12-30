@@ -39,7 +39,7 @@ impl CommandTrait for Llama {
 
         prompt_messages.extend(messages.into_iter().filter_map(|message| {
             message.text.map(|text| Message {
-                role: if message.my { "assistant" } else { "user" },
+                role: if message.bot_author { "assistant" } else { "user" },
                 content: Cow::Owned(text),
             })
         }));

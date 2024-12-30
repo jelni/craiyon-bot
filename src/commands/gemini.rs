@@ -75,39 +75,40 @@ impl CommandTrait for Gemini {
                 parts.push(Part::Text(Cow::Owned(text)));
             }
 
-            if let Some(message_image) = telegram_utils::get_message_attachment(
-                Cow::Owned(message.content),
-                true,
-                ctx.client_id,
-            )
-            .await?
-            {
-                let file = message_image.file()?;
+            if let Some(content) = message.content {
+                if let Some(message_image) =
+                    telegram_utils::get_message_attachment(Cow::Owned(content), true, ctx.client_id)
+                        .await?
+                {
+                    let file = message_image.file()?;
 
-                if file.size > 64 * MEBIBYTE {
-                    return Err(CommandError::Custom("files cannot be larger than 64 MiB.".into()));
+                    if file.size > 64 * MEBIBYTE {
+                        return Err(CommandError::Custom(
+                            "files cannot be larger than 64 MiB.".into(),
+                        ));
+                    }
+
+                    let File::File(file) =
+                        functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
+
+                    let open_file = tokio::fs::File::open(file.local.path).await.unwrap();
+
+                    let file = google_aistudio::upload_file(
+                        &ctx.bot_state.http_client,
+                        open_file,
+                        file.size.try_into().unwrap(),
+                        message_image.mime_type()?,
+                    )
+                    .await?;
+
+                    parts.push(Part::FileData(FileData { file_uri: file.uri }));
                 }
-
-                let File::File(file) =
-                    functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
-
-                let open_file = tokio::fs::File::open(file.local.path).await.unwrap();
-
-                let file = google_aistudio::upload_file(
-                    &ctx.bot_state.http_client,
-                    open_file,
-                    file.size.try_into().unwrap(),
-                    message_image.mime_type()?,
-                )
-                .await?;
-
-                parts.push(Part::FileData(FileData { file_uri: file.uri }));
             }
 
             if !parts.is_empty() {
                 contents.push(Content {
                     parts: Cow::Owned(parts),
-                    role: Some(if message.my { "model" } else { "user" }),
+                    role: Some(if message.bot_author { "model" } else { "user" }),
                 });
             }
         }

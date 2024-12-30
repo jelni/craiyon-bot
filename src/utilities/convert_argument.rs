@@ -3,7 +3,9 @@ use std::collections::VecDeque;
 use std::fmt;
 
 use async_trait::async_trait;
-use tdlib::enums::{Message, MessageContent, MessageReplyTo};
+use tdlib::enums::{
+    Message, MessageContent, MessageOrigin, MessageReplyTo, MessageSender, UserType,
+};
 use tdlib::functions;
 
 use super::command_context::CommandContext;
@@ -160,8 +162,8 @@ impl ConvertArgument for StringGreedyOrReply {
 
 pub struct ReplyChainMessage {
     pub text: Option<String>,
-    pub content: MessageContent,
-    pub my: bool,
+    pub content: Option<MessageContent>,
+    pub bot_author: bool,
 }
 
 pub struct ReplyChain(pub Vec<ReplyChainMessage>);
@@ -172,33 +174,48 @@ impl ConvertArgument for ReplyChain {
         ctx: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        let mut message = ctx.message.clone();
-
         let mut messages = VecDeque::from([ReplyChainMessage {
             text: if arguments.is_empty() { None } else { Some(arguments.into()) },
-            content: message.content,
-            my: ctx.message.is_outgoing,
+            content: Some(ctx.message.content.clone()),
+            bot_author: ctx.message.is_outgoing,
         }]);
 
+        let mut message = Some(ctx.message.clone());
+
         for _ in 0..15 {
-            let Some(MessageReplyTo::Message(reply)) = &message.reply_to else {
+            let Some(current_message) = message else {
                 break;
             };
 
-            let mut text = None;
-
-            if let Some(quote) = reply.quote.as_ref() {
-                text = Some(quote.text.text.clone());
+            let Some(MessageReplyTo::Message(reply)) = &current_message.reply_to else {
+                break;
             };
 
-            Message::Message(message) =
-                functions::get_replied_message(message.chat_id, message.id, ctx.client_id)
-                    .await
-                    .map_err(ConversionError::TdError)?;
+            message = match functions::get_replied_message(
+                current_message.chat_id,
+                current_message.id,
+                ctx.client_id,
+            )
+            .await
+            {
+                Ok(Message::Message(message)) => Some(message),
+                Err(err) => {
+                    if err.code == 404 {
+                        None
+                    } else {
+                        return Err(ConversionError::TdError(err));
+                    }
+                }
+            };
 
-            messages.push_front(ReplyChainMessage {
-                text: text.or_else(|| {
-                    telegram_utils::get_message_text(&message.content).and_then(|text| {
+            let content = reply
+                .content
+                .clone()
+                .or_else(|| message.as_ref().map(|message| message.content.clone()));
+
+            let text = reply.quote.as_ref().map(|quote| quote.text.text.clone()).or_else(|| {
+                content.as_ref().and_then(|content| {
+                    telegram_utils::get_message_text(content).and_then(|text| {
                         match ParsedCommand::parse(text) {
                             Some(command) => {
                                 if command.arguments.is_empty() {
@@ -216,9 +233,32 @@ impl ConvertArgument for ReplyChain {
                             }
                         }
                     })
+                })
+            });
+
+            let author = reply
+                .origin
+                .as_ref()
+                .and_then(|origin| match origin {
+                    MessageOrigin::User(user) => Some(user.sender_user_id),
+                    _ => None,
+                })
+                .or_else(|| {
+                    message.as_ref().and_then(|message| match &message.sender_id {
+                        MessageSender::User(user) => Some(user.user_id),
+                        MessageSender::Chat(_) => None,
+                    })
+                });
+
+            messages.push_front(ReplyChainMessage {
+                text,
+                content,
+                bot_author: author.is_some_and(|author| {
+                    matches!(
+                        ctx.bot_state.cache.lock().unwrap().get_user(author).unwrap().r#type,
+                        UserType::Bot(..)
+                    )
                 }),
-                content: message.content,
-                my: message.is_outgoing,
             });
         }
 
