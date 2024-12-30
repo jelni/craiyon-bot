@@ -1,8 +1,8 @@
-use std::borrow::{Borrow, Cow};
+use std::borrow::Cow;
 
 use tdlib::enums::{
     self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, MessageReplyTo,
-    ReplyMarkup, StickerFormat, StoryContent,
+    ReplyMarkup, StickerFormat,
 };
 use tdlib::functions;
 use tdlib::types::{
@@ -13,7 +13,6 @@ use tdlib::types::{
 
 use super::cache::CompactChat;
 use crate::bot::TdResult;
-use crate::commands::CommandError;
 
 pub trait MainUsername {
     fn main_username(&self) -> Option<&String>;
@@ -34,13 +33,12 @@ pub enum MessageAttachment<'a> {
     Video(Cow<'a, Video>),
     VideoNote(Cow<'a, VideoNote>),
     VoiceNote(Cow<'a, VoiceNote>),
-    Story(Box<Cow<'a, StoryContent>>),
     ChatChangePhoto(Cow<'a, ChatPhoto>),
 }
 
 impl MessageAttachment<'_> {
-    pub fn file(&self) -> Result<&File, CommandError> {
-        let file = match self {
+    pub fn file(&self) -> &File {
+        match self {
             Self::Animation(animation) => &animation.animation,
             Self::Audio(audio) => &audio.audio,
             Self::Document(document) => &document.document,
@@ -49,23 +47,14 @@ impl MessageAttachment<'_> {
             Self::Video(video) => &video.video,
             Self::VideoNote(video_note) => &video_note.video,
             Self::VoiceNote(voice_note) => &voice_note.voice,
-            Self::Story(story) => match story.as_ref().borrow() {
-                enums::StoryContent::Photo(photo) => largest_photo(&photo.photo.sizes).unwrap(),
-                enums::StoryContent::Video(video) => &video.video.video,
-                enums::StoryContent::Unsupported => {
-                    return Err(CommandError::Custom("Unsupported story type".into()))
-                }
-            },
             Self::ChatChangePhoto(chat_change_photo) => {
                 largest_photo(&chat_change_photo.sizes).unwrap()
             }
-        };
-
-        Ok(file)
+        }
     }
 
-    pub fn mime_type(&self) -> Result<&str, CommandError> {
-        let mime_type = match self {
+    pub fn mime_type(&self) -> &str {
+        match self {
             Self::Animation(animation) => &animation.mime_type,
             Self::Audio(audio) => &audio.mime_type,
             Self::Document(document) => &document.mime_type,
@@ -78,16 +67,7 @@ impl MessageAttachment<'_> {
             Self::Video(video) => &video.mime_type,
             Self::VideoNote(_) => "video/mp4",
             Self::VoiceNote(voice_note) => &voice_note.mime_type,
-            Self::Story(story) => match story.as_ref().borrow() {
-                enums::StoryContent::Photo(_) => "image/jpeg",
-                enums::StoryContent::Video(_) => "video/mp4",
-                enums::StoryContent::Unsupported => {
-                    return Err(CommandError::Custom("Unsupported story type".into()))
-                }
-            },
-        };
-
-        Ok(mime_type)
+        }
     }
 }
 
@@ -100,19 +80,16 @@ pub const fn get_message_text(content: &MessageContent) -> Option<&FormattedText
         MessageContent::MessagePhoto(message) => &message.caption,
         MessageContent::MessageVideo(message) => &message.caption,
         MessageContent::MessageVoiceNote(message) => &message.caption,
-        // MessageContent::MessageStory is not supported, because it requires async calls
         _ => return None,
     };
 
     Some(formatted_text)
 }
 
-#[expect(clippy::too_many_lines, reason = "this code duplication is horrible")]
-pub async fn get_message_attachment(
+pub fn get_message_attachment(
     content: Cow<'_, MessageContent>,
     include_non_images: bool,
-    client_id: i32,
-) -> TdResult<Option<MessageAttachment<'_>>> {
+) -> Option<MessageAttachment<'_>> {
     let attachment = match content {
         Cow::Borrowed(content) => match content {
             MessageContent::MessageAnimation(message) if include_non_images => {
@@ -132,7 +109,7 @@ pub async fn get_message_attachment(
                 StickerFormat::Tgs | StickerFormat::Webm if include_non_images => {
                     MessageAttachment::Sticker(Cow::Borrowed(&message.sticker))
                 }
-                _ => return Ok(None),
+                _ => return None,
             },
             MessageContent::MessageVideo(message) if include_non_images => {
                 MessageAttachment::Video(Cow::Borrowed(&message.video))
@@ -143,29 +120,10 @@ pub async fn get_message_attachment(
             MessageContent::MessageVoiceNote(message) if include_non_images => {
                 MessageAttachment::VoiceNote(Cow::Borrowed(&message.voice_note))
             }
-            MessageContent::MessageStory(message) => {
-                let enums::Story::Story(story) = functions::get_story(
-                    message.story_sender_chat_id,
-                    message.story_id,
-                    true,
-                    client_id,
-                )
-                .await?;
-
-                match story.content {
-                    enums::StoryContent::Photo(_) => {
-                        MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
-                    }
-                    enums::StoryContent::Video(_) if include_non_images => {
-                        MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
-                    }
-                    _ => return Ok(None),
-                }
-            }
             MessageContent::MessageChatChangePhoto(message) => {
                 MessageAttachment::ChatChangePhoto(Cow::Borrowed(&message.photo))
             }
-            _ => return Ok(None),
+            _ => return None,
         },
         Cow::Owned(content) => match content {
             MessageContent::MessageAnimation(message) => {
@@ -185,7 +143,7 @@ pub async fn get_message_attachment(
                 StickerFormat::Tgs | StickerFormat::Webm if include_non_images => {
                     MessageAttachment::Sticker(Cow::Owned(message.sticker))
                 }
-                _ => return Ok(None),
+                _ => return None,
             },
             MessageContent::MessageVideo(message) => {
                 MessageAttachment::Video(Cow::Owned(message.video))
@@ -196,33 +154,14 @@ pub async fn get_message_attachment(
             MessageContent::MessageVoiceNote(message) => {
                 MessageAttachment::VoiceNote(Cow::Owned(message.voice_note))
             }
-            MessageContent::MessageStory(message) => {
-                let enums::Story::Story(story) = functions::get_story(
-                    message.story_sender_chat_id,
-                    message.story_id,
-                    true,
-                    client_id,
-                )
-                .await?;
-
-                match story.content {
-                    enums::StoryContent::Photo(_) => {
-                        MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
-                    }
-                    enums::StoryContent::Video(_) if include_non_images => {
-                        MessageAttachment::Story(Box::new(Cow::Owned(story.content)))
-                    }
-                    _ => return Ok(None),
-                }
-            }
             MessageContent::MessageChatChangePhoto(message) => {
                 MessageAttachment::ChatChangePhoto(Cow::Owned(message.photo))
             }
-            _ => return Ok(None),
+            _ => return None,
         },
     };
 
-    Ok(Some(attachment))
+    Some(attachment)
 }
 
 fn largest_photo(sizes: &[PhotoSize]) -> Option<&File> {
@@ -238,8 +177,7 @@ pub async fn get_message_or_reply_attachment(
     client_id: i32,
 ) -> TdResult<Option<MessageAttachment>> {
     if let Some(attachment) =
-        get_message_attachment(Cow::Borrowed(&message.content), include_non_images, client_id)
-            .await?
+        get_message_attachment(Cow::Borrowed(&message.content), include_non_images)
     {
         return Ok(Some(attachment));
     }
@@ -260,7 +198,7 @@ pub async fn get_message_or_reply_attachment(
         Cow::Owned(message.content)
     };
 
-    get_message_attachment(content, include_non_images, client_id).await
+    Ok(get_message_attachment(content, include_non_images))
 }
 
 pub fn donate_markup(name: &str, url: impl Into<String>) -> ReplyMarkup {

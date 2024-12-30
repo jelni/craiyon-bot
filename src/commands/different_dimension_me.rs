@@ -29,7 +29,7 @@ impl CommandTrait for DifferentDimensionMe {
                 .await?
                 .ok_or("send or reply to an image.")?;
 
-        let file = message_image.file()?;
+        let file = message_image.file();
 
         if file.size > 4 * MEBIBYTE {
             Err("the image cannot be larger than 4 MiB.")?;

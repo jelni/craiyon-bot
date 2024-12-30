@@ -77,10 +77,9 @@ impl CommandTrait for Gemini {
 
             if let Some(content) = message.content {
                 if let Some(message_image) =
-                    telegram_utils::get_message_attachment(Cow::Owned(content), true, ctx.client_id)
-                        .await?
+                    telegram_utils::get_message_attachment(Cow::Owned(content), true)
                 {
-                    let file = message_image.file()?;
+                    let file = message_image.file();
 
                     if file.size > 64 * MEBIBYTE {
                         return Err(CommandError::Custom(
@@ -97,7 +96,7 @@ impl CommandTrait for Gemini {
                         &ctx.bot_state.http_client,
                         open_file,
                         file.size.try_into().unwrap(),
-                        message_image.mime_type()?,
+                        message_image.mime_type(),
                     )
                     .await?;
 
