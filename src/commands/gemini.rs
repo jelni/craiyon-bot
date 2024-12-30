@@ -194,12 +194,18 @@ impl CommandTrait for Gemini {
                     }
                 };
 
-                let enums::FormattedText::FormattedText(formatted_text) =
-                    functions::parse_markdown(
-                        FormattedText { text, ..Default::default() },
-                        ctx.client_id,
-                    )
-                    .await?;
+                let formatted_text = if text.trim().is_empty() {
+                    FormattedText { text: "[no text generated]".into(), ..Default::default() }
+                } else {
+                    let enums::FormattedText::FormattedText(formatted_text) =
+                        functions::parse_markdown(
+                            FormattedText { text, ..Default::default() },
+                            ctx.client_id,
+                        )
+                        .await?;
+
+                    formatted_text
+                };
 
                 if let Some(message) = message.as_ref() {
                     ctx.edit_message_formatted_text(message.id, formatted_text).await?;

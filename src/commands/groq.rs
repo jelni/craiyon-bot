@@ -61,9 +61,17 @@ impl CommandTrait for Llama {
             write!(text, " [{}]", choice.finish_reason).unwrap();
         }
 
-        let enums::FormattedText::FormattedText(formatted_text) =
-            functions::parse_markdown(FormattedText { text, ..Default::default() }, ctx.client_id)
-                .await?;
+        let formatted_text = if text.trim().is_empty() {
+            FormattedText { text: "[no text generated]".into(), ..Default::default() }
+        } else {
+            let enums::FormattedText::FormattedText(formatted_text) = functions::parse_markdown(
+                FormattedText { text, ..Default::default() },
+                ctx.client_id,
+            )
+            .await?;
+
+            formatted_text
+        };
 
         ctx.reply_formatted_text(formatted_text).await?;
 
