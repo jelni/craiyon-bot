@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::env;
 use std::path::Path;
 
@@ -17,6 +18,9 @@ use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::file_download::NetworkFile;
 use crate::utilities::message_entities::{self, ToEntity};
 use crate::utilities::telegram_utils;
+
+const TWITTER_REPLACEMENTS: [&str; 5] =
+    ["fxtwitter.com", "fixupx.com", "twittpr.com", "vxtwitter.com", "fixvx.com"];
 
 #[derive(Deserialize)]
 struct CobaltInstance<'a> {
@@ -86,18 +90,22 @@ async fn get_result(
     url: &str,
     audio_only: bool,
 ) -> Result<(String, Response), cobalt::Error> {
+    let url = TWITTER_REPLACEMENTS
+        .into_iter()
+        .find_map(|replacement| url.strip_prefix(&format!("https://{replacement}/")))
+        .map(|path| Cow::Owned(format!("https://twitter.com/{path}")))
+        .unwrap_or(Cow::Borrowed(url));
+
     let instances = env::var("COBALT_INSTANCES").unwrap();
     let instances = serde_json::from_str::<Vec<CobaltInstance>>(&instances).unwrap();
 
     let mut error = None;
 
     for instance in instances {
-        match cobalt::query(http_client, instance.url, instance.api_key, url, audio_only).await {
+        match cobalt::query(http_client, instance.url, instance.api_key, &url, audio_only).await {
             Ok(result) => return Ok((instance.name.into(), result)),
             Err(err) => {
-                if error.is_none() {
-                    error = Some(err);
-                }
+                error = Some(err);
             }
         }
     }
