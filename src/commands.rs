@@ -67,6 +67,7 @@ pub enum CommandError {
     Telegram(TdError),
     Server(StatusCode),
     Reqwest(reqwest::Error),
+    SerdeJson(serde_json::Error),
     Download(DownloadError),
 }
 
@@ -114,6 +115,12 @@ impl From<ServerError> for CommandError {
 impl From<reqwest::Error> for CommandError {
     fn from(value: reqwest::Error) -> Self {
         Self::Reqwest(value)
+    }
+}
+
+impl From<serde_json::Error> for CommandError {
+    fn from(value: serde_json::Error) -> Self {
+        Self::SerdeJson(value)
     }
 }
 

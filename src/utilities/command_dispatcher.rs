@@ -121,6 +121,7 @@ async fn report_command_error(
             log::error!("HTTP error in the {command} command: {text}");
             context.reply(text).await?
         }
+        CommandError::SerdeJson(err) => context.reply(format!("JSON parse error: {err}")).await?,
         CommandError::Download(err) => match err {
             DownloadError::RequestError(err) => {
                 log::warn!("cobalt download failed: {err}");

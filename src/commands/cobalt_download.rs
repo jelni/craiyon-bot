@@ -11,13 +11,13 @@ use tdlib::types::{
     InputMessageReplyToMessage, InputMessageVideo, InputThumbnail,
 };
 
-use super::{CommandResult, CommandTrait};
+use super::{CommandError, CommandResult, CommandTrait};
 use crate::apis::cobalt::{self, Error, Response};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::file_download::NetworkFile;
 use crate::utilities::message_entities::{self, ToEntity};
-use crate::utilities::telegram_utils;
+use crate::utilities::{ffprobe, telegram_utils};
 
 const TWITTER_REPLACEMENTS: [&str; 5] =
     ["fxtwitter.com", "fixupx.com", "twittpr.com", "vxtwitter.com", "fixvx.com"];
@@ -145,7 +145,7 @@ async fn send_files(ctx: &CommandContext, instance: &str, result: Response) -> C
                 .message_queue
                 .wait_for_message(
                     ctx.reply_custom(
-                        get_message_content(&file.filename, &network_file),
+                        get_message_content(&file.filename, &network_file).await?,
                         Some(telegram_utils::donate_markup(
                             "≫ cobalt",
                             "https://cobalt.tools/donate",
@@ -304,44 +304,73 @@ async fn send_files(ctx: &CommandContext, instance: &str, result: Response) -> C
     Ok(())
 }
 
-fn get_message_content(filename: &str, file: &NetworkFile) -> InputMessageContent {
+async fn get_message_content(
+    filename: &str,
+    file: &NetworkFile,
+) -> Result<InputMessageContent, CommandError> {
     let input_file =
         InputFile::Local(InputFileLocal { path: file.file_path.to_str().unwrap().into() });
 
     if let Some(file_extension) = Path::new(filename).extension() {
         if file_extension.eq_ignore_ascii_case("mp4") {
-            return InputMessageContent::InputMessageVideo(InputMessageVideo {
+            let ffprobe = ffprobe::ffprobe(&file.file_path).await?;
+
+            let video_stream = ffprobe.streams.and_then(|streams| {
+                streams.into_iter().find(|stream| {
+                    stream.codec_type.as_ref().is_some_and(|codec_type| codec_type == "video")
+                })
+            });
+
+            return Ok(InputMessageContent::InputMessageVideo(InputMessageVideo {
                 video: input_file,
                 thumbnail: None,
                 added_sticker_file_ids: Vec::new(),
-                duration: 0,
-                width: 0,
-                height: 0,
+                #[expect(clippy::cast_possible_truncation)]
+                duration: ffprobe
+                    .format
+                    .map(|format| format.duration.parse::<f32>().unwrap() as i32)
+                    .unwrap_or_default(),
+                width: video_stream.as_ref().and_then(|stream| stream.width).unwrap_or_default(),
+                height: video_stream.and_then(|stream| stream.height).unwrap_or_default(),
                 supports_streaming: true,
                 caption: None,
                 show_caption_above_media: false,
                 self_destruct_type: None,
                 has_spoiler: false,
-            });
+            }));
         } else if ["mp3", "opus", "weba"]
             .into_iter()
             .any(|extension| file_extension.eq_ignore_ascii_case(extension))
         {
-            return InputMessageContent::InputMessageAudio(InputMessageAudio {
+            let ffprobe = ffprobe::ffprobe(&file.file_path).await?;
+
+            let audio_stream = ffprobe.streams.and_then(|streams| {
+                streams.into_iter().find(|stream| {
+                    stream.codec_type.as_ref().is_some_and(|codec_type| codec_type == "audio")
+                })
+            });
+
+            let tags = audio_stream.and_then(|stream| stream.tags);
+
+            return Ok(InputMessageContent::InputMessageAudio(InputMessageAudio {
                 audio: input_file,
                 album_cover_thumbnail: None,
-                duration: 0,
-                title: String::new(),
-                performer: String::new(),
+                #[expect(clippy::cast_possible_truncation)]
+                duration: ffprobe
+                    .format
+                    .map(|format| format.duration.parse::<f32>().unwrap() as i32)
+                    .unwrap_or_default(),
+                title: tags.as_ref().and_then(|tags| tags.title.clone()).unwrap_or_default(),
+                performer: tags.and_then(|tags| tags.artist).unwrap_or_default(),
                 caption: None,
-            });
+            }));
         }
     }
 
-    InputMessageContent::InputMessageDocument(InputMessageDocument {
+    Ok(InputMessageContent::InputMessageDocument(InputMessageDocument {
         document: input_file,
         thumbnail: None,
         disable_content_type_detection: true,
         caption: None,
-    })
+    }))
 }

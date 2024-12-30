@@ -6,6 +6,7 @@ pub mod command_dispatcher;
 pub mod command_manager;
 pub mod config;
 pub mod convert_argument;
+pub mod ffprobe;
 pub mod file_download;
 pub mod google_translate;
 pub mod image_utils;
