@@ -20,7 +20,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     && cp target/release/craiyon-bot craiyon-bot
 
 FROM debian:testing-slim
-RUN apt update && apt install ffmpeg -y
+RUN apt update && apt install ffmpeg yt-dlp -y
 COPY --from=tdlib-builder /td/tdlib/lib /usr/local/lib
 RUN ldconfig
 COPY --from=bot-builder /app/craiyon-bot /app/

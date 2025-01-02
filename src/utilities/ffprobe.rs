@@ -12,8 +12,8 @@ pub struct Ffprobe {
 #[derive(Deserialize)]
 pub struct Streams {
     pub codec_type: Option<String>,
-    pub width: Option<i32>,
-    pub height: Option<i32>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
     pub tags: Option<Tags>,
 }
 

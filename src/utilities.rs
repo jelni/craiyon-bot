@@ -19,6 +19,7 @@ pub mod parsed_command;
 pub mod rate_limit;
 pub mod telegram_utils;
 pub mod text_utils;
+pub mod yt_dlp;
 
 #[cfg(test)]
 pub mod test_fixtures;

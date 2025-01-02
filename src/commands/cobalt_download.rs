@@ -330,8 +330,13 @@ async fn get_message_content(
                     .format
                     .map(|format| format.duration.parse::<f32>().unwrap() as i32)
                     .unwrap_or_default(),
-                width: video_stream.as_ref().and_then(|stream| stream.width).unwrap_or_default(),
-                height: video_stream.and_then(|stream| stream.height).unwrap_or_default(),
+                width: video_stream
+                    .as_ref()
+                    .and_then(|stream| stream.width.map(|width| width.try_into().unwrap()))
+                    .unwrap_or_default(),
+                height: video_stream
+                    .and_then(|stream| stream.height.map(|height| height.try_into().unwrap()))
+                    .unwrap_or_default(),
                 supports_streaming: true,
                 caption: None,
                 show_caption_above_media: false,

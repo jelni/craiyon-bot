@@ -4,6 +4,7 @@ use tdlib::types::FormattedText;
 
 use crate::apis::google_aistudio::GenerationError;
 use crate::bot::TdError;
+use crate::utilities;
 use crate::utilities::api_utils::ServerError;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::ConversionError;
@@ -41,6 +42,7 @@ pub mod startit_joke;
 pub mod translate;
 pub mod trollslate;
 pub mod urbandictionary;
+pub mod yt_dlp;
 
 pub type CommandResult = Result<(), CommandError>;
 
@@ -80,6 +82,12 @@ impl From<String> for CommandError {
 impl From<&str> for CommandError {
     fn from(value: &str) -> Self {
         Self::Custom(value.into())
+    }
+}
+
+impl From<FormattedText> for CommandError {
+    fn from(value: FormattedText) -> Self {
+        Self::CustomFormattedText(value)
     }
 }
 
@@ -127,5 +135,14 @@ impl From<serde_json::Error> for CommandError {
 impl From<DownloadError> for CommandError {
     fn from(value: DownloadError) -> Self {
         Self::Download(value)
+    }
+}
+
+impl From<utilities::yt_dlp::Error> for CommandError {
+    fn from(value: utilities::yt_dlp::Error) -> Self {
+        match value {
+            utilities::yt_dlp::Error::YtDlp(error) => Self::Custom(error),
+            utilities::yt_dlp::Error::Serde(error) => Self::SerdeJson(error),
+        }
     }
 }
