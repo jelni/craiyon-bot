@@ -119,7 +119,7 @@ impl CommandTrait for YtDlp {
         }
 
         if let Some(duration) = infojson.duration {
-            if duration > 60 * 60 {
+            if duration > 60. * 60. {
                 return Err("cannot download media longer than 1h.".into());
             }
         } else if infojson.filesize_approx.is_none() {
@@ -193,8 +193,8 @@ fn get_message_content(
         height: 0,
     });
 
-    let duration =
-        infojson.duration.map(|duration| duration.try_into().unwrap()).unwrap_or_default();
+    #[expect(clippy::cast_possible_truncation)]
+    let duration = infojson.duration.map(|duration| duration as i32).unwrap_or_default();
 
     match infojson.ext.as_str() {
         "mp4" | "mov" | "webm" | "flv" => {

@@ -15,7 +15,7 @@ pub enum Error {
 pub struct Infojson {
     pub title: Option<String>,
     pub thumbnail: Option<String>,
-    pub duration: Option<u32>,
+    pub duration: Option<f32>,
     pub webpage_url: String,
     pub live_status: Option<String>,
     pub track: Option<String>,
