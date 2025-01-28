@@ -11,6 +11,7 @@ use crate::utilities::api_utils::DetectServerError;
 struct Payload<'a> {
     prompt: &'a str,
     format: &'static str,
+    enable_safety_checker: bool,
 }
 
 #[derive(Deserialize)]
@@ -45,7 +46,7 @@ pub async fn generate(
     let response = http_client
         .post(format!("https://fal.run/fal-ai/{model}"))
         .header(AUTHORIZATION, format!("Key {}", env::var("FAL_API_KEY").unwrap()))
-        .json(&Payload { prompt, format: "png" })
+        .json(&Payload { prompt, format: "png", enable_safety_checker: false })
         .send()
         .await?
         .server_error()?;

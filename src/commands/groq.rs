@@ -13,16 +13,37 @@ use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, ReplyChain};
 use crate::utilities::rate_limit::RateLimiter;
 
-pub struct Llama;
+pub struct Groq {
+    command_names: &'static [&'static str],
+    description: &'static str,
+    model_name: &'static str,
+}
+
+impl Groq {
+    pub const fn llama() -> Self {
+        Self {
+            command_names: &["llama"],
+            description: "generate text using llama 3.3",
+            model_name: "llama-3.3-70b-specdec",
+        }
+    }
+    pub const fn thinker() -> Self {
+        Self {
+            command_names: &["thinker", "r1"],
+            description: "generate text using deepseek r1 (70b distilled)",
+            model_name: "deepseek-r1-distill-llama-70b",
+        }
+    }
+}
 
 #[async_trait]
-impl CommandTrait for Llama {
+impl CommandTrait for Groq {
     fn command_names(&self) -> &[&str] {
-        &["llama3", "llama", "groq"]
+        self.command_names
     }
 
     fn description(&self) -> Option<&'static str> {
-        Some("ask Llama 3.3 70B")
+        Some(self.description)
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
@@ -48,7 +69,7 @@ impl CommandTrait for Llama {
             ctx.bot_state.http_client.clone(),
             "https://api.groq.com/openai/v1",
             &env::var("GROQ_API_KEY").unwrap(),
-            "llama-3.3-70b-versatile",
+            self.model_name,
             &prompt_messages,
         )
         .await?
@@ -56,6 +77,20 @@ impl CommandTrait for Llama {
 
         let choice = response.choices.into_iter().next().unwrap();
         let mut text = choice.message.content;
+
+        if self.model_name == "deepseek-r1-distill-llama-70b" {
+            while let Some(start) = text.find("<think>") {
+                if let Some(end) = text[start..].find("</think>") {
+                    let removed_len = end + 8;
+                    text.replace_range(start..start + end + 8, "");
+                    text = text.trim().to_string();
+                    // prefix with newline if not already present
+                    text.insert_str(0, &format!("[{removed_len} thinking chars hidden]\n\n"));
+                } else {
+                    break;
+                }
+            }
+        }
 
         if choice.finish_reason != "stop" {
             write!(text, " [{}]", choice.finish_reason).unwrap();
