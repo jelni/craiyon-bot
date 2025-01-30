@@ -30,6 +30,7 @@ pub mod kiwifarms;
 pub mod markov_chain;
 pub mod mevo;
 pub mod moveit_joke;
+pub mod openrouter;
 pub mod petittube;
 pub mod ping;
 pub mod radio_poligon;

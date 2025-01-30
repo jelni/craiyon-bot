@@ -33,6 +33,8 @@ async fn main() {
     bot.add_command(commands::gemini::Gemini::gemini2());
     bot.add_command(commands::groq::Groq::llama());
     bot.add_command(commands::groq::Groq::thinker());
+    bot.add_command(commands::openrouter::OpenRouter::mistral());
+    bot.add_command(commands::openrouter::OpenRouter::sonar());
     bot.add_command(commands::translate::Translate);
     bot.add_command(commands::badtranslate::BadTranslate);
     bot.add_command(commands::trollslate::Trollslate);

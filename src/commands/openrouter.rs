@@ -13,37 +13,34 @@ use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, ReplyChain};
 use crate::utilities::rate_limit::RateLimiter;
 
-pub struct Groq {
+pub struct OpenRouter {
     command_names: &'static [&'static str],
     description: &'static str,
     model_name: &'static str,
-    max_tokens: u16,
-    temperature: f32,
+    ratelimit: RateLimiter<i64>,
 }
 
-impl Groq {
-    pub const fn llama() -> Self {
+impl OpenRouter {
+    pub fn mistral() -> Self {
         Self {
-            command_names: &["llama"],
-            description: "generate text using llama 3.3",
-            model_name: "llama-3.3-70b-versatile",
-            max_tokens: 512,
-            temperature: 0.7,
+            command_names: &["mistral"],
+            description: "generate text using mistral small 3",
+            model_name: "mistralai/mistral-small-24b-instruct-2501",
+            ratelimit: RateLimiter::new(6, 60),
         }
     }
-    pub const fn thinker() -> Self {
+    pub fn sonar() -> Self {
         Self {
-            command_names: &["thinker", "r1"],
-            description: "generate text using deepseek r1 (70b distilled)",
-            model_name: "deepseek-r1-distill-llama-70b",
-            max_tokens: 2048, // more thinking
-            temperature: 0.5,
+            command_names: &["sonar", "online"],
+            description: "search the web using perplexity sonar",
+            model_name: "perplexity/sonar",
+            ratelimit: RateLimiter::new(1, 120),
         }
     }
 }
 
 #[async_trait]
-impl CommandTrait for Groq {
+impl CommandTrait for OpenRouter {
     fn command_names(&self) -> &[&str] {
         self.command_names
     }
@@ -53,7 +50,7 @@ impl CommandTrait for Groq {
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
-        RateLimiter::new(6, 60)
+        self.ratelimit.clone()
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
@@ -73,11 +70,11 @@ impl CommandTrait for Groq {
 
         let response = openai::chat_completion(
             ctx.bot_state.http_client.clone(),
-            "https://api.groq.com/openai/v1",
-            &env::var("GROQ_API_KEY").unwrap(),
+            "https://openrouter.ai/api/v1",
+            &env::var("OPENROUTER_API_KEY").unwrap(),
             self.model_name,
-            self.max_tokens,
-            self.temperature,
+            2048,
+            0.5,
             &prompt_messages,
         )
         .await?
@@ -85,20 +82,6 @@ impl CommandTrait for Groq {
 
         let choice = response.choices.into_iter().next().unwrap();
         let mut text = choice.message.content;
-
-        if self.model_name == "deepseek-r1-distill-llama-70b" {
-            while let Some(start) = text.find("<think>") {
-                if let Some(end) = text[start..].find("</think>") {
-                    let removed_len = end + 8;
-                    text.replace_range(start..start + end + 8, "");
-                    text = text.trim().to_string();
-                    // prefix with newline if not already present
-                    text.insert_str(0, &format!("[{removed_len} thinking chars hidden]\n\n"));
-                } else {
-                    break;
-                }
-            }
-        }
 
         if choice.finish_reason != "stop" {
             write!(text, " [{}]", choice.finish_reason).unwrap();
