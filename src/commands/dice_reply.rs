@@ -15,7 +15,7 @@ pub async fn execute(message: Message, client_id: i32) {
 
     let text = if dice_success(&dice) {
         "accurate"
-    } else if rand::thread_rng().gen_bool(1. / 10.) {
+    } else if rand::rng().random_bool(1. / 10.) {
         "skill issue"
     } else {
         return;

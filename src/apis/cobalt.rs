@@ -47,6 +47,7 @@ pub struct PickerItem {
     pub thumb: Option<String>,
 }
 
+#[expect(clippy::module_name_repetitions)]
 #[derive(Deserialize)]
 pub struct CobaltError {
     pub error: ErrorContext,
