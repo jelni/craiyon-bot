@@ -214,6 +214,8 @@ fn get_message_content(
                 show_caption_above_media: false,
                 self_destruct_type: None,
                 has_spoiler: false,
+                cover: None,
+                start_timestamp: 0,
             })
         }
         "m4a" | "aac" | "mp3" | "ogg" | "opus" => {

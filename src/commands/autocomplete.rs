@@ -33,7 +33,7 @@ impl CommandTrait for Autocomplete {
         ctx.reply(
             completions
                 .into_iter()
-                .choose(&mut StdRng::from_entropy())
+                .choose(&mut StdRng::from_os_rng())
                 .ok_or("no autocompletions")?,
         )
         .await?;
