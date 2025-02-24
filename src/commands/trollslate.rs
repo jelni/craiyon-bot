@@ -1,7 +1,7 @@
 use std::iter;
 
 use async_trait::async_trait;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::translate;
@@ -31,7 +31,7 @@ impl CommandTrait for Trollslate {
             "am", "ar", "ca", "cy", "haw", "hi", "iw", "ja", "ka", "ko", "ru", "si", "so", "sw",
             "xh", "zh-CN", "zu",
         ]
-        .choose_multiple(&mut rand::thread_rng(), 9);
+        .choose_multiple(&mut rand::rng(), 9);
 
         let next_language = languages.next().unwrap();
         let translation =

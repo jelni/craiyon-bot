@@ -2,7 +2,6 @@ use std::borrow::Cow;
 
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-
 use crate::commands::CommandError;
 use crate::utilities::api_utils::DetectServerError;
 
@@ -11,6 +10,7 @@ struct Request<'a> {
     model: &'static str,
     messages: &'a [Message<'a>],
     max_tokens: u16,
+    temperature: f32,
 }
 
 #[derive(Serialize)]
@@ -51,12 +51,14 @@ pub async fn chat_completion(
     base_url: &str,
     api_key: &str,
     model: &'static str,
+    max_tokens: u16,
+    temperature: f32,
     messages: &[Message<'_>],
 ) -> Result<Result<ChatCompletion, Error>, CommandError> {
     let response = http_client
         .post(format!("{base_url}/chat/completions"))
         .bearer_auth(api_key)
-        .json(&Request { model, messages, max_tokens: 256 })
+        .json(&Request { model, messages, max_tokens, temperature })
         .send()
         .await?
         .server_error()?;
