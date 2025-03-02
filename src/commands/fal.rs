@@ -19,16 +19,17 @@ pub struct Fal {
 impl Fal {
     pub const fn sana() -> Self {
         Self {
-            command_names: &["sana", "4k"],
-            description: "generate an image using nvidia sana in 4k",
-            model_name: "sana",
+            command_names: &["sana"],
+            description: "generate an image using NVIDIA's ️Sana",
+            model_name: "fal-ai/sana",
         }
     }
-    pub const fn fast_sdxl() -> Self {
+
+    pub const fn sdxl() -> Self {
         Self {
             command_names: &["sdxl"],
-            description: "generate an image using fast-sdxl",
-            model_name: "fast-sdxl",
+            description: "generate an image using Stable Diffusion XL",
+            model_name: "fal-ai/fast-sdxl",
         }
     }
 }

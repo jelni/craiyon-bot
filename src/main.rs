@@ -20,7 +20,7 @@ async fn main() {
     bot.add_command(commands::craiyon::Craiyon::photo());
     bot.add_command(commands::craiyon::Craiyon::none());
     bot.add_command(commands::craiyon_search::CraiyonSearch);
-    bot.add_command(commands::fal::Fal::fast_sdxl());
+    bot.add_command(commands::fal::Fal::sdxl());
     bot.add_command(commands::fal::Fal::sana());
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion());
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion_2());
@@ -31,8 +31,8 @@ async fn main() {
     bot.add_command(commands::different_dimension_me::DifferentDimensionMe);
     bot.add_command(commands::gemini::Gemini::gemini());
     bot.add_command(commands::gemini::Gemini::gemini2());
-    bot.add_command(commands::groq::Groq::llama());
-    bot.add_command(commands::groq::Groq::thinker());
+    bot.add_command(commands::groq::Groq::llama3());
+    bot.add_command(commands::groq::Groq::deepseek());
     bot.add_command(commands::openrouter::OpenRouter::mistral());
     bot.add_command(commands::openrouter::OpenRouter::sonar());
     bot.add_command(commands::translate::Translate);

@@ -44,9 +44,9 @@ pub async fn generate(
     prompt: &str,
 ) -> Result<Response, CommandError> {
     let response = http_client
-        .post(format!("https://fal.run/fal-ai/{model}"))
+        .post(format!("https://fal.run/{model}"))
         .header(AUTHORIZATION, format!("Key {}", env::var("FAL_API_KEY").unwrap()))
-        .json(&Payload { prompt, format: "png", enable_safety_checker: false })
+        .json(&Payload { prompt, enable_safety_checker: false, format: "png" })
         .send()
         .await?
         .server_error()?;

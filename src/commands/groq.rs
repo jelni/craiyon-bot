@@ -18,26 +18,27 @@ pub struct Groq {
     description: &'static str,
     model_name: &'static str,
     max_tokens: u16,
-    temperature: f32,
+    thinking_markers: Option<(&'static str, &'static str)>,
 }
 
 impl Groq {
-    pub const fn llama() -> Self {
+    pub const fn llama3() -> Self {
         Self {
-            command_names: &["llama"],
-            description: "generate text using llama 3.3",
+            command_names: &["llama3", "llama"],
+            description: "ask Llama 3.3 70B",
             model_name: "llama-3.3-70b-versatile",
             max_tokens: 512,
-            temperature: 0.7,
+            thinking_markers: None,
         }
     }
-    pub const fn thinker() -> Self {
+
+    pub const fn deepseek() -> Self {
         Self {
-            command_names: &["thinker", "r1"],
-            description: "generate text using deepseek r1 (70b distilled)",
+            command_names: &["deepseek", "r1"],
+            description: "ask DeepSeek R1 (distilled Llama 70b)",
             model_name: "deepseek-r1-distill-llama-70b",
-            max_tokens: 2048, // more thinking
-            temperature: 0.5,
+            max_tokens: 2048,
+            thinking_markers: Some(("<think>", "</think>")),
         }
     }
 }
@@ -77,28 +78,18 @@ impl CommandTrait for Groq {
             &env::var("GROQ_API_KEY").unwrap(),
             self.model_name,
             self.max_tokens,
-            self.temperature,
             &prompt_messages,
         )
         .await?
         .map_err(|err| CommandError::Custom(format!("error {}: {}", err.code, err.message)))?;
 
         let choice = response.choices.into_iter().next().unwrap();
-        let mut text = choice.message.content;
 
-        if self.model_name == "deepseek-r1-distill-llama-70b" {
-            while let Some(start) = text.find("<think>") {
-                if let Some(end) = text[start..].find("</think>") {
-                    let removed_len = end + 8;
-                    text.replace_range(start..start + end + 8, "");
-                    text = text.trim().to_string();
-                    // prefix with newline if not already present
-                    text.insert_str(0, &format!("[{removed_len} thinking chars hidden]\n\n"));
-                } else {
-                    break;
-                }
-            }
-        }
+        let mut text = if let Some((thinking_start, thinking_end)) = self.thinking_markers {
+            hide_thinking(choice.message.content, thinking_start, thinking_end)
+        } else {
+            choice.message.content
+        };
 
         if choice.finish_reason != "stop" {
             write!(text, " [{}]", choice.finish_reason).unwrap();
@@ -120,4 +111,18 @@ impl CommandTrait for Groq {
 
         Ok(())
     }
+}
+
+fn hide_thinking(text: String, thinking_start: &str, thinking_end: &str) -> String {
+    let Some(stripped) = text.strip_prefix(thinking_start) else {
+        return text;
+    };
+
+    let Some(index) = stripped.find(thinking_end) else {
+        return text;
+    };
+
+    let stripped = stripped[index..].trim_ascii_start();
+
+    format!("[{index} thinking chars hidden]\n{stripped}")
 }

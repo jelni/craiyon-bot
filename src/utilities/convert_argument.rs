@@ -174,10 +174,20 @@ impl ConvertArgument for ReplyChain {
         ctx: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
+        let author = match &ctx.message.sender_id {
+            MessageSender::User(user) => Some(user.user_id),
+            MessageSender::Chat(_) => None,
+        };
+
         let mut messages = VecDeque::from([ReplyChainMessage {
             text: if arguments.is_empty() { None } else { Some(arguments.into()) },
             content: Some(ctx.message.content.clone()),
-            bot_author: ctx.message.is_outgoing,
+            bot_author: author.is_some_and(|author| {
+                matches!(
+                    ctx.bot_state.cache.lock().unwrap().get_user(author).unwrap().r#type,
+                    UserType::Bot(..)
+                )
+            }),
         }]);
 
         let mut message = Some(ctx.message.clone());

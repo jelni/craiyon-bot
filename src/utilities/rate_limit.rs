@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 use std::hash::Hash;
 
-#[derive(Clone)]
 pub struct RateLimiter<K> {
     limit: usize,
     duration: i32,
