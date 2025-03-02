@@ -17,19 +17,19 @@ pub struct Fal {
 }
 
 impl Fal {
-    pub const fn sdxl_lightning() -> Self {
+    pub const fn sana() -> Self {
         Self {
-            command_names: &["sdxl_lightning", "sdxl"],
-            description: "generate an image using Stable Diffusion XL Lightning",
-            model_name: "fast-lightning-sdxl",
+            command_names: &["sana"],
+            description: "generate an image using NVIDIA's ️Sana",
+            model_name: "fal-ai/sana",
         }
     }
 
-    pub const fn realistic_vision() -> Self {
+    pub const fn sdxl() -> Self {
         Self {
-            command_names: &["realistic_vision", "rv"],
-            description: "generate an image using Realistic Vision",
-            model_name: "realistic-vision",
+            command_names: &["sdxl"],
+            description: "generate an image using Stable Diffusion XL",
+            model_name: "fal-ai/fast-sdxl",
         }
     }
 }
@@ -71,8 +71,7 @@ impl CommandTrait for Fal {
                 caption: Some(formatted_text(vec![
                     "generated ".text(),
                     response.prompt.bold(),
-                    " in ".text(),
-                    format!("in {:.2}s. ", response.timings.inference).text_owned(),
+                    format!(" in {:.2}s. ", response.timings.inference).text_owned(),
                     "download".text_url(image.url),
                 ])),
                 show_caption_above_media: false,

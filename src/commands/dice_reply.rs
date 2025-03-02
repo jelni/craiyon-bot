@@ -1,6 +1,5 @@
 use std::time::Duration;
 
-use rand::Rng;
 use tdlib::enums::{InputMessageContent, InputMessageReplyTo, MessageContent};
 use tdlib::functions;
 use tdlib::types::{
@@ -15,7 +14,7 @@ pub async fn execute(message: Message, client_id: i32) {
 
     let text = if dice_success(&dice) {
         "accurate"
-    } else if rand::thread_rng().gen_bool(1. / 10.) {
+    } else if rand::random_ratio(1, 10) {
         "skill issue"
     } else {
         return;

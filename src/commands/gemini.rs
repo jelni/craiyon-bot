@@ -19,8 +19,10 @@ use crate::utilities::file_download::MEBIBYTE;
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::telegram_utils;
 
-pub const SYSTEM_INSTRUCTION: &str =
-    "Be concise and precise. Don't be verbose. Answer in the language the user wrote in.";
+pub const SYSTEM_INSTRUCTION: &str = concat!(
+    "Be concise and precise. Don't be verbose. ",
+    "Answer in English, unless the user wrote in another language."
+);
 
 pub struct Gemini {
     command_names: &'static [&'static str],

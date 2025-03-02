@@ -1,7 +1,5 @@
 use async_trait::async_trait;
-use rand::rngs::StdRng;
 use rand::seq::IteratorRandom;
-use rand::SeedableRng;
 
 use super::{CommandResult, CommandTrait};
 use crate::apis::google;
@@ -30,13 +28,10 @@ impl CommandTrait for Autocomplete {
 
         let completions =
             google::complete(ctx.bot_state.http_client.clone(), &query).await.unwrap_or_default();
-        ctx.reply(
-            completions
-                .into_iter()
-                .choose(&mut StdRng::from_entropy())
-                .ok_or("no autocompletions")?,
-        )
-        .await?;
+
+        let completion = completions.into_iter().choose(&mut rand::rng());
+
+        ctx.reply(completion.ok_or("no autocompletions")?).await?;
 
         Ok(())
     }

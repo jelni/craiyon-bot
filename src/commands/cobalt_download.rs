@@ -19,8 +19,15 @@ use crate::utilities::file_download::NetworkFile;
 use crate::utilities::message_entities::{self, ToEntity};
 use crate::utilities::{ffprobe, telegram_utils};
 
-const TWITTER_REPLACEMENTS: [&str; 5] =
-    ["fxtwitter.com", "fixupx.com", "twittpr.com", "vxtwitter.com", "fixvx.com"];
+const TWITTER_REPLACEMENTS: [&str; 7] = [
+    "fxtwitter.com",
+    "fixupx.com",
+    "twittpr.com",
+    "vxtwitter.com",
+    "fixvx.com",
+    "girlcockx.com",
+    "stupidpenisx.com",
+];
 
 #[derive(Deserialize)]
 struct CobaltInstance<'a> {
@@ -324,6 +331,8 @@ async fn get_message_content(
             return Ok(InputMessageContent::InputMessageVideo(InputMessageVideo {
                 video: input_file,
                 thumbnail: None,
+                cover: None,
+                start_timestamp: 0,
                 added_sticker_file_ids: Vec::new(),
                 #[expect(clippy::cast_possible_truncation)]
                 duration: ffprobe

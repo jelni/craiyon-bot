@@ -32,7 +32,7 @@ impl CommandTrait for UrbanDictionary {
             ctx.reply_formatted_text(format_definition(definition)).await?;
         } else {
             Err("sorry, there are no definitions for this word.")?;
-        };
+        }
 
         Ok(())
     }

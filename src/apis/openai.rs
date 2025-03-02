@@ -1,3 +1,4 @@
+use core::fmt;
 use std::borrow::Cow;
 
 use reqwest::StatusCode;
@@ -8,8 +9,8 @@ use crate::utilities::api_utils::DetectServerError;
 
 #[derive(Serialize)]
 struct Request<'a> {
-    model: &'static str,
     messages: &'a [Message<'a>],
+    model: &'static str,
     max_tokens: u16,
 }
 
@@ -42,8 +43,24 @@ pub struct ErrorResponse {
 
 #[derive(Deserialize)]
 pub struct Error {
-    pub code: String,
+    pub code: ErrorCode,
     pub message: String,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+pub enum ErrorCode {
+    String(String),
+    U32(u32),
+}
+
+impl fmt::Display for ErrorCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorCode::String(code) => f.write_str(&code),
+            ErrorCode::U32(code) => write!(f, "{code}"),
+        }
+    }
 }
 
 pub async fn chat_completion(
@@ -51,12 +68,13 @@ pub async fn chat_completion(
     base_url: &str,
     api_key: &str,
     model: &'static str,
+    max_tokens: u16,
     messages: &[Message<'_>],
 ) -> Result<Result<ChatCompletion, Error>, CommandError> {
     let response = http_client
         .post(format!("{base_url}/chat/completions"))
         .bearer_auth(api_key)
-        .json(&Request { model, messages, max_tokens: 256 })
+        .json(&Request { messages, model, max_tokens })
         .send()
         .await?
         .server_error()?;

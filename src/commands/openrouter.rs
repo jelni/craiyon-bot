@@ -13,38 +13,35 @@ use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, ReplyChain};
 use crate::utilities::rate_limit::RateLimiter;
 
-pub struct Groq {
+pub struct OpenRouter {
     command_names: &'static [&'static str],
     description: &'static str,
-    model_name: &'static str,
-    max_tokens: u16,
-    thinking_markers: Option<(&'static str, &'static str)>,
+    model: &'static str,
+    rate_limit: (usize, i32),
 }
 
-impl Groq {
-    pub const fn llama3() -> Self {
+impl OpenRouter {
+    pub const fn mistral() -> Self {
         Self {
-            command_names: &["llama3", "llama"],
-            description: "ask Llama 3.3 70B",
-            model_name: "llama-3.3-70b-versatile",
-            max_tokens: 512,
-            thinking_markers: None,
+            command_names: &["mistral"],
+            description: "ask Mistral Small 3",
+            model: "mistralai/mistral-small-24b-instruct-2501",
+            rate_limit: (6, 60),
         }
     }
 
-    pub const fn deepseek() -> Self {
+    pub const fn perplexity() -> Self {
         Self {
-            command_names: &["deepseek", "r1"],
-            description: "ask DeepSeek R1 (distilled Llama 70b)",
-            model_name: "deepseek-r1-distill-llama-70b",
-            max_tokens: 2048,
-            thinking_markers: Some(("<think>", "</think>")),
+            command_names: &["perplexity", "sonar"],
+            description: "ask Perplexity Sonar",
+            model: "perplexity/sonar",
+            rate_limit: (2, 120),
         }
     }
 }
 
 #[async_trait]
-impl CommandTrait for Groq {
+impl CommandTrait for OpenRouter {
     fn command_names(&self) -> &[&str] {
         self.command_names
     }
@@ -54,7 +51,7 @@ impl CommandTrait for Groq {
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
-        RateLimiter::new(6, 60)
+        RateLimiter::new(self.rate_limit.0, self.rate_limit.1)
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
@@ -78,22 +75,17 @@ impl CommandTrait for Groq {
 
         let response = openai::chat_completion(
             ctx.bot_state.http_client.clone(),
-            "https://api.groq.com/openai/v1",
-            &env::var("GROQ_API_KEY").unwrap(),
-            self.model_name,
-            self.max_tokens,
+            "https://openrouter.ai/api/v1",
+            &env::var("OPENROUTER_API_KEY").unwrap(),
+            self.model,
+            512,
             &prompt_messages,
         )
         .await?
         .map_err(|err| CommandError::Custom(format!("error {}: {}", err.code, err.message)))?;
 
         let choice = response.choices.into_iter().next().unwrap();
-
-        let mut text = if let Some((thinking_start, thinking_end)) = self.thinking_markers {
-            hide_thinking(choice.message.content, thinking_start, thinking_end)
-        } else {
-            choice.message.content
-        };
+        let mut text = choice.message.content;
 
         if choice.finish_reason != "stop" {
             write!(text, " [{}]", choice.finish_reason).unwrap();
@@ -115,18 +107,4 @@ impl CommandTrait for Groq {
 
         Ok(())
     }
-}
-
-fn hide_thinking(text: String, thinking_start: &str, thinking_end: &str) -> String {
-    let Some(stripped) = text.strip_prefix(thinking_start) else {
-        return text;
-    };
-
-    let Some(index) = stripped.find(thinking_end) else {
-        return text;
-    };
-
-    let stripped = stripped[index + thinking_end.len()..].trim_ascii_start();
-
-    format!("[{index} thinking chars hidden]\n{stripped}")
 }

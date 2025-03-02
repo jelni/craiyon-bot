@@ -201,6 +201,8 @@ fn get_message_content(
             InputMessageContent::InputMessageVideo(InputMessageVideo {
                 video: InputFile::Local(InputFileLocal { path }),
                 thumbnail,
+                cover: None,
+                start_timestamp: 0,
                 added_sticker_file_ids: Vec::new(),
                 duration,
                 width: infojson.width.map(|width| width.try_into().unwrap()).unwrap_or_default(),

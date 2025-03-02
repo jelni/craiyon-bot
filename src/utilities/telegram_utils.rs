@@ -53,6 +53,7 @@ impl MessageAttachment<'_> {
         }
     }
 
+    #[expect(clippy::missing_const_for_fn, reason = "incorrect suggestion")]
     pub fn mime_type(&self) -> &str {
         match self {
             Self::Animation(animation) => &animation.mime_type,
