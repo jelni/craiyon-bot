@@ -1,3 +1,4 @@
+use core::fmt;
 use std::borrow::Cow;
 
 use reqwest::StatusCode;
@@ -42,8 +43,24 @@ pub struct ErrorResponse {
 
 #[derive(Deserialize)]
 pub struct Error {
-    pub code: String,
+    pub code: ErrorCode,
     pub message: String,
+}
+
+#[derive(Deserialize)]
+#[serde(untagged)]
+pub enum ErrorCode {
+    String(String),
+    U32(u32),
+}
+
+impl fmt::Display for ErrorCode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ErrorCode::String(code) => f.write_str(&code),
+            ErrorCode::U32(code) => write!(f, "{code}"),
+        }
+    }
 }
 
 pub async fn chat_completion(

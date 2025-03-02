@@ -63,7 +63,7 @@ impl CommandTrait for Config {
                 } else {
                     ctx.reply("Markov chain learning was already disabled.".into()).await?;
                 }
-            };
+            }
         } else {
             let mut entities = vec!["unknown setting name. available settings include:\n".text()];
             entities.extend(setting_names());

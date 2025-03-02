@@ -201,7 +201,7 @@ async fn wait_for_generation(
 
         if status.done {
             break start_time.elapsed();
-        };
+        }
 
         if status.faulted {
             Err("the generation timed out.")?;
@@ -237,7 +237,7 @@ async fn wait_for_generation(
                 last_edit = Some(Instant::now());
                 last_status = Some(status);
             }
-        };
+        }
 
         tokio::time::sleep(Duration::from_secs(2)).await;
     };
@@ -301,7 +301,7 @@ fn format_status_text(
             "consider joining yourself".text_url("https://stablehorde.net/"),
             "!".text(),
         ]);
-    };
+    }
 
     message_entities::formatted_text(entities)
 }

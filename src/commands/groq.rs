@@ -72,6 +72,10 @@ impl CommandTrait for Groq {
             })
         }));
 
+        if prompt_messages.len() <= 1 {
+            return Err(CommandError::Custom("no prompt provided.".into()));
+        }
+
         let response = openai::chat_completion(
             ctx.bot_state.http_client.clone(),
             "https://api.groq.com/openai/v1",
@@ -122,7 +126,7 @@ fn hide_thinking(text: String, thinking_start: &str, thinking_end: &str) -> Stri
         return text;
     };
 
-    let stripped = stripped[index..].trim_ascii_start();
+    let stripped = stripped[index + thinking_end.len()..].trim_ascii_start();
 
     format!("[{index} thinking chars hidden]\n{stripped}")
 }

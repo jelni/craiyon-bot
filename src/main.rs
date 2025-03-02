@@ -20,8 +20,8 @@ async fn main() {
     bot.add_command(commands::craiyon::Craiyon::photo());
     bot.add_command(commands::craiyon::Craiyon::none());
     bot.add_command(commands::craiyon_search::CraiyonSearch);
-    bot.add_command(commands::fal::Fal::sdxl());
     bot.add_command(commands::fal::Fal::sana());
+    bot.add_command(commands::fal::Fal::sdxl());
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion());
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion_2());
     bot.add_command(commands::stablehorde::StableHorde::waifu_diffusion());
@@ -34,7 +34,7 @@ async fn main() {
     bot.add_command(commands::groq::Groq::llama3());
     bot.add_command(commands::groq::Groq::deepseek());
     bot.add_command(commands::openrouter::OpenRouter::mistral());
-    bot.add_command(commands::openrouter::OpenRouter::sonar());
+    bot.add_command(commands::openrouter::OpenRouter::perplexity());
     bot.add_command(commands::translate::Translate);
     bot.add_command(commands::badtranslate::BadTranslate);
     bot.add_command(commands::trollslate::Trollslate);

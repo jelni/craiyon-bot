@@ -74,7 +74,7 @@ fn get_filename(response: &reqwest::Response) -> &str {
         .headers()
         .get(CONTENT_DISPOSITION)
         .and_then(|header| parse_filename(header.to_str().unwrap()))
-        .unwrap_or_else(|| response.url().path_segments().unwrap().last().unwrap())
+        .unwrap_or_else(|| response.url().path_segments().unwrap().next_back().unwrap())
 }
 
 /// parses the `filename` from a `Content-Disposition` header

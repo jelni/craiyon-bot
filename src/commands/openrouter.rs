@@ -16,25 +16,26 @@ use crate::utilities::rate_limit::RateLimiter;
 pub struct OpenRouter {
     command_names: &'static [&'static str],
     description: &'static str,
-    model_name: &'static str,
-    ratelimit: RateLimiter<i64>,
+    model: &'static str,
+    rate_limit: (usize, i32),
 }
 
 impl OpenRouter {
-    pub fn mistral() -> Self {
+    pub const fn mistral() -> Self {
         Self {
             command_names: &["mistral"],
-            description: "generate text using mistral small 3",
-            model_name: "mistralai/mistral-small-24b-instruct-2501",
-            ratelimit: RateLimiter::new(6, 60),
+            description: "ask Mistral Small 3",
+            model: "mistralai/mistral-small-24b-instruct-2501",
+            rate_limit: (6, 60),
         }
     }
-    pub fn sonar() -> Self {
+
+    pub const fn perplexity() -> Self {
         Self {
-            command_names: &["sonar", "online"],
-            description: "search the web using perplexity sonar",
-            model_name: "perplexity/sonar",
-            ratelimit: RateLimiter::new(1, 120),
+            command_names: &["perplexity", "sonar"],
+            description: "ask Perplexity Sonar",
+            model: "perplexity/sonar",
+            rate_limit: (2, 120),
         }
     }
 }
@@ -50,7 +51,7 @@ impl CommandTrait for OpenRouter {
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
-        self.ratelimit.clone()
+        RateLimiter::new(self.rate_limit.0, self.rate_limit.1)
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
@@ -68,13 +69,16 @@ impl CommandTrait for OpenRouter {
             })
         }));
 
+        if prompt_messages.len() <= 1 {
+            return Err(CommandError::Custom("no prompt provided.".into()));
+        }
+
         let response = openai::chat_completion(
             ctx.bot_state.http_client.clone(),
             "https://openrouter.ai/api/v1",
             &env::var("OPENROUTER_API_KEY").unwrap(),
-            self.model_name,
-            2048,
-            0.5,
+            self.model,
+            512,
             &prompt_messages,
         )
         .await?

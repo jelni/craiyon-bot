@@ -100,7 +100,7 @@ impl ConvertArgument for Reply {
 
         if let Some(quote) = reply.quote.as_ref() {
             return Ok((Self(quote.text.text.clone()), arguments));
-        };
+        }
 
         let content = if let Some(content) = reply.content.as_ref() {
             Cow::Borrowed(content)
