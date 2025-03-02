@@ -82,7 +82,7 @@ impl CommandTrait for CobaltDownload {
                     return match err {
                         Error::Server(error) => Err(error.into()),
                         Error::Network(error) => Err(error.into()),
-                    }
+                    };
                 }
             };
 

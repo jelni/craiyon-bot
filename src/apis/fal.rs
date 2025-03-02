@@ -1,7 +1,7 @@
 use std::env;
 
-use reqwest::header::AUTHORIZATION;
 use reqwest::StatusCode;
+use reqwest::header::AUTHORIZATION;
 use serde::{Deserialize, Serialize};
 
 use crate::commands::CommandError;

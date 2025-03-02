@@ -1,7 +1,7 @@
 use core::fmt;
 
-use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use md5::Digest;
 use reqwest::header::{CONTENT_TYPE, ORIGIN};
 use serde::{Deserialize, Serialize};

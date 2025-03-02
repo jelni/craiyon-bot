@@ -24,11 +24,8 @@ impl CommandTrait for Kebab {
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
-        let random_name = WORDS
-            .choose_multiple(&mut rand::rng(), 2)
-            .copied()
-            .collect::<Vec<&str>>()
-            .join(" ");
+        let random_name =
+            WORDS.choose_multiple(&mut rand::rng(), 2).copied().collect::<Vec<&str>>().join(" ");
 
         ctx.reply(random_name).await?;
 

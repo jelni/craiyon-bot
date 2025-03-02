@@ -17,7 +17,7 @@ use tdlib::types::{
 use tokio::signal;
 use tokio::task::JoinHandle;
 
-use crate::commands::{calculate_inline, dice_reply, CommandTrait};
+use crate::commands::{CommandTrait, calculate_inline, dice_reply};
 use crate::utilities::bot_state::{BotState, BotStatus};
 use crate::utilities::cache::CompactUser;
 use crate::utilities::command_manager::{CommandInstance, CommandManager};

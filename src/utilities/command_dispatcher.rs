@@ -108,8 +108,8 @@ async fn report_command_error(
         CommandError::Server(status_code) => {
             context
                 .reply(format!(
-                "an external service used by this command is currently offline ({status_code})."
-            ))
+                    "an external service used by this command is currently offline ({status_code})."
+                ))
                 .await?
         }
         CommandError::Reqwest(err) => {

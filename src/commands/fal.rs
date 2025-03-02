@@ -6,7 +6,7 @@ use crate::apis::fal;
 use crate::commands::{CommandError, CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
-use crate::utilities::message_entities::{formatted_text, ToEntity, ToEntityOwned};
+use crate::utilities::message_entities::{ToEntity, ToEntityOwned, formatted_text};
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils;
 

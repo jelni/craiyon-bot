@@ -3,7 +3,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 
 use markov_chain::MarkovChain;
-use reqwest::{redirect, Client};
+use reqwest::{Client, redirect};
 use tdlib::enums::{ChatMember, ChatMemberStatus, MessageSender};
 use tdlib::functions;
 use tdlib::types::MessageSenderUser;

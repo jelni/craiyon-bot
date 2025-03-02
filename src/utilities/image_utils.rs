@@ -1,4 +1,4 @@
-use image::{imageops, DynamicImage};
+use image::{DynamicImage, imageops};
 
 #[expect(
     clippy::cast_possible_truncation,

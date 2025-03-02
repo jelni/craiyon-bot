@@ -57,8 +57,8 @@ pub enum ErrorCode {
 impl fmt::Display for ErrorCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ErrorCode::String(code) => f.write_str(&code),
-            ErrorCode::U32(code) => write!(f, "{code}"),
+            Self::String(code) => f.write_str(code),
+            Self::U32(code) => write!(f, "{code}"),
         }
     }
 }

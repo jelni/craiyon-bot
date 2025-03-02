@@ -16,7 +16,7 @@ use super::{CommandError, CommandResult, CommandTrait};
 use crate::apis::stablehorde::{self, GeneratedImage, Status};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
-use crate::utilities::message_entities::{self, formatted_text, ToEntity, ToEntityOwned};
+use crate::utilities::message_entities::{self, ToEntity, ToEntityOwned, formatted_text};
 use crate::utilities::rate_limit::RateLimiter;
 use crate::utilities::text_utils::TruncateWithEllipsis;
 use crate::utilities::{api_utils, image_utils, text_utils};

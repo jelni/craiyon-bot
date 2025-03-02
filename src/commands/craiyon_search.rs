@@ -2,8 +2,8 @@ use std::format;
 use std::io::BufWriter;
 
 use async_trait::async_trait;
-use image::imageops::FilterType;
 use image::ImageFormat;
+use image::imageops::FilterType;
 use reqwest::Url;
 use tdlib::enums::{InputFile, InputMessageContent};
 use tdlib::types::{InputFileLocal, InputMessagePhoto};
