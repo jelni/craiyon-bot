@@ -42,7 +42,6 @@ pub async fn execute(query: UpdateNewInlineQuery, http_client: reqwest::Client, 
         vec![InputInlineQueryResult::Article(InputInlineQueryResultArticle {
             id: "0".into(),
             url: String::new(),
-            hide_url: true,
             title,
             description: String::new(),
             thumbnail_url: String::new(),

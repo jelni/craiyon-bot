@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rand::seq::SliceRandom;
+use rand::seq::IndexedRandom;
 
 use super::{CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
@@ -25,7 +25,7 @@ impl CommandTrait for Kebab {
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
         let random_name = WORDS
-            .choose_multiple(&mut rand::thread_rng(), 2)
+            .choose_multiple(&mut rand::rng(), 2)
             .copied()
             .collect::<Vec<&str>>()
             .join(" ");
