@@ -31,6 +31,7 @@ async fn main() {
     bot.add_command(commands::different_dimension_me::DifferentDimensionMe);
     bot.add_command(commands::gemini::Gemini::gemini());
     bot.add_command(commands::gemini::Gemini::gemini2());
+    bot.add_command(commands::groq::Groq::llama4());
     bot.add_command(commands::groq::Groq::llama3());
     bot.add_command(commands::groq::Groq::deepseek());
     bot.add_command(commands::openrouter::OpenRouter::mistral());
