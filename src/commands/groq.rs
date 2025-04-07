@@ -22,9 +22,19 @@ pub struct Groq {
 }
 
 impl Groq {
+    pub const fn llama4() -> Self {
+        Self {
+            command_names: &["llama4", "llama"],
+            description "ask Llama 4 Scout"
+            model_name: "meta-llama/llama-4-scout-17b-16e-instruct",
+            max_tokens: 512,
+            thinking_markers: None,
+        }
+    }
+
     pub const fn llama3() -> Self {
         Self {
-            command_names: &["llama3", "llama"],
+            command_names: &["llama3"],
             description: "ask Llama 3.3 70B",
             model_name: "llama-3.3-70b-versatile",
             max_tokens: 512,
