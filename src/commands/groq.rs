@@ -25,7 +25,7 @@ impl Groq {
     pub const fn llama4() -> Self {
         Self {
             command_names: &["llama4", "llama"],
-            description "ask Llama 4 Scout"
+            description: "ask Llama 4 Scout",
             model_name: "meta-llama/llama-4-scout-17b-16e-instruct",
             max_tokens: 512,
             thinking_markers: None,
