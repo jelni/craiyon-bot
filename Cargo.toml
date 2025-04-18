@@ -24,7 +24,7 @@ markov-chain = { git = "https://github.com/jelni/markov-chain" }
 md5 = "0.7"
 oneshot = "0.1"
 rand = "0.9"
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
 rmp-serde = "1.1"
 serde = "1.0"
 serde_json = "1.0"
