@@ -48,7 +48,9 @@ impl CommandTrait for Flux {
             response_format: "b64_json".to_string(),
         };
 
+        let start = std::time::Instant::now();
         let response = client.generate_image(request).await;
+        let elapsed = start.elapsed();
         let response = match response {
             Ok(r) => r,
             Err(e) => {
@@ -74,7 +76,10 @@ impl CommandTrait for Flux {
                     added_sticker_file_ids: Vec::new(),
                     width: 0,
                     height: 0,
-                    caption: Some(FormattedText { text: prompt, ..Default::default() }),
+                    caption: Some(FormattedText {
+                        text: format!("generated with FLUX: {}\n({:.2}s)", prompt, elapsed.as_secs_f32()),
+                        ..Default::default()
+                    }),
                     show_caption_above_media: false,
                     self_destruct_type: None,
                     has_spoiler: false,
