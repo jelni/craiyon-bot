@@ -23,6 +23,7 @@ pub mod delete;
 pub mod dice_reply;
 pub mod different_dimension_me;
 pub mod fal;
+pub mod flux;
 pub mod gemini;
 pub mod groq;
 pub mod kebab;
