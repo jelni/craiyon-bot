@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use base64::Engine;
-use log::{error, warn};
+use log::error;
 use std::io::Write;
 use tempfile::NamedTempFile;
 use tdlib::enums::{InputFile, InputMessageContent};
@@ -9,7 +9,8 @@ use tdlib::types::{FormattedText, InputFileLocal, InputMessagePhoto};
 
 use crate::commands::{CommandError, CommandResult, CommandTrait};
 use crate::utilities::command_context::CommandContext;
-use crate::utilities::telegram_utils::get_message_text;
+use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
+use crate::utilities::text_utils;
 use crate::utilities::together::{TogetherClient, TogetherImageRequest};
 
 pub struct Flux;
@@ -24,16 +25,13 @@ impl CommandTrait for Flux {
         Some("generate an image using FLUX[schnell]")
     }
 
-    async fn execute(&self, ctx: &CommandContext, _arguments: String) -> CommandResult {
-        let prompt = get_message_text(&ctx.message.content)
-            .map(|ft| ft.text.trim().replace("/flux", "").trim().to_string())
-            .filter(|t| !t.is_empty());
-        if prompt.is_none() {
-            warn!("No prompt found in the message or reply message");
-            ctx.reply("Please provide a prompt.".to_string()).await?;
-            return Ok(());
+    async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
+        let StringGreedyOrReply(prompt) = ConvertArgument::convert(ctx, &arguments).await?.0;
+
+        if let Some(issue) = text_utils::check_prompt(&prompt) {
+            log::info!("prompt rejected: {issue:?}");
+            return Err(CommandError::Custom(issue.into()));
         }
-        let prompt = prompt.unwrap();
 
         ctx.send_typing().await?;
 
