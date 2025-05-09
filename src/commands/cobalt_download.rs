@@ -120,7 +120,7 @@ async fn get_result(
     Err(error.unwrap())
 }
 
-#[expect(clippy::too_many_lines, clippy::large_stack_frames)]
+#[expect(clippy::too_many_lines, clippy::cognitive_complexity, clippy::large_stack_frames)]
 async fn send_files(ctx: &CommandContext, instance: &str, result: Response) -> CommandResult {
     match result {
         Response::Redirect(file) | Response::Tunnel(file) => {
