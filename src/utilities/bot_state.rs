@@ -1,18 +1,21 @@
 use std::env;
 use std::sync::Mutex;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use markov_chain::MarkovChain;
 use reqwest::{Client, redirect};
 use tdlib::enums::{ChatMember, ChatMemberStatus, MessageSender};
 use tdlib::functions;
 use tdlib::types::MessageSenderUser;
+use tokio::sync::Mutex as TokioMutex;
 
 use super::cache::Cache;
 use super::config::Config;
 use super::markov_chain_manager;
 use super::message_queue::MessageQueue;
 use super::rate_limit::{RateLimiter, RateLimits};
+use crate::apis::coinranking::Coin;
+use crate::apis::eurofxref::Rate;
 use crate::bot::TdResult;
 
 #[derive(Clone, Copy)]
@@ -23,11 +26,18 @@ pub enum BotStatus {
     Closed,
 }
 
+pub struct Currencies {
+    pub updated_at: Instant,
+    pub fiat: Vec<Rate>,
+    pub crypto: Vec<Coin>,
+}
+
 pub struct BotState {
     pub status: Mutex<BotStatus>,
     pub config: Mutex<Config>,
     pub cache: Mutex<Cache>,
     pub http_client: Client,
+    pub currencies: TokioMutex<Option<Currencies>>,
     pub message_queue: MessageQueue,
     pub rate_limits: Mutex<RateLimits>,
     pub markov_chain: Mutex<MarkovChain>,
@@ -50,6 +60,7 @@ impl BotState {
                 .timeout(Duration::from_secs(300))
                 .build()
                 .unwrap(),
+            currencies: TokioMutex::new(None),
             rate_limits: Mutex::new(RateLimits { rate_limit_exceeded: RateLimiter::new(1, 20) }),
             message_queue: MessageQueue::default(),
             markov_chain: Mutex::new(markov_chain_manager::load().unwrap()),

@@ -218,7 +218,7 @@ impl Bot {
             match destination {
                 MessageDestination::Command { command, arguments, context } => {
                     self.run_task(command_dispatcher::dispatch_command(
-                        command, arguments, context,
+                        command, arguments, *context,
                     ));
                 }
                 MessageDestination::Dice { message } => {

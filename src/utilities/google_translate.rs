@@ -215,7 +215,7 @@ impl ConvertArgument for Language {
         _: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        let arguments = arguments.trim_start();
+        let arguments = arguments.trim_ascii_start();
 
         if arguments.is_empty() {
             Err(ConversionError::MissingArgument)?;

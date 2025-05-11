@@ -25,7 +25,7 @@ impl ParsedCommand {
         let (command_name, username) =
             command.split_once('@').map_or((command, None), |parts| (parts.0, Some(parts.1)));
 
-        let arguments = formatted_text.text[command_name_range.end..].trim_start().into();
+        let arguments = formatted_text.text[command_name_range.end..].trim_ascii_start().into();
 
         Some(Self {
             name: command_name.to_lowercase(),
