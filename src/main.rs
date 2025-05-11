@@ -15,12 +15,6 @@ async fn main() {
     let mut bot = Bot::new();
 
     bot.add_command(commands::start::Start);
-    bot.add_command(commands::craiyon::Generate);
-    bot.add_command(commands::craiyon::Craiyon::art());
-    bot.add_command(commands::craiyon::Craiyon::drawing());
-    bot.add_command(commands::craiyon::Craiyon::photo());
-    bot.add_command(commands::craiyon::Craiyon::none());
-    bot.add_command(commands::craiyon_search::CraiyonSearch);
     bot.add_command(commands::fal::Fal::sana());
     bot.add_command(commands::fal::Fal::sdxl());
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion());
@@ -41,6 +35,7 @@ async fn main() {
     bot.add_command(commands::translate::Translate);
     bot.add_command(commands::badtranslate::BadTranslate);
     bot.add_command(commands::trollslate::Trollslate);
+    bot.add_command(commands::convert::Convert);
     bot.add_command(commands::urbandictionary::UrbanDictionary);
     bot.add_command(commands::screenshot::Screenshot);
     bot.add_command(commands::cobalt_download::CobaltDownload::auto());
