@@ -11,7 +11,7 @@ use super::telegram_utils;
 use crate::bot::Bot;
 
 pub enum MessageDestination {
-    Command { command: Arc<CommandInstance>, arguments: String, context: CommandContext },
+    Command { command: Arc<CommandInstance>, arguments: String, context: Box<CommandContext> },
     Dice { message: Box<Message> },
     MarkovChain { text: String },
 }
@@ -72,7 +72,13 @@ pub fn message_destination(
         Some(MessageDestination::Command {
             command,
             arguments: parsed_command.arguments,
-            context: CommandContext { client_id: bot.client_id, chat, user, message, bot_state },
+            context: Box::new(CommandContext {
+                client_id: bot.client_id,
+                chat,
+                user,
+                message,
+                bot_state,
+            }),
         })
     } else {
         let (ChatType::BasicGroup(_) | ChatType::Supergroup(_)) = chat.r#type else {

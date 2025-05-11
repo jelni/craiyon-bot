@@ -44,7 +44,7 @@ impl ConvertArgument for String {
         _: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        let mut arguments = arguments.trim_start().chars();
+        let mut arguments = arguments.trim_ascii_start().chars();
         let argument =
             arguments.by_ref().take_while(|char| !char.is_ascii_whitespace()).collect::<Self>();
 
@@ -131,7 +131,7 @@ impl ConvertArgument for StringGreedy {
         _: &CommandContext,
         arguments: &'a str,
     ) -> Result<(Self, &'a str), ConversionError> {
-        let argument = arguments.trim_start().to_owned();
+        let argument = arguments.trim_ascii_start().to_owned();
 
         if argument.is_empty() {
             Err(ConversionError::MissingArgument)?;

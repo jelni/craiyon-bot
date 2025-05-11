@@ -9,7 +9,7 @@ pub struct Start;
 #[async_trait]
 impl CommandTrait for Start {
     fn command_names(&self) -> &[&str] {
-        &["start"]
+        &["start", "help"]
     }
 
     async fn execute(&self, ctx: &CommandContext, _: String) -> CommandResult {
@@ -25,6 +25,7 @@ impl CommandTrait for Start {
             "yt-dlp".text_url("https://github.com/yt-dlp/yt-dlp"),
             concat!(
                 "\n• /translate (/tr) – translate text using Google Translate\n",
+                "• /convert (/c) – convert between popular currencies and cryptocurrencies\n",
                 "• /screenshot (/ss) – screenshot websites\n",
                 "• /urbandictionary (/ud) – get slang term definitions\n",
                 "• /charinfo (/ch) – see Unicode character names\n",
