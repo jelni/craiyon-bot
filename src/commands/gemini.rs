@@ -43,8 +43,8 @@ impl Gemini {
     pub const fn gemini2() -> Self {
         Self {
             command_names: &["gemini2", "g2"],
-            description: "ask Gemini 2.0 Flash",
-            model: "gemini-2.0-flash-exp",
+            description: "ask Gemini 2.5 Flash",
+            model: "gemini-2.5-flash-preview-04-17",
         }
     }
 }
