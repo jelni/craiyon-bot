@@ -1,6 +1,8 @@
 pub mod azuracast;
 pub mod cobalt;
+pub mod coinranking;
 pub mod different_dimension_me;
+pub mod eurofxref;
 pub mod fal;
 pub mod google;
 pub mod google_aistudio;

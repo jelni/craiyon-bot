@@ -17,6 +17,7 @@ pub mod calculate_inline;
 pub mod charinfo;
 pub mod cobalt_download;
 pub mod config;
+pub mod convert;
 pub mod delete;
 pub mod dice_reply;
 pub mod different_dimension_me;

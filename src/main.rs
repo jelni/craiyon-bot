@@ -33,6 +33,7 @@ async fn main() {
     bot.add_command(commands::translate::Translate);
     bot.add_command(commands::badtranslate::BadTranslate);
     bot.add_command(commands::trollslate::Trollslate);
+    bot.add_command(commands::convert::Convert);
     bot.add_command(commands::urbandictionary::UrbanDictionary);
     bot.add_command(commands::screenshot::Screenshot);
     bot.add_command(commands::cobalt_download::CobaltDownload::auto());

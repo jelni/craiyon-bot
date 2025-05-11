@@ -225,5 +225,5 @@ pub fn log_status_update(update: &UpdateChatMember, chat: &CompactChat) {
         _ => return,
     };
 
-    log::info!("{} {}", status, chat);
+    log::info!("{status} {chat}");
 }
