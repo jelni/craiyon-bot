@@ -234,7 +234,7 @@ impl ConvertArgument for Language {
             }
         }
 
-        Err(ConversionError::BadArgument("unknown language code or name."))
+        Err(ConversionError::BadArgument(Cow::Borrowed("unknown language code or name.")))
     }
 }
 

@@ -30,7 +30,7 @@ serde = "1.0"
 serde-xml-rs = "0.8"
 serde_json = "1.0"
 tdlib = { git = "https://github.com/jelni/tdlib-rs-latest" }
-tempfile = "3.17"
+tempfile = "3.20"
 time = { version = "0.3", features = ["macros", "serde", "serde-well-known"] }
 tokio = { version = "1.43", features = ["macros", "process", "rt-multi-thread", "signal", "time"] }
 url = "2.5"

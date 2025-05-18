@@ -1,9 +1,8 @@
 //! inspired by <https://github.com/lunush/rates>
 
 use std::borrow::Cow;
-use std::fmt::{self};
-use std::iter;
 use std::time::{Duration, Instant};
+use std::{fmt, iter};
 
 use async_trait::async_trait;
 
@@ -34,6 +33,12 @@ impl ConvertArgument for Arguments {
         let (amount, currency) = match part {
             Some(part) => match part.parse::<f64>() {
                 Ok(amount) => {
+                    if !amount.is_normal() {
+                        return Err(ConversionError::BadArgument(Cow::Owned(format!(
+                            "{amount} is not a valid amount."
+                        ))));
+                    }
+
                     let (source_currency, rest) = String::convert(ctx, arguments).await?;
                     arguments = rest;
                     (amount, source_currency)
@@ -79,18 +84,16 @@ struct FormatAmount(f64);
 
 impl fmt::Display for FormatAmount {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.0.fract() == 0. {
+            return write!(f, "{}", self.0);
+        }
+
         let significant_digits = -self.0.log10().floor();
-
         #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let precision = if significant_digits >= 0.
-            && (self.0 * 10_f64.powi(significant_digits as i32)).fract() <= f64::EPSILON
-        {
-            significant_digits
-        } else {
-            (significant_digits + 2.).max(0.)
-        } as usize;
+        let precision = (significant_digits + 2.).max(0.) as usize;
+        let number = format!("{:.*}", precision, self.0);
 
-        write!(f, "{:.*}", precision, self.0)
+        write!(f, "{}", number.trim_end_matches('0').trim_end_matches('.'))
     }
 }
 
@@ -168,13 +171,15 @@ impl CommandTrait for Convert {
             ))
             .collect::<Result<Vec<_>, _>>()?;
 
+        let joiner = if target_currencies.len() <= 2 { " = " } else { "\n= " };
+
         let response = target_currencies
             .into_iter()
             .map(|target_currency| {
                 format!("{} {}", FormatAmount(target_currency.1), target_currency.0)
             })
             .collect::<Vec<_>>()
-            .join(" = ");
+            .join(joiner);
 
         ctx.reply(response).await?;
 
@@ -198,4 +203,30 @@ fn get_crypto_price<'a>(coins: &'a [Coin], currency: &str) -> Option<(&'a str, f
     let rate = coin.price.parse::<f64>().unwrap();
 
     Some((&coin.symbol, rate))
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_format_amount() {
+        assert_eq!(format!("{}", FormatAmount(0.)), "0");
+        assert_eq!(format!("{}", FormatAmount(1.)), "1");
+        assert_eq!(format!("{}", FormatAmount(2.5)), "2.5");
+        assert_eq!(format!("{}", FormatAmount(2.501)), "2.5");
+        assert_eq!(format!("{}", FormatAmount(10.)), "10");
+        assert_eq!(format!("{}", FormatAmount(25.)), "25");
+        assert_eq!(format!("{}", FormatAmount(100.)), "100");
+        assert_eq!(format!("{}", FormatAmount(1000.)), "1000");
+        assert_eq!(format!("{}", FormatAmount(0.1)), "0.1");
+        assert_eq!(format!("{}", FormatAmount(0.25)), "0.25");
+        assert_eq!(format!("{}", FormatAmount(0.01)), "0.01");
+        assert_eq!(format!("{}", FormatAmount(0.001)), "0.001");
+        assert_eq!(format!("{}", FormatAmount(0.0001)), "0.0001");
+        assert_eq!(format!("{}", FormatAmount(0.1234)), "0.123");
+        assert_eq!(format!("{}", FormatAmount(0.01234)), "0.0123");
+        assert_eq!(format!("{}", FormatAmount(0.001234)), "0.00123");
+        assert_eq!(format!("{}", FormatAmount(0.0001234)), "0.000123");
+    }
 }
