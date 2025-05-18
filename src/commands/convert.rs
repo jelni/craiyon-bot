@@ -130,18 +130,16 @@ impl CommandTrait for Convert {
             }
         };
 
-        let (_, rate_usd) = get_fiat_rate(&currencies.fiat, "usd").unwrap();
-
-        let (source_currency, amount_eur, amount_usd) =
+        let (source_currency, amount_eur) =
             match get_fiat_rate(&currencies.fiat, &arguments.currency) {
                 Some((currency, rate)) => {
                     let amount_eur = arguments.amount / rate;
-                    (currency, amount_eur, amount_eur * rate_usd)
+                    (currency, amount_eur)
                 }
                 None => match get_crypto_price(&currencies.crypto, &arguments.currency) {
                     Some((currency, price)) => {
-                        let amount_usd = arguments.amount * price;
-                        (currency, amount_usd / rate_usd, amount_usd)
+                        let amount_eur = arguments.amount * price;
+                        (currency, amount_eur)
                     }
                     None => {
                         return Err(CommandError::CustomFormattedText(
@@ -159,7 +157,7 @@ impl CommandTrait for Convert {
                 |target_currency| match get_fiat_rate(&currencies.fiat, &target_currency) {
                     Some((symbol, rate)) => Ok((symbol, amount_eur * rate)),
                     None => match get_crypto_price(&currencies.crypto, &target_currency) {
-                        Some((symbol, price)) => Ok((symbol, amount_usd / price)),
+                        Some((symbol, price)) => Ok((symbol, amount_eur / price)),
                         None => Err(CommandError::CustomFormattedText(
                             message_entities::formatted_text(vec![
                                 "could not find target currency ".text(),
