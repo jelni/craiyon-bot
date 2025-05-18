@@ -27,14 +27,14 @@ pub async fn dispatch_command(
 
     log::info!("running {command} {:?} for {} in {}", arguments, context.user, context.chat);
 
-    if let Err(err) = command.command.execute(&context, arguments).await {
-        if let Err(err) = report_command_error(command, &context, err).await {
-            log::error!(
-                "TDLib error occurred while handling the previous error {}: {}",
-                err.code,
-                err.message
-            );
-        }
+    if let Err(err) = command.command.execute(&context, arguments).await
+        && let Err(err) = report_command_error(command, &context, err).await
+    {
+        log::error!(
+            "TDLib error occurred while handling the previous error {}: {}",
+            err.code,
+            err.message
+        );
     }
 }
 

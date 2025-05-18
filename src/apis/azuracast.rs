@@ -82,11 +82,9 @@ impl PlayerState {
             ]);
         }
 
-        if !compact {
-            if let Some(playing_next) = self.playing_next {
-                entities.push("\n\nNastępnie:\n".text());
-                entities.extend(format_song(playing_next.song));
-            }
+        if !compact && let Some(playing_next) = self.playing_next {
+            entities.push("\n\nNastępnie:\n".text());
+            entities.extend(format_song(playing_next.song));
         }
 
         if !compact || self.listeners.total > 0 {

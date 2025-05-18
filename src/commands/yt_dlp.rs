@@ -126,10 +126,10 @@ impl CommandTrait for YtDlp {
             return Err("cannot download media, because duration and filesize are unknown.".into());
         }
 
-        if let Some(filesize) = infojson.filesize_approx {
-            if filesize > 1024 * 1024 * 1024 {
-                return Err("cannot download media larger than 1 GiB.".into());
-            }
+        if let Some(filesize) = infojson.filesize_approx
+            && filesize > 1024 * 1024 * 1024
+        {
+            return Err("cannot download media larger than 1 GiB.".into());
         }
 
         let channel = infojson.artist.clone().or_else(|| infojson.channel.clone());

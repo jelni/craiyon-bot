@@ -132,15 +132,9 @@ impl CommandTrait for Convert {
 
         let (source_currency, amount_eur) =
             match get_fiat_rate(&currencies.fiat, &arguments.currency) {
-                Some((currency, rate)) => {
-                    let amount_eur = arguments.amount / rate;
-                    (currency, amount_eur)
-                }
+                Some((currency, rate)) => (currency, arguments.amount / rate),
                 None => match get_crypto_price(&currencies.crypto, &arguments.currency) {
-                    Some((currency, price)) => {
-                        let amount_eur = arguments.amount * price;
-                        (currency, amount_eur)
-                    }
+                    Some((currency, price)) => (currency, arguments.amount * price),
                     None => {
                         return Err(CommandError::CustomFormattedText(
                             message_entities::formatted_text(vec![

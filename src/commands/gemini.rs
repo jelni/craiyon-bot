@@ -77,33 +77,30 @@ impl CommandTrait for Gemini {
                 parts.push(Part::Text(Cow::Owned(text)));
             }
 
-            if let Some(content) = message.content {
-                if let Some(message_image) =
+            if let Some(content) = message.content
+                && let Some(message_image) =
                     telegram_utils::get_message_attachment(Cow::Owned(content), true)
-                {
-                    let file = message_image.file();
+            {
+                let file = message_image.file();
 
-                    if file.size > 64 * MEBIBYTE {
-                        return Err(CommandError::Custom(
-                            "files cannot be larger than 64 MiB.".into(),
-                        ));
-                    }
-
-                    let File::File(file) =
-                        functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
-
-                    let open_file = tokio::fs::File::open(file.local.path).await.unwrap();
-
-                    let file = google_aistudio::upload_file(
-                        &ctx.bot_state.http_client,
-                        open_file,
-                        file.size.try_into().unwrap(),
-                        message_image.mime_type(),
-                    )
-                    .await?;
-
-                    parts.push(Part::FileData(FileData { file_uri: file.uri }));
+                if file.size > 64 * MEBIBYTE {
+                    return Err(CommandError::Custom("files cannot be larger than 64 MiB.".into()));
                 }
+
+                let File::File(file) =
+                    functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
+
+                let open_file = tokio::fs::File::open(file.local.path).await.unwrap();
+
+                let file = google_aistudio::upload_file(
+                    &ctx.bot_state.http_client,
+                    open_file,
+                    file.size.try_into().unwrap(),
+                    message_image.mime_type(),
+                )
+                .await?;
+
+                parts.push(Part::FileData(FileData { file_uri: file.uri }));
             }
 
             if !parts.is_empty() {
@@ -249,25 +246,23 @@ impl GenerationProgress {
     }
 
     fn update(&mut self, response: GenerateContentResponse) -> Result<(), CommandError> {
-        if let Some(prompt_feedback) = response.prompt_feedback {
-            if let Some(block_reason) = &prompt_feedback.block_reason {
-                if block_reason == "SAFETY" {
-                    if let Some(safety_ratings) = &prompt_feedback.safety_ratings {
-                        let reasons = safety_ratings
-                            .iter()
-                            .filter(|safety_rating| safety_rating.blocked)
-                            .map(|safety_rating| safety_rating.category.as_str())
-                            .collect::<Vec<_>>()
-                            .join(", ");
+        if let Some(prompt_feedback) = response.prompt_feedback
+            && let Some(block_reason) = &prompt_feedback.block_reason
+        {
+            if block_reason == "SAFETY"
+                && let Some(safety_ratings) = &prompt_feedback.safety_ratings
+            {
+                let reasons = safety_ratings
+                    .iter()
+                    .filter(|safety_rating| safety_rating.blocked)
+                    .map(|safety_rating| safety_rating.category.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
 
-                        return Err(CommandError::Custom(format!(
-                            "request blocked by Google: {reasons}."
-                        )));
-                    }
-                }
-
-                return Err(CommandError::Custom("request blocked by Google.".into()));
+                return Err(CommandError::Custom(format!("request blocked by Google: {reasons}.")));
             }
+
+            return Err(CommandError::Custom("request blocked by Google.".into()));
         }
 
         let Some(candidate) = response.candidates.into_iter().next() else {
@@ -303,10 +298,10 @@ impl GenerationProgress {
             text.push('…');
         }
 
-        if let Some(finish_reason) = self.finish_reason.as_ref() {
-            if finish_reason != "STOP" {
-                write!(text, " [finish reason: {finish_reason}]").unwrap();
-            }
+        if let Some(finish_reason) = self.finish_reason.as_ref()
+            && finish_reason != "STOP"
+        {
+            write!(text, " [finish reason: {finish_reason}]").unwrap();
         }
 
         if !self.citation_sources.is_empty() {
@@ -325,10 +320,10 @@ fn format_citations(citation_sources: &[CitationSource]) -> String {
         if let Some(uri) = source.uri.as_ref() {
             write!(text, "\n[{}] ", i + 1).unwrap();
 
-            if let Some(license) = source.license.as_ref() {
-                if !license.is_empty() {
-                    write!(text, "[{license}] ").unwrap();
-                }
+            if let Some(license) = source.license.as_ref()
+                && !license.is_empty()
+            {
+                write!(text, "[{license}] ").unwrap();
             }
 
             text.push_str(uri);
