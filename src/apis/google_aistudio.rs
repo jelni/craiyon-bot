@@ -316,8 +316,3 @@ pub async fn stream_generate_content<'a>(
 
     tx.send(Ok(serde_json::from_str(&String::from_utf8_lossy(&buffer)).unwrap())).unwrap();
 }
-
-#[derive(Serialize)]
-pub struct TextPrompt<'a> {
-    text: &'a str,
-}

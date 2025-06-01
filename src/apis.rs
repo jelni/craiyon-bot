@@ -13,6 +13,7 @@ pub mod moveit;
 pub mod openai;
 pub mod petittube;
 pub mod poligon;
+pub mod polymarket;
 pub mod stablehorde;
 pub mod translate;
 pub mod urbandictionary;

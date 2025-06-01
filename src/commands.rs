@@ -32,6 +32,7 @@ pub mod moveit_joke;
 pub mod openrouter;
 pub mod petittube;
 pub mod ping;
+pub mod polymarket;
 pub mod radio_poligon;
 pub mod radio_sur;
 pub mod screenshot;

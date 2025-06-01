@@ -41,6 +41,7 @@ async fn main() {
     bot.add_command(commands::yt_dlp::YtDlp::video());
     bot.add_command(commands::yt_dlp::YtDlp::audio());
     bot.add_command(commands::charinfo::CharInfo);
+    bot.add_command(commands::polymarket::Polymarket);
     bot.add_command(commands::radio_sur::RadioSur);
     bot.add_command(commands::radio_poligon::RadioPoligon);
     bot.add_command(commands::autocomplete::Autocomplete);
