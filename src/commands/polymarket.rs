@@ -26,17 +26,15 @@ impl CommandTrait for Polymarket {
 
         let events = polymarket::search_events(&ctx.bot_state.http_client, &query).await?;
 
-        let Some(mut event) = events.into_iter().next() else {
+        let Some(events) = events else {
             return Err(CommandError::Custom("no results found.".into()));
         };
 
-        event.markets.retain(|market| {
-            market.outcome_prices != ["0", "1"] && market.outcome_prices != ["0.0005", "0.9995"]
-        });
+        let mut event = events.into_iter().next().unwrap();
 
         if event.markets.len() > 1 {
-            event.markets.sort_by_cached_key(|market| {
-                market.group_item_threshold.as_ref().unwrap().parse::<u32>().unwrap()
+            event.markets.retain(|market| {
+                market.outcome_prices != ["0", "1"] && market.outcome_prices != ["0.0005", "0.9995"]
             });
         }
 
@@ -51,7 +49,9 @@ impl CommandTrait for Polymarket {
             ")\n".text(),
         ];
 
-        for (i, market) in event.markets.into_iter().enumerate() {
+        for (i, market) in
+            event.markets.into_iter().filter(|event| !event.outcome_prices.is_empty()).enumerate()
+        {
             if i > 0 {
                 entities.push("\n".text());
             }
