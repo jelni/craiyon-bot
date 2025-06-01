@@ -11,6 +11,7 @@ struct Response {
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Event {
+    pub slug: String,
     pub title: String,
     #[serde(with = "time::serde::iso8601")]
     pub end_date: OffsetDateTime,

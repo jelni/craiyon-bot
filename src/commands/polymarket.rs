@@ -5,7 +5,7 @@ use super::{CommandError, CommandResult, CommandTrait};
 use crate::apis::polymarket;
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
-use crate::utilities::message_entities::{self, ToEntity, ToEntityOwned};
+use crate::utilities::message_entities::{self, ToEntity, ToEntityOwned, ToNestedEntity};
 
 pub struct Polymarket;
 
@@ -41,7 +41,7 @@ impl CommandTrait for Polymarket {
         }
 
         let mut entities = vec![
-            event.title.bold(),
+            event.title.bold().text_url(format!("https://polymarket.com/event/{}", event.slug)),
             " (".text(),
             event
                 .end_date
