@@ -8,7 +8,7 @@ use std::sync::Mutex;
 
 use colored::{Color, Colorize};
 use log::{Level, LevelFilter, Log, Metadata, Record};
-use time::macros::format_description;
+use time::macros;
 
 struct Logger {
     file: Mutex<BufWriter<File>>,
@@ -35,7 +35,7 @@ impl Log for Logger {
         }
 
         let timestamp = time::OffsetDateTime::now_utc()
-            .format(format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"))
+            .format(macros::format_description!("[year]-[month]-[day] [hour]:[minute]:[second]"))
             .unwrap();
         let target = record.target();
         let level = record.level().as_str();

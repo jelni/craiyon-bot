@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use time::macros;
 
 use super::{CommandError, CommandResult, CommandTrait};
 use crate::apis::polymarket;
@@ -39,7 +40,16 @@ impl CommandTrait for Polymarket {
             });
         }
 
-        let mut entities = vec![event.title.bold(), "\n".text()];
+        let mut entities = vec![
+            event.title.bold(),
+            " (".text(),
+            event
+                .end_date
+                .format(macros::format_description!("[year]-[month]-[day]"))
+                .unwrap()
+                .text_owned(),
+            ")\n".text(),
+        ];
 
         for (i, market) in event.markets.into_iter().enumerate() {
             if i > 0 {

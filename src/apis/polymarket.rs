@@ -1,5 +1,6 @@
 use reqwest::header::HOST;
 use serde::Deserialize;
+use time::OffsetDateTime;
 use url::Url;
 
 #[derive(Deserialize)]
@@ -8,8 +9,11 @@ struct Response {
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Event {
     pub title: String,
+    #[serde(with = "time::serde::iso8601")]
+    pub end_date: OffsetDateTime,
     pub markets: Vec<Market>,
 }
 
