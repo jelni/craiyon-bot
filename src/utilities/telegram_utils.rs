@@ -175,7 +175,7 @@ pub async fn get_message_or_reply_attachment(
     message: &Message,
     include_non_images: bool,
     client_id: i32,
-) -> TdResult<Option<MessageAttachment>> {
+) -> TdResult<Option<MessageAttachment<'_>>> {
     if let Some(attachment) =
         get_message_attachment(Cow::Borrowed(&message.content), include_non_images)
     {

@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use async_trait::async_trait;
 use reqwest::StatusCode;
 use tdlib::types::FormattedText;
@@ -64,7 +66,7 @@ pub trait CommandTrait {
 
 #[derive(Debug)]
 pub enum CommandError {
-    Custom(String),
+    Custom(Cow<'static, str>),
     CustomFormattedText(FormattedText),
     ArgumentConversion(ConversionError),
     Telegram(TdError),
@@ -76,13 +78,13 @@ pub enum CommandError {
 
 impl From<String> for CommandError {
     fn from(value: String) -> Self {
-        Self::Custom(value)
+        Self::Custom(Cow::Owned(value))
     }
 }
 
-impl From<&str> for CommandError {
-    fn from(value: &str) -> Self {
-        Self::Custom(value.into())
+impl From<&'static str> for CommandError {
+    fn from(value: &'static str) -> Self {
+        Self::Custom(Cow::Borrowed(value))
     }
 }
 
@@ -102,9 +104,9 @@ impl From<GenerationError> for CommandError {
     fn from(value: GenerationError) -> Self {
         match value {
             GenerationError::Network(err) => Self::Reqwest(err),
-            GenerationError::Google(err) => Self::Custom(
+            GenerationError::Google(err) => Self::Custom(Cow::Owned(
                 err.into_iter().map(|error| error.to_string()).collect::<Vec<_>>().join("\n"),
-            ),
+            )),
         }
     }
 }
@@ -142,7 +144,7 @@ impl From<DownloadError> for CommandError {
 impl From<utilities::yt_dlp::Error> for CommandError {
     fn from(value: utilities::yt_dlp::Error) -> Self {
         match value {
-            utilities::yt_dlp::Error::YtDlp(error) => Self::Custom(error),
+            utilities::yt_dlp::Error::YtDlp(error) => Self::Custom(Cow::Owned(error)),
             utilities::yt_dlp::Error::Serde(error) => Self::SerdeJson(error),
         }
     }

@@ -23,7 +23,7 @@ pub struct Card {
     pub permalink: String,
 }
 
-async fn search(http_client: reqwest::Client, term: &str) -> reqwest::Result<Cow<str>> {
+async fn search(http_client: reqwest::Client, term: &str) -> reqwest::Result<Cow<'_, str>> {
     let response = http_client
         .get(
             Url::parse_with_params("https://www.urbandictionary.com/define.php", [("term", term)])

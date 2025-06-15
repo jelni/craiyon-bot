@@ -82,7 +82,9 @@ impl CommandTrait for OpenRouter {
             &prompt_messages,
         )
         .await?
-        .map_err(|err| CommandError::Custom(format!("error {}: {}", err.code, err.message)))?;
+        .map_err(|err| {
+            CommandError::Custom(Cow::Owned(format!("error {}: {}", err.code, err.message)))
+        })?;
 
         let choice = response.choices.into_iter().next().unwrap();
         let mut text = choice.message.content;

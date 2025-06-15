@@ -98,7 +98,7 @@ async fn report_command_error(
     error: CommandError,
 ) -> TdResult<()> {
     match error {
-        CommandError::Custom(text) => context.reply(text).await?,
+        CommandError::Custom(text) => context.reply(text.into()).await?,
         CommandError::CustomFormattedText(text) => context.reply_formatted_text(text).await?,
         CommandError::ArgumentConversion(err) => context.reply(err.to_string()).await?,
         CommandError::Telegram(err) => {

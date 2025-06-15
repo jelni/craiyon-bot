@@ -109,10 +109,7 @@ pub async fn upload_file(
     }
 
     if let Some(error) = file.error {
-        return Err(CommandError::Custom(format!(
-            "Google error {}: {}",
-            error.code, error.message
-        )));
+        return Err(format!("Google error {}: {}", error.code, error.message).into());
     }
 
     Ok(file)

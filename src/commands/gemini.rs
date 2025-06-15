@@ -259,7 +259,7 @@ impl GenerationProgress {
                     .collect::<Vec<_>>()
                     .join(", ");
 
-                return Err(CommandError::Custom(format!("request blocked by Google: {reasons}.")));
+                return Err(format!("request blocked by Google: {reasons}.").into());
             }
 
             return Err(CommandError::Custom("request blocked by Google.".into()));
