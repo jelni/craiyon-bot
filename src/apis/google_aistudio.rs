@@ -180,7 +180,7 @@ pub struct Candidate {
 
 #[derive(Deserialize)]
 pub struct ContentResponse {
-    pub parts: Vec<PartResponse>,
+    pub parts: Option<Vec<PartResponse>>,
 }
 
 #[derive(Deserialize)]
