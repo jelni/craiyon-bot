@@ -57,7 +57,7 @@ pub struct CobaltError {
 #[derive(Deserialize)]
 pub struct ErrorContext {
     pub code: String,
-    pub context: HashMap<String, Value>,
+    pub context: Option<HashMap<String, Value>>,
 }
 
 pub enum Error {

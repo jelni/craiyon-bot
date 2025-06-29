@@ -398,21 +398,23 @@ fn format_api_error(localization: &HashMap<String, String>, error: ErrorContext)
         Some(text) => {
             let mut text = Cow::Borrowed(text.as_str());
 
-            for (key, value) in error.context {
-                let pattern = format!("{{{{ {key} }}}}");
+            if let Some(context) = error.context {
+                for (key, value) in context {
+                    let pattern = format!("{{{{ {key} }}}}");
 
-                if let Some(index) = text.find(&pattern) {
-                    text = Cow::Owned(
-                        [
-                            Cow::Borrowed(&text[..index]),
-                            Cow::Owned(match value {
-                                Value::String(text) => text,
-                                _ => value.to_string(),
-                            }),
-                            Cow::Borrowed(&text[index + pattern.len()..]),
-                        ]
-                        .concat(),
-                    );
+                    if let Some(index) = text.find(&pattern) {
+                        text = Cow::Owned(
+                            [
+                                Cow::Borrowed(&text[..index]),
+                                Cow::Owned(match value {
+                                    Value::String(text) => text,
+                                    _ => value.to_string(),
+                                }),
+                                Cow::Borrowed(&text[index + pattern.len()..]),
+                            ]
+                            .concat(),
+                        );
+                    }
                 }
             }
 
@@ -433,7 +435,7 @@ mod test {
         assert_eq!(
             format_api_error(
                 &HashMap::new(),
-                ErrorContext { code: "error.api.example".into(), context: HashMap::new() }
+                ErrorContext { code: "error.api.example".into(), context: None }
             ),
             "error.api.example"
         );
@@ -441,7 +443,7 @@ mod test {
         assert_eq!(
             format_api_error(
                 &HashMap::from([("example".into(), "foo".into())]),
-                ErrorContext { code: "error.bar.example".into(), context: HashMap::new() }
+                ErrorContext { code: "error.bar.example".into(), context: None }
             ),
             "error.bar.example"
         );
@@ -449,7 +451,7 @@ mod test {
         assert_eq!(
             format_api_error(
                 &HashMap::from([("example".into(), "foo".into())]),
-                ErrorContext { code: "error.api.example".into(), context: HashMap::new() }
+                ErrorContext { code: "error.api.example".into(), context: None }
             ),
             "foo"
         );
@@ -459,7 +461,7 @@ mod test {
                 &HashMap::from([("example".into(), "foo {{ bar }} baz".into())]),
                 ErrorContext {
                     code: "error.api.example".into(),
-                    context: HashMap::from([("bar".into(), Value::String("bax".into()))])
+                    context: Some(HashMap::from([("bar".into(), Value::String("bax".into()))]))
                 }
             ),
             "foo bax baz"
