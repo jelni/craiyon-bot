@@ -10,11 +10,12 @@ use crate::utilities::api_utils::{DetectServerError, ServerError};
 #[serde(rename_all = "camelCase")]
 struct Payload<'a> {
     url: &'a str,
-    video_quality: &'a str,
     audio_format: &'a str,
     download_mode: &'a str,
+    video_quality: &'a str,
+    convert_gif: bool,
     tiktok_full_audio: bool,
-    twitter_gif: bool,
+    youtube_better_audio: bool,
 }
 
 #[derive(Deserialize)]
@@ -76,11 +77,12 @@ pub async fn query(
         .post(instance)
         .json(&Payload {
             url,
-            video_quality: "1080",
             audio_format: "best",
             download_mode: if audio_only { "audio" } else { "auto" },
+            video_quality: "1080",
+            convert_gif: false,
             tiktok_full_audio: true,
-            twitter_gif: false,
+            youtube_better_audio: true,
         })
         .header(ACCEPT, "application/json");
 
