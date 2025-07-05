@@ -307,7 +307,7 @@ mod test {
 
         let (Language(argument), rest) =
             ConvertArgument::convert(&ctx, "chinese (simplified)").await.unwrap();
-        assert_eq!(argument, "zh-cn");
+        assert_eq!(argument, "zh");
         assert_eq!(rest, "");
 
         let result = <Language>::convert(&ctx, "chinese").await;
@@ -322,12 +322,12 @@ mod test {
 
         let (Language(argument), rest) =
             ConvertArgument::convert(&ctx, "chinese (simplified) FOO").await.unwrap();
-        assert_eq!(argument, "zh-cn");
+        assert_eq!(argument, "zh");
         assert_eq!(rest, " FOO");
 
         let (Language(argument), rest) =
             ConvertArgument::convert(&ctx, "CHINESE (SIMPLIFIED) foo").await.unwrap();
-        assert_eq!(argument, "zh-cn");
+        assert_eq!(argument, "zh");
         assert_eq!(rest, " foo");
     }
 
@@ -355,13 +355,13 @@ mod test {
 
         let (SourceTargetLanguages(source_language, target_language), rest) =
             ConvertArgument::convert(&ctx, "chinese (simplified) english").await.unwrap();
-        assert_eq!(source_language, Some("zh-cn"));
+        assert_eq!(source_language, Some("zh"));
         assert_eq!(target_language, "en");
         assert_eq!(rest, "");
 
         let (SourceTargetLanguages(source_language, target_language), rest) =
             ConvertArgument::convert(&ctx, "chinese (simplified) english foo").await.unwrap();
-        assert_eq!(source_language, Some("zh-cn"));
+        assert_eq!(source_language, Some("zh"));
         assert_eq!(target_language, "en");
         assert_eq!(rest, " foo");
     }

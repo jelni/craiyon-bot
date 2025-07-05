@@ -12,6 +12,7 @@ use tdlib::types::{
     InputFileLocal, InputFileRemote, InputMessageAudio, InputMessageDocument,
     InputMessageReplyToMessage, InputMessageVideo, InputThumbnail,
 };
+use url::Url;
 
 use super::{CommandError, CommandResult, CommandTrait};
 use crate::apis::cobalt::{self, Error, ErrorContext, Response};
@@ -88,7 +89,7 @@ impl CommandTrait for CobaltDownload {
                 }
             };
 
-        Box::pin(send_files(ctx, &instance, result)).await?;
+        Box::pin(send_files(ctx, &instance, result, &media_url)).await?;
 
         Ok(())
     }
@@ -123,7 +124,12 @@ async fn get_result(
 }
 
 #[expect(clippy::too_many_lines, clippy::cognitive_complexity, clippy::large_stack_frames)]
-async fn send_files(ctx: &CommandContext, instance: &str, result: Response) -> CommandResult {
+async fn send_files(
+    ctx: &CommandContext,
+    instance: &str,
+    result: Response,
+    url: &str,
+) -> CommandResult {
     match result {
         Response::Redirect(file) | Response::Tunnel(file) => {
             let status_msg = ctx
@@ -296,15 +302,23 @@ async fn send_files(ctx: &CommandContext, instance: &str, result: Response) -> C
             ctx.delete_message(status_msg.id).await.ok();
         }
         Response::Error(error) => {
-            let text = match cobalt::get_api_error_localization(&ctx.bot_state.http_client).await {
-                Ok(localization) => format_api_error(&localization, error.error).to_string(),
-                Err(err) => {
-                    log::warn!("failed to get cobalt localization: {err}");
-                    error.error.code
-                }
-            };
+            let error_text =
+                match cobalt::get_api_error_localization(&ctx.bot_state.http_client).await {
+                    Ok(localization) => format_api_error(&localization, error.error).to_string(),
+                    Err(err) => {
+                        log::warn!("failed to get cobalt localization: {err}");
+                        error.error.code
+                    }
+                };
 
-            return Err(text.into());
+            let mut cobalt_url = Url::parse("https://cobalt.tools/").unwrap();
+            cobalt_url.set_fragment(Some(url));
+
+            return Err(CommandError::CustomFormattedText(message_entities::formatted_text(vec![
+                error_text.text(),
+                "\n".text(),
+                "download using cobalt.tools".text_url(cobalt_url.as_str()),
+            ])));
         }
     }
 
