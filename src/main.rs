@@ -10,6 +10,7 @@ mod utilities;
 async fn main() {
     logchamp::init();
     dotenvy::dotenv().ok();
+    utilities::check_env_vars();
 
     let mut bot = Bot::new();
 
@@ -20,6 +21,7 @@ async fn main() {
     bot.add_command(commands::stablehorde::StableHorde::stable_diffusion_2());
     bot.add_command(commands::stablehorde::StableHorde::waifu_diffusion());
     bot.add_command(commands::stablehorde::StableHorde::furry_diffusion());
+    bot.add_command(commands::flux::Flux);
     bot.add_command(commands::markov_chain::MarkovChain);
     bot.add_command(commands::config::Config);
     bot.add_command(commands::different_dimension_me::DifferentDimensionMe);
