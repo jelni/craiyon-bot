@@ -37,7 +37,7 @@ impl Gemini {
         Self {
             command_names: &["gemini", "g"],
             description: "ask Gemini 1.5 Flash",
-            model: "gemini-1.5-flash-latest",
+            model: "gemini-1.5-flash",
         }
     }
 
@@ -45,7 +45,7 @@ impl Gemini {
         Self {
             command_names: &["gemini2", "g2"],
             description: "ask Gemini 2.5 Flash",
-            model: "gemini-2.5-flash-preview-04-17",
+            model: "gemini-2.5-flash",
         }
     }
 }
