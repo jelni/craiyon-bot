@@ -35,17 +35,17 @@ impl Gemini {
     #[expect(clippy::self_named_constructors)]
     pub const fn gemini() -> Self {
         Self {
-            command_names: &["gemini", "g"],
-            description: "ask Gemini 1.5 Flash",
-            model: "gemini-1.5-flash",
+            command_names: &["gemini", "g", "gemini2", "g2"],
+            description: "ask Gemini 2.5 Flash",
+            model: "gemini-2.5-flash",
         }
     }
 
-    pub const fn gemini2() -> Self {
+    pub const fn gemini_lite() -> Self {
         Self {
-            command_names: &["gemini2", "g2"],
-            description: "ask Gemini 2.5 Flash",
-            model: "gemini-2.5-flash",
+            command_names: &["gemini_lite", "gl"],
+            description: "ask Gemini 2.5 Flash-Lite",
+            model: "gemini-2.5-flash-lite-preview-06-17",
         }
     }
 }
