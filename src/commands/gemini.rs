@@ -45,7 +45,7 @@ impl Gemini {
         Self {
             command_names: &["gemini_lite", "gl"],
             description: "ask Gemini 2.5 Flash-Lite",
-            model: "gemini-2.5-flash-lite-preview-06-17",
+            model: "gemini-2.5-flash-lite",
         }
     }
 }

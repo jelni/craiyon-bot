@@ -25,9 +25,10 @@ async fn main() {
     bot.add_command(commands::different_dimension_me::DifferentDimensionMe);
     bot.add_command(commands::gemini::Gemini::gemini());
     bot.add_command(commands::gemini::Gemini::gemini_lite());
+    bot.add_command(commands::groq::Groq::gpt_oss());
     bot.add_command(commands::groq::Groq::llama4());
     bot.add_command(commands::groq::Groq::llama3());
-    bot.add_command(commands::groq::Groq::deepseek());
+    bot.add_command(commands::groq::Groq::kimi_k2());
     bot.add_command(commands::openrouter::OpenRouter::mistral());
     bot.add_command(commands::openrouter::OpenRouter::perplexity());
     bot.add_command(commands::translate::Translate);
