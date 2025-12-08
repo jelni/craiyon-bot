@@ -104,9 +104,18 @@ impl From<GenerationError> for CommandError {
     fn from(value: GenerationError) -> Self {
         match value {
             GenerationError::Network(err) => Self::Reqwest(err),
-            GenerationError::Google(err) => Self::Custom(Cow::Owned(
-                err.into_iter().map(|error| error.to_string()).collect::<Vec<_>>().join("\n"),
-            )),
+            GenerationError::Google(err) => {
+                if err.iter().any(|error| error.code == StatusCode::TOO_MANY_REQUESTS.as_u16()) {
+                    Self::Custom(Cow::Borrowed("[rate limit]"))
+                } else {
+                    Self::Custom(Cow::Owned(
+                        err.into_iter()
+                            .map(|error| error.to_string())
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                    ))
+                }
+            }
         }
     }
 }
