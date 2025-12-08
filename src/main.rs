@@ -46,7 +46,7 @@ async fn main() {
     bot.add_command(commands::radio_sur::RadioSur);
     bot.add_command(commands::radio_poligon::RadioPoligon);
     bot.add_command(commands::autocomplete::Autocomplete);
-    bot.add_command(commands::petittube::Petittube);
+    bot.add_command(commands::obscuretube::ObscureTube);
     bot.add_command(commands::mevo::Mevo);
     bot.add_command(commands::kiwifarms::KiwiFarms);
     bot.add_command(commands::startit_joke::StartitJoke);
