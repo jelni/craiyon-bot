@@ -243,7 +243,7 @@ async fn send_files(
 
             let Messages::Messages(messages) = functions::send_message_album(
                 ctx.message.chat_id,
-                ctx.message.topic_id.clone(),
+                ctx.message.message_thread_id,
                 Some(InputMessageReplyTo::Message(InputMessageReplyToMessage {
                     message_id: ctx.message.id,
                     ..Default::default()

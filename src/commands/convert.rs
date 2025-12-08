@@ -218,7 +218,7 @@ mod test {
         assert_eq!(format!("{}", FormatAmount(0.0001)), "0.0001");
         assert_eq!(format!("{}", FormatAmount(0.1234)), "0.123");
         assert_eq!(format!("{}", FormatAmount(0.01234)), "0.0123");
-        assert_eq!(format!("{}", FormatAmount(0.001_234)), "0.00123");
-        assert_eq!(format!("{}", FormatAmount(0.000_123_4)), "0.000123");
+        assert_eq!(format!("{}", FormatAmount(0.001234)), "0.00123");
+        assert_eq!(format!("{}", FormatAmount(0.0001234)), "0.000123");
     }
 }
