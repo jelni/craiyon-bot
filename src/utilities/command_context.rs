@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use tdlib::enums::{self, ChatAction, InputMessageContent, InputMessageReplyTo};
+use tdlib::enums::{self, ChatAction, InputMessageContent, InputMessageReplyTo, MessageTopic};
 use tdlib::functions;
 use tdlib::types::{
     FormattedText, InputMessageReplyToMessage, InputMessageText, LinkPreviewOptions, Message,
+    MessageTopicThread,
 };
 
 use super::bot_state::BotState;
@@ -26,7 +27,7 @@ impl CommandContext {
     ) -> TdResult<Message> {
         let enums::Message::Message(message) = functions::send_message(
             self.message.chat_id,
-            self.message.message_thread_id,
+            self.message.topic_id.clone(),
             Some(InputMessageReplyTo::Message(InputMessageReplyToMessage {
                 message_id: self.message.id,
                 ..Default::default()
@@ -112,7 +113,10 @@ impl CommandContext {
     pub async fn send_typing(&self) -> TdResult<()> {
         functions::send_chat_action(
             self.message.chat_id,
-            self.message.message_thread_id,
+            self.message
+                .topic_id
+                .clone()
+                .unwrap_or_else(|| MessageTopic::Thread(MessageTopicThread::default())),
             String::new(),
             Some(ChatAction::Typing),
             self.client_id,
