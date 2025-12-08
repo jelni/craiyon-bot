@@ -17,7 +17,10 @@ pub struct Coin {
 }
 
 pub async fn coins(client: &reqwest::Client) -> reqwest::Result<Vec<Coin>> {
-    let response = client.get("https://api.coinranking.com/v2/coins").send().await?;
+    let response = client
+        .get("https://api.coinranking.com/v2/coins?referenceCurrencyUuid=5k-_VTxqtCEI&limit=100")
+        .send()
+        .await?;
     let result = response.json::<Response>().await?;
 
     Ok(result.data.coins)

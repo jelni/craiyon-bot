@@ -26,27 +26,27 @@ pub enum Entity<'a> {
 }
 
 pub trait ToEntity<'a> {
-    fn text(&self) -> Entity;
-    fn bold(&self) -> Entity;
-    fn italic(&self) -> Entity;
-    fn code(&self) -> Entity;
+    fn text(&self) -> Entity<'_>;
+    fn bold(&self) -> Entity<'_>;
+    fn italic(&self) -> Entity<'_>;
+    fn code(&self) -> Entity<'_>;
     fn text_url(&'a self, url: impl Into<Cow<'a, str>>) -> Entity<'a>;
 }
 
 impl<'a> ToEntity<'a> for str {
-    fn text(&self) -> Entity {
+    fn text(&self) -> Entity<'_> {
         Entity::Text(self.into())
     }
 
-    fn bold(&self) -> Entity {
+    fn bold(&self) -> Entity<'_> {
         Entity::Text(self.into()).bold()
     }
 
-    fn italic(&self) -> Entity {
+    fn italic(&self) -> Entity<'_> {
         Entity::Text(self.into()).italic()
     }
 
-    fn code(&self) -> Entity {
+    fn code(&self) -> Entity<'_> {
         Entity::Text(self.into()).code()
     }
 

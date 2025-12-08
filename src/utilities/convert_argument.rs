@@ -16,7 +16,7 @@ use crate::bot::TdError;
 #[derive(Debug)]
 pub enum ConversionError {
     MissingArgument,
-    BadArgument(&'static str),
+    BadArgument(Cow<'static, str>),
     TdError(TdError),
 }
 
@@ -114,7 +114,9 @@ impl ConvertArgument for Reply {
         };
 
         let argument = telegram_utils::get_message_text(&content)
-            .ok_or(ConversionError::BadArgument("replied message doesn't contain any text."))?
+            .ok_or(ConversionError::BadArgument(Cow::Borrowed(
+                "replied message doesn't contain any text.",
+            )))?
             .text
             .clone();
 
@@ -290,7 +292,9 @@ impl ConvertArgument for bool {
         } else if ["false", "no", "off", "disable", "disabled"].contains(&argument.as_str()) {
             false
         } else {
-            return Err(ConversionError::BadArgument("argument cannot be converted to a bool."));
+            return Err(ConversionError::BadArgument(Cow::Borrowed(
+                "argument cannot be converted to a bool.",
+            )));
         };
 
         Ok((value, rest))

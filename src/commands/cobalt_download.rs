@@ -1,18 +1,21 @@
 use std::borrow::Cow;
+use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 
 use async_trait::async_trait;
 use serde::Deserialize;
+use serde_json::Value;
 use tdlib::enums::{InputFile, InputMessageContent, InputMessageReplyTo, Messages};
 use tdlib::functions;
 use tdlib::types::{
     InputFileLocal, InputFileRemote, InputMessageAudio, InputMessageDocument,
     InputMessageReplyToMessage, InputMessageVideo, InputThumbnail,
 };
+use url::Url;
 
 use super::{CommandError, CommandResult, CommandTrait};
-use crate::apis::cobalt::{self, Error, Response};
+use crate::apis::cobalt::{self, Error, ErrorContext, Response};
 use crate::utilities::command_context::CommandContext;
 use crate::utilities::convert_argument::{ConvertArgument, StringGreedyOrReply};
 use crate::utilities::file_download::NetworkFile;
@@ -86,7 +89,7 @@ impl CommandTrait for CobaltDownload {
                 }
             };
 
-        Box::pin(send_files(ctx, &instance, result)).await?;
+        Box::pin(send_files(ctx, &instance, result, &media_url)).await?;
 
         Ok(())
     }
@@ -121,7 +124,12 @@ async fn get_result(
 }
 
 #[expect(clippy::too_many_lines, clippy::cognitive_complexity, clippy::large_stack_frames)]
-async fn send_files(ctx: &CommandContext, instance: &str, result: Response) -> CommandResult {
+async fn send_files(
+    ctx: &CommandContext,
+    instance: &str,
+    result: Response,
+    url: &str,
+) -> CommandResult {
     match result {
         Response::Redirect(file) | Response::Tunnel(file) => {
             let status_msg = ctx
@@ -294,17 +302,23 @@ async fn send_files(ctx: &CommandContext, instance: &str, result: Response) -> C
             ctx.delete_message(status_msg.id).await.ok();
         }
         Response::Error(error) => {
-            let text = match cobalt::get_error_localization(&ctx.bot_state.http_client).await {
-                Ok(mut localization) => localization
-                    .remove(&error.error.code["error.".len()..])
-                    .unwrap_or(error.error.code),
-                Err(err) => {
-                    log::warn!("failed to get cobalt localization: {err}");
-                    error.error.code
-                }
-            };
+            let error_text =
+                match cobalt::get_api_error_localization(&ctx.bot_state.http_client).await {
+                    Ok(localization) => format_api_error(&localization, error.error).to_string(),
+                    Err(err) => {
+                        log::warn!("failed to get cobalt localization: {err}");
+                        error.error.code
+                    }
+                };
 
-            return Err(text.into());
+            let mut cobalt_url = Url::parse("https://cobalt.tools/").unwrap();
+            cobalt_url.set_fragment(Some(url));
+
+            return Err(CommandError::CustomFormattedText(message_entities::formatted_text(vec![
+                error_text.text(),
+                "\n".text(),
+                "download using cobalt.tools".text_url(cobalt_url.as_str()),
+            ])));
         }
     }
 
@@ -387,4 +401,84 @@ async fn get_message_content(
         disable_content_type_detection: true,
         caption: None,
     }))
+}
+
+fn format_api_error(localization: &HashMap<String, String>, error: ErrorContext) -> Cow<'_, str> {
+    if !error.code.starts_with("error.api.") {
+        return Cow::Owned(error.code);
+    }
+
+    match localization.get(&error.code["error.api.".len()..]) {
+        Some(text) => {
+            let mut text = Cow::Borrowed(text.as_str());
+
+            if let Some(context) = error.context {
+                for (key, value) in context {
+                    let pattern = format!("{{{{ {key} }}}}");
+
+                    if let Some(index) = text.find(&pattern) {
+                        text = Cow::Owned(
+                            [
+                                Cow::Borrowed(&text[..index]),
+                                Cow::Owned(match value {
+                                    Value::String(text) => text,
+                                    _ => value.to_string(),
+                                }),
+                                Cow::Borrowed(&text[index + pattern.len()..]),
+                            ]
+                            .concat(),
+                        );
+                    }
+                }
+            }
+
+            text
+        }
+        None => Cow::Owned(error.code),
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use serde_json::Value;
+
+    use super::*;
+
+    #[test]
+    fn test_format_api_error() {
+        assert_eq!(
+            format_api_error(
+                &HashMap::new(),
+                ErrorContext { code: "error.api.example".into(), context: None }
+            ),
+            "error.api.example"
+        );
+
+        assert_eq!(
+            format_api_error(
+                &HashMap::from([("example".into(), "foo".into())]),
+                ErrorContext { code: "error.bar.example".into(), context: None }
+            ),
+            "error.bar.example"
+        );
+
+        assert_eq!(
+            format_api_error(
+                &HashMap::from([("example".into(), "foo".into())]),
+                ErrorContext { code: "error.api.example".into(), context: None }
+            ),
+            "foo"
+        );
+
+        assert_eq!(
+            format_api_error(
+                &HashMap::from([("example".into(), "foo {{ bar }} baz".into())]),
+                ErrorContext {
+                    code: "error.api.example".into(),
+                    context: Some(HashMap::from([("bar".into(), Value::String("bax".into()))]))
+                }
+            ),
+            "foo bax baz"
+        );
+    }
 }

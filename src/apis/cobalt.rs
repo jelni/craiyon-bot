@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use reqwest::header::{ACCEPT, AUTHORIZATION};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::utilities::api_utils::{DetectServerError, ServerError};
 
@@ -9,11 +10,12 @@ use crate::utilities::api_utils::{DetectServerError, ServerError};
 #[serde(rename_all = "camelCase")]
 struct Payload<'a> {
     url: &'a str,
-    video_quality: &'a str,
     audio_format: &'a str,
     download_mode: &'a str,
+    video_quality: &'a str,
+    convert_gif: bool,
     tiktok_full_audio: bool,
-    twitter_gif: bool,
+    youtube_better_audio: bool,
 }
 
 #[derive(Deserialize)]
@@ -56,6 +58,7 @@ pub struct CobaltError {
 #[derive(Deserialize)]
 pub struct ErrorContext {
     pub code: String,
+    pub context: Option<HashMap<String, Value>>,
 }
 
 pub enum Error {
@@ -74,11 +77,12 @@ pub async fn query(
         .post(instance)
         .json(&Payload {
             url,
-            video_quality: "1080",
             audio_format: "best",
             download_mode: if audio_only { "audio" } else { "auto" },
+            video_quality: "1080",
+            convert_gif: false,
             tiktok_full_audio: true,
-            twitter_gif: false,
+            youtube_better_audio: true,
         })
         .header(ACCEPT, "application/json");
 
@@ -92,13 +96,13 @@ pub async fn query(
     response.json::<Response>().await.map_err(Error::Network)
 }
 
-pub async fn get_error_localization(
+pub async fn get_api_error_localization(
     http_client: &reqwest::Client,
 ) -> reqwest::Result<HashMap<String, String>> {
     let request = http_client
         .get(concat!(
             "https://raw.githubusercontent.com",
-            "/imputnet/cobalt/refs/heads/main/web/i18n/en/error.json"
+            "/imputnet/cobalt/refs/heads/main/web/i18n/en/error/api.json"
         ))
         .send()
         .await?;

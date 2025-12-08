@@ -16,7 +16,7 @@ impl CommandTrait for Start {
         ctx.reply_formatted_text(message_entities::formatted_text(vec![
             concat!(
                 "hello! this bot contains many useful and fun commands like:\n",
-                "• /gemini (/g), /gemini2 (/g2) – talk to Google Gemini\n",
+                "• /gemini (/g) – talk to Google Gemini\n",
                 "• /cobalt_download (/dl), /cobalt_download_audio (/dla) – download media using ",
             )
             .text(),

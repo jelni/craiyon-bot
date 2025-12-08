@@ -26,10 +26,11 @@ async fn main() {
     bot.add_command(commands::config::Config);
     bot.add_command(commands::different_dimension_me::DifferentDimensionMe);
     bot.add_command(commands::gemini::Gemini::gemini());
-    bot.add_command(commands::gemini::Gemini::gemini2());
+    bot.add_command(commands::gemini::Gemini::gemini_lite());
+    bot.add_command(commands::groq::Groq::gpt_oss());
     bot.add_command(commands::groq::Groq::llama4());
     bot.add_command(commands::groq::Groq::llama3());
-    bot.add_command(commands::groq::Groq::deepseek());
+    bot.add_command(commands::groq::Groq::kimi_k2());
     bot.add_command(commands::openrouter::OpenRouter::mistral());
     bot.add_command(commands::openrouter::OpenRouter::perplexity());
     bot.add_command(commands::translate::Translate);
@@ -43,6 +44,7 @@ async fn main() {
     bot.add_command(commands::yt_dlp::YtDlp::video());
     bot.add_command(commands::yt_dlp::YtDlp::audio());
     bot.add_command(commands::charinfo::CharInfo);
+    bot.add_command(commands::polymarket::Polymarket);
     bot.add_command(commands::radio_sur::RadioSur);
     bot.add_command(commands::radio_poligon::RadioPoligon);
     bot.add_command(commands::autocomplete::Autocomplete);

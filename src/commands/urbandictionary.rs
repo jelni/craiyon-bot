@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use tdlib::types::FormattedText;
-use time::macros::format_description;
+use time::macros;
 use url::Url;
 
 use super::{CommandResult, CommandTrait};
@@ -69,7 +69,7 @@ fn format_definition(definition: Card) -> FormattedText {
         ", ".text(),
         definition
             .written_on
-            .format(format_description!("[year]-[month]-[day]"))
+            .format(macros::format_description!("[year]-[month]-[day]"))
             .unwrap()
             .text_owned(),
         "\n".text(),

@@ -109,10 +109,7 @@ pub async fn upload_file(
     }
 
     if let Some(error) = file.error {
-        return Err(CommandError::Custom(format!(
-            "Google error {}: {}",
-            error.code, error.message
-        )));
+        return Err(format!("Google error {}: {}", error.code, error.message).into());
     }
 
     Ok(file)
@@ -156,6 +153,13 @@ pub struct SafetySetting {
 #[serde(rename_all = "camelCase")]
 struct GenerationConfig {
     max_output_tokens: u16,
+    thinking_config: ThinkingConfig,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct ThinkingConfig {
+    thinking_budget: u32,
 }
 
 #[derive(Deserialize)]
@@ -176,7 +180,7 @@ pub struct Candidate {
 
 #[derive(Deserialize)]
 pub struct ContentResponse {
-    pub parts: Vec<PartResponse>,
+    pub parts: Option<Vec<PartResponse>>,
 }
 
 #[derive(Deserialize)]
@@ -254,7 +258,10 @@ pub async fn stream_generate_content<'a>(
                 },
             ],
             system_instruction,
-            generation_config: GenerationConfig { max_output_tokens },
+            generation_config: GenerationConfig {
+                max_output_tokens,
+                thinking_config: ThinkingConfig { thinking_budget: 0 },
+            },
         })
         .send()
         .await;
@@ -309,15 +316,11 @@ pub async fn stream_generate_content<'a>(
 
         while let Some(index) = buffer.windows(4).position(|window| window == b"\n,\r\n") {
             let (first, rest) = buffer.split_at(index);
-            tx.send(Ok(serde_json::from_str(&String::from_utf8_lossy(first)).unwrap())).unwrap();
+            tx.send(Ok(serde_json::from_str(&String::from_utf8(first.into()).unwrap()).unwrap()))
+                .unwrap();
             buffer = rest[4..].into();
         }
     }
 
-    tx.send(Ok(serde_json::from_str(&String::from_utf8_lossy(&buffer)).unwrap())).unwrap();
-}
-
-#[derive(Serialize)]
-pub struct TextPrompt<'a> {
-    text: &'a str,
+    tx.send(Ok(serde_json::from_str(&String::from_utf8(buffer).unwrap()).unwrap())).unwrap();
 }

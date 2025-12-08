@@ -45,7 +45,7 @@ impl CommandTrait for Fal {
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
-        RateLimiter::new(3, 60)
+        RateLimiter::new(1, 120)
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {

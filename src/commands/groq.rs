@@ -22,11 +22,21 @@ pub struct Groq {
 }
 
 impl Groq {
+    pub const fn gpt_oss() -> Self {
+        Self {
+            command_names: &["gpt_oss", "gpt"],
+            description: "ask GPT OSS 120B",
+            model_name: "openai/gpt-oss-120b",
+            max_tokens: 1024,
+            thinking_markers: None,
+        }
+    }
+
     pub const fn llama4() -> Self {
         Self {
             command_names: &["llama4", "llama"],
-            description: "ask Llama 4 Scout",
-            model_name: "meta-llama/llama-4-scout-17b-16e-instruct",
+            description: "ask Llama 4 Maverick",
+            model_name: "meta-llama/llama-4-maverick-17b-128e-instruct",
             max_tokens: 512,
             thinking_markers: None,
         }
@@ -42,13 +52,13 @@ impl Groq {
         }
     }
 
-    pub const fn deepseek() -> Self {
+    pub const fn kimi_k2() -> Self {
         Self {
-            command_names: &["deepseek", "r1"],
-            description: "ask DeepSeek R1 (distilled Llama 70b)",
-            model_name: "deepseek-r1-distill-llama-70b",
-            max_tokens: 2048,
-            thinking_markers: Some(("<think>", "</think>")),
+            command_names: &["kimi_k2", "k2"],
+            description: "ask Kimi K2 0905",
+            model_name: "moonshotai/kimi-k2-instruct-0905",
+            max_tokens: 512,
+            thinking_markers: None,
         }
     }
 }
@@ -95,7 +105,9 @@ impl CommandTrait for Groq {
             &prompt_messages,
         )
         .await?
-        .map_err(|err| CommandError::Custom(format!("error {}: {}", err.code, err.message)))?;
+        .map_err(|err| {
+            CommandError::Custom(Cow::Owned(format!("error {}: {}", err.code, err.message)))
+        })?;
 
         let choice = response.choices.into_iter().next().unwrap();
 
