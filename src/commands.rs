@@ -104,20 +104,84 @@ impl From<GenerationError> for CommandError {
     fn from(value: GenerationError) -> Self {
         match value {
             GenerationError::Network(err) => Self::Reqwest(err),
-            GenerationError::Google(err) => {
-                if err.iter().any(|error| error.code == StatusCode::TOO_MANY_REQUESTS.as_u16()) {
-                    Self::Custom(Cow::Borrowed("[rate limit]"))
+            GenerationError::Google(errors) => {
+                let has_rate_limit = errors
+                    .iter()
+                    .any(|error| error.code == StatusCode::TOO_MANY_REQUESTS.as_u16());
+                let joined = errors.iter().map(|error| error.to_string()).collect::<Vec<_>>().join("\n");
+
+                if has_rate_limit {
+                    let rate_limit_error = errors
+                        .iter()
+                        .find(|error| error.code == StatusCode::TOO_MANY_REQUESTS.as_u16());
+                    let summary = format_rate_limit_summary(rate_limit_error.map(|error| error.message.as_str()));
+
+                    Self::Custom(Cow::Owned(summary))
                 } else {
-                    Self::Custom(Cow::Owned(
-                        err.into_iter()
-                            .map(|error| error.to_string())
-                            .collect::<Vec<_>>()
-                            .join("\n"),
-                    ))
+                    Self::Custom(Cow::Owned(joined))
                 }
             }
         }
     }
+}
+
+fn format_rate_limit_summary(message: Option<&str>) -> String {
+    let mut parts = vec![String::from("rate limit")];
+
+    if let Some(message) = message {
+        if let Some(limit) = extract_limit(message) {
+            parts.push(format!("limit {}", limit));
+        }
+
+        if let Some(model) = extract_model(message) {
+            parts.push(format!("model {}", model));
+        }
+
+        if let Some(retry) = extract_retry_seconds(message) {
+            parts.push(format!("retry {}s", retry));
+        }
+    }
+
+    format!("[{}]", parts.join(" / "))
+}
+
+fn extract_limit(message: &str) -> Option<&str> {
+    extract_numeric_token(message, "limit:")
+}
+
+fn extract_model(message: &str) -> Option<&str> {
+    let needle = "model:";
+    let start = message.find(needle)? + needle.len();
+    let rest = message[start..].trim_start();
+    let end = rest
+        .chars()
+        .position(|c| c == ',' || c.is_whitespace())
+        .unwrap_or(rest.len());
+
+    if end == 0 { None } else { Some(&rest[..end]) }
+}
+
+fn extract_retry_seconds(message: &str) -> Option<&str> {
+    let needle = "Please retry in";
+    let start = message.find(needle)? + needle.len();
+    let rest = message[start..].trim_start();
+    let end = rest
+        .chars()
+        .position(|c| !(c.is_ascii_digit() || c == '.'))
+        .unwrap_or(rest.len());
+
+    if end == 0 { None } else { Some(&rest[..end]) }
+}
+
+fn extract_numeric_token<'a>(message: &'a str, needle: &'a str) -> Option<&'a str> {
+    let start = message.find(needle)? + needle.len();
+    let rest = message[start..].trim_start();
+    let end = rest
+        .chars()
+        .position(|c| !c.is_ascii_digit())
+        .unwrap_or(rest.len());
+
+    if end == 0 { None } else { Some(&rest[..end]) }
 }
 
 impl From<TdError> for CommandError {
