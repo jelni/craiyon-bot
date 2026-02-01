@@ -26,7 +26,7 @@ impl CommandContext {
     ) -> TdResult<Message> {
         let enums::Message::Message(message) = functions::send_message(
             self.message.chat_id,
-            self.message.message_thread_id,
+            self.message.topic_id.clone(),
             Some(InputMessageReplyTo::Message(InputMessageReplyToMessage {
                 message_id: self.message.id,
                 ..Default::default()
@@ -110,9 +110,15 @@ impl CommandContext {
     }
 
     pub async fn send_typing(&self) -> TdResult<()> {
+        // HACK(jel): TDLib's documentation doesn't mention that `topic_id` is optional,
+        // so such request cannot currently be constructed
+        let Some(topic_id) = &self.message.topic_id else {
+            return Ok(());
+        };
+
         functions::send_chat_action(
             self.message.chat_id,
-            self.message.message_thread_id,
+            topic_id.clone(),
             String::new(),
             Some(ChatAction::Typing),
             self.client_id,

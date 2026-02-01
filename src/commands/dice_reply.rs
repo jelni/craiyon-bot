@@ -24,7 +24,7 @@ pub async fn execute(message: Message, client_id: i32) {
 
     functions::send_message(
         message.chat_id,
-        message.message_thread_id,
+        message.topic_id,
         Some(InputMessageReplyTo::Message(InputMessageReplyToMessage {
             message_id: message.id,
             ..Default::default()

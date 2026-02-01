@@ -4,3 +4,4 @@ config.dat
 markov_chain.dat
 .env
 .log
+.DS_Store
