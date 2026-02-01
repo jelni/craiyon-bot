@@ -30,7 +30,7 @@ impl NetworkFile {
     ) -> Result<Self, DownloadError> {
         let response = http_client
             .get(url)
-            .timeout(Duration::from_secs(3600))
+            .timeout(Duration::from_hours(1))
             .send()
             .await
             .map_err(DownloadError::RequestError)?

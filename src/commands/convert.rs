@@ -119,7 +119,7 @@ impl CommandTrait for Convert {
         let mut currencies = ctx.bot_state.currencies.lock().await;
 
         let currencies = match *currencies {
-            Some(ref currencies) if currencies.updated_at.elapsed() < Duration::from_secs(3600) => {
+            Some(ref currencies) if currencies.updated_at.elapsed() < Duration::from_hours(1) => {
                 currencies
             }
             _ => {

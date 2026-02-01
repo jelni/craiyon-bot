@@ -19,10 +19,10 @@ impl Utf16Len for str {
 #[derive(Clone)]
 pub enum Entity<'a> {
     Text(Cow<'a, str>),
-    Bold(Vec<Entity<'a>>),
-    Italic(Vec<Entity<'a>>),
-    Code(Vec<Entity<'a>>),
-    TextUrl { text: Vec<Entity<'a>>, url: Cow<'a, str> },
+    Bold(Vec<Self>),
+    Italic(Vec<Self>),
+    Code(Vec<Self>),
+    TextUrl { text: Vec<Self>, url: Cow<'a, str> },
 }
 
 pub trait ToEntity<'a> {

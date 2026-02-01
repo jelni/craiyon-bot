@@ -57,7 +57,7 @@ impl BotState {
             cache: Mutex::new(Cache::default()),
             http_client: http_client
                 .redirect(redirect::Policy::none())
-                .timeout(Duration::from_secs(300))
+                .timeout(Duration::from_mins(5))
                 .build()
                 .unwrap(),
             currencies: TokioMutex::new(None),
