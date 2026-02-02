@@ -1,5 +1,6 @@
 /target
 /.data
+/.direnv
 config.dat
 markov_chain.dat
 .env
