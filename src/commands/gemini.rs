@@ -61,7 +61,7 @@ impl CommandTrait for Gemini {
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
-        RateLimiter::new(6, 60)
+        RateLimiter::new(4, 60)
     }
 
     #[expect(clippy::too_many_lines)]
