@@ -53,6 +53,30 @@ pub struct ErrorResponse {
 pub struct Error {
     pub code: u16,
     pub message: String,
+    pub details: Vec<Details>,
+}
+
+#[derive(Deserialize)]
+#[serde(tag = "@type")]
+pub enum Details {
+    #[serde(rename = "type.googleapis.com/google.rpc.RetryInfo")]
+    #[serde(rename_all = "camelCase")]
+    RetryInfo { retry_delay: String },
+    #[serde(other)]
+    Other,
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if let Some(retry_delay) = self.details.iter().find_map(|detail| match detail {
+            Details::RetryInfo { retry_delay } => Some(retry_delay),
+            Details::Other => None,
+        }) {
+            return write!(f, "i was rate-limited by Google. try again in {retry_delay}.");
+        }
+
+        write!(f, "Google error {}: {}", self.code, self.message)
+    }
 }
 
 pub async fn upload_file(
@@ -214,12 +238,6 @@ pub struct SafetyRating {
     pub category: String,
     #[serde(default)]
     pub blocked: bool,
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Google error {}: {}", self.code, self.message)
-    }
 }
 
 pub async fn stream_generate_content<'a>(

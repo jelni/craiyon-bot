@@ -74,7 +74,7 @@ impl CommandTrait for Groq {
     }
 
     fn rate_limit(&self) -> RateLimiter<i64> {
-        RateLimiter::new(6, 60)
+        RateLimiter::new(4, 60)
     }
 
     async fn execute(&self, ctx: &CommandContext, arguments: String) -> CommandResult {
