@@ -3,6 +3,7 @@ use std::time::Duration;
 use std::{env, fmt};
 
 use futures_util::StreamExt;
+use rand::seq::SliceRandom;
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -79,18 +80,42 @@ impl fmt::Display for Error {
     }
 }
 
+impl Error {
+    pub fn is_rate_limited(&self) -> bool {
+        self.details
+            .as_ref()
+            .map(|details| details.iter().any(|detail| matches!(detail, Details::RetryInfo { .. })))
+            .unwrap_or(false)
+    }
+}
+
+pub fn get_shuffled_keys() -> Vec<String> {
+    let mut keys: Vec<String> = env::var("MAKERSUITE_API_KEYS")
+        .unwrap_or_default()
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+
+    let mut rng = rand::rng();
+    keys.shuffle(&mut rng);
+
+    keys
+}
+
 pub async fn upload_file(
     http_client: &reqwest::Client,
     file: tokio::fs::File,
     size: u64,
     mime_type: &str,
+    api_key: &str,
 ) -> Result<File, CommandError> {
     // what the hell
     let response = http_client
         .post(
             Url::parse_with_params(
                 "https://generativelanguage.googleapis.com/upload/v1beta/files",
-                [("key", env::var("MAKERSUITE_API_KEY").unwrap())],
+                [("key", api_key)],
             )
             .unwrap(),
         )
@@ -122,7 +147,7 @@ pub async fn upload_file(
             .get(
                 Url::parse_with_params(
                     &format!("https://generativelanguage.googleapis.com/v1beta/{}", file.name),
-                    [("key", env::var("MAKERSUITE_API_KEY").unwrap())],
+                    [("key", api_key)],
                 )
                 .unwrap(),
             )
@@ -247,16 +272,14 @@ pub async fn stream_generate_content<'a>(
     contents: Cow<'a, [Content<'a>]>,
     system_instruction: Option<Content<'a>>,
     max_output_tokens: u16,
+    api_key: &str,
 ) {
     let url = format!(
         "https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent"
     );
 
     let response = http_client
-        .post(
-            Url::parse_with_params(&url, [("key", env::var("MAKERSUITE_API_KEY").unwrap())])
-                .unwrap(),
-        )
+        .post(Url::parse_with_params(&url, [("key", api_key)]).unwrap())
         .json(&GenerateContentRequest {
             contents,
             safety_settings: &[

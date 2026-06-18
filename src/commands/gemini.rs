@@ -69,163 +69,213 @@ impl CommandTrait for Gemini {
         let ReplyChain(messages) = ConvertArgument::convert(ctx, &arguments).await?.0;
         ctx.send_typing().await?;
 
-        let mut contents = Vec::new();
+        let keys = google_aistudio::get_shuffled_keys();
+        let mut last_error_message = None;
 
-        for message in messages {
-            let mut parts = Vec::new();
+        for key in keys {
+            let mut contents = Vec::new();
+            let mut skip_key = false;
 
-            if let Some(text) = message.text {
-                parts.push(Part::Text(Cow::Owned(text)));
-            }
+            for message in &messages {
+                let mut parts = Vec::new();
 
-            if let Some(content) = message.content
-                && let Some(message_image) =
-                    telegram_utils::get_message_attachment(Cow::Owned(content), true)
-            {
-                let file = message_image.file();
-
-                if file.size > 64 * MEBIBYTE {
-                    return Err(CommandError::Custom("files cannot be larger than 64 MiB.".into()));
+                if let Some(text) = &message.text {
+                    parts.push(Part::Text(Cow::Owned(text.clone())));
                 }
 
-                let File::File(file) =
-                    functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
+                if let Some(content) = &message.content
+                    && let Some(message_image) =
+                        telegram_utils::get_message_attachment(Cow::Owned(content.clone()), true)
+                {
+                    let file = message_image.file();
 
-                let open_file = tokio::fs::File::open(file.local.path).await.unwrap();
-
-                let file = google_aistudio::upload_file(
-                    &ctx.bot_state.http_client,
-                    open_file,
-                    file.size.try_into().unwrap(),
-                    message_image.mime_type(),
-                )
-                .await?;
-
-                parts.push(Part::FileData(FileData { file_uri: file.uri }));
-            }
-
-            if !parts.is_empty() {
-                contents.push(Content {
-                    parts: Cow::Owned(parts),
-                    role: Some(if message.bot_author { "model" } else { "user" }),
-                });
-            }
-        }
-
-        if contents.is_empty() {
-            return Err(CommandError::Custom("no prompt or file provided.".into()));
-        }
-
-        let system_instruction = if contents
-            .iter()
-            .any(|content| content.parts.iter().any(|part| matches!(part, Part::Text(..))))
-        {
-            Some(Content {
-                parts: Cow::Borrowed([Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))].as_slice()),
-                role: None,
-            })
-        } else {
-            contents.push(Content {
-                parts: Cow::Borrowed(
-                    [Part::Text(Cow::Borrowed("Comment briefly on what you see."))].as_slice(),
-                ),
-                role: Some("user"),
-            });
-
-            None
-        };
-
-        let http_client = ctx.bot_state.http_client.clone();
-        let (tx, mut rx) = mpsc::unbounded_channel();
-        let model = self.model;
-
-        tokio::spawn(async move {
-            google_aistudio::stream_generate_content(
-                http_client,
-                tx,
-                model,
-                Cow::Owned(contents),
-                system_instruction,
-                512,
-            )
-            .await;
-        });
-
-        let mut last_update = Instant::now();
-        let mut changed_after_last_update = false;
-        let mut progress = Option::<GenerationProgress>::None;
-        let mut message = Option::<Message>::None;
-
-        loop {
-            let (update_message, finished) = if let Ok(response) =
-                tokio::time::timeout_at(last_update + Duration::from_secs(5), rx.recv()).await
-            {
-                match response {
-                    Some(response) => {
-                        let response = response?;
-
-                        match progress.as_mut() {
-                            Some(progress) => {
-                                progress.update(response)?;
-                                changed_after_last_update = true;
-                            }
-                            None => {
-                                if let Some(candidate) = response.candidates.into_iter().next() {
-                                    progress = Some(GenerationProgress::new(candidate));
-                                    changed_after_last_update = true;
-                                }
-                            }
-                        }
-
-                        (false, false)
+                    if file.size > 64 * MEBIBYTE {
+                        return Err(CommandError::Custom(
+                            "files cannot be larger than 64 MiB.".into(),
+                        ));
                     }
-                    None => (true, true),
+
+                    let File::File(file) =
+                        functions::download_file(file.id, 1, 0, 0, true, ctx.client_id).await?;
+
+                    let open_file = tokio::fs::File::open(file.local.path).await.unwrap();
+
+                    match google_aistudio::upload_file(
+                        &ctx.bot_state.http_client,
+                        open_file,
+                        file.size.try_into().unwrap(),
+                        message_image.mime_type(),
+                        &key,
+                    )
+                    .await
+                    {
+                        Ok(file) => parts.push(Part::FileData(FileData { file_uri: file.uri })),
+                        Err(err) => {
+                            last_error_message = Some(err);
+                            skip_key = true;
+                            break;
+                        }
+                    }
                 }
+
+                if !parts.is_empty() {
+                    contents.push(Content {
+                        parts: Cow::Owned(parts),
+                        role: Some(if message.bot_author { "model" } else { "user" }),
+                    });
+                }
+            }
+
+            if skip_key {
+                continue;
+            }
+
+            if contents.is_empty() {
+                return Err(CommandError::Custom("no prompt or file provided.".into()));
+            }
+
+            let system_instruction = if contents
+                .iter()
+                .any(|content| content.parts.iter().any(|part| matches!(part, Part::Text(..))))
+            {
+                Some(Content {
+                    parts: Cow::Borrowed(
+                        [Part::Text(Cow::Borrowed(SYSTEM_INSTRUCTION))].as_slice(),
+                    ),
+                    role: None,
+                })
             } else {
-                last_update = Instant::now();
-                (true, false)
+                contents.push(Content {
+                    parts: Cow::Borrowed(
+                        [Part::Text(Cow::Borrowed("Comment briefly on what you see."))].as_slice(),
+                    ),
+                    role: Some("user"),
+                });
+
+                None
             };
 
-            if update_message && changed_after_last_update {
-                let text = match progress.as_ref() {
-                    Some(progress) => progress.format(finished),
-                    None => {
-                        continue;
+            let http_client = ctx.bot_state.http_client.clone();
+            let (tx, mut rx) = mpsc::unbounded_channel();
+            let model = self.model;
+            let key_clone = key.clone();
+
+            tokio::spawn(async move {
+                google_aistudio::stream_generate_content(
+                    http_client,
+                    tx,
+                    model,
+                    Cow::Owned(contents),
+                    system_instruction,
+                    512,
+                    &key_clone,
+                )
+                .await;
+            });
+
+            let mut last_update = Instant::now();
+            let mut changed_after_last_update = false;
+            let mut progress = Option::<GenerationProgress>::None;
+            let mut message = Option::<Message>::None;
+            let mut rate_limited = false;
+
+            loop {
+                let (update_message, finished) = if let Ok(response) =
+                    tokio::time::timeout_at(last_update + Duration::from_secs(5), rx.recv()).await
+                {
+                    match response {
+                        Some(response) => {
+                            let response = match response {
+                                Ok(res) => res,
+                                Err(err) => {
+                                    if let crate::apis::google_aistudio::GenerationError::Google(
+                                        google_errors,
+                                    ) = &err
+                                    {
+                                        if google_errors.iter().any(|e| e.is_rate_limited()) {
+                                            log::warn!(
+                                                "Gemini API key ({}...) was rate-limited, falling back to another key...",
+                                                &key[..8.min(key.len())]
+                                            );
+                                            last_error_message = Some(CommandError::Custom(
+                                                "i was rate-limited by Google...".into(),
+                                            ));
+                                            rate_limited = true;
+                                            break;
+                                        }
+                                    }
+                                    return Err(err.into());
+                                }
+                            };
+
+                            match progress.as_mut() {
+                                Some(progress) => {
+                                    progress.update(response)?;
+                                    changed_after_last_update = true;
+                                }
+                                None => {
+                                    if let Some(candidate) = response.candidates.into_iter().next()
+                                    {
+                                        progress = Some(GenerationProgress::new(candidate));
+                                        changed_after_last_update = true;
+                                    }
+                                }
+                            }
+
+                            (false, false)
+                        }
+                        None => (true, true),
                     }
+                } else {
+                    last_update = Instant::now();
+                    (true, false)
                 };
 
-                let formatted_text = if text.trim().is_empty() {
-                    FormattedText { text: "[no text generated]".into(), ..Default::default() }
-                } else {
-                    let enums::FormattedText::FormattedText(formatted_text) =
-                        functions::parse_markdown(
-                            FormattedText { text, ..Default::default() },
-                            ctx.client_id,
-                        )
-                        .await?;
+                if update_message && changed_after_last_update {
+                    let text = match progress.as_ref() {
+                        Some(progress) => progress.format(finished),
+                        None => {
+                            continue;
+                        }
+                    };
 
-                    formatted_text
-                };
+                    let formatted_text = if text.trim().is_empty() {
+                        FormattedText { text: "[no text generated]".into(), ..Default::default() }
+                    } else {
+                        let enums::FormattedText::FormattedText(formatted_text) =
+                            functions::parse_markdown(
+                                FormattedText { text, ..Default::default() },
+                                ctx.client_id,
+                            )
+                            .await?;
 
-                if let Some(message) = message.as_ref() {
-                    ctx.edit_message_formatted_text(message.id, formatted_text).await?;
-                } else {
-                    let unsent_message = ctx.reply_formatted_text(formatted_text).await?;
-                    message = Some(
-                        ctx.bot_state.message_queue.wait_for_message(unsent_message.id).await?,
-                    );
+                        formatted_text
+                    };
+
+                    if let Some(message) = message.as_ref() {
+                        ctx.edit_message_formatted_text(message.id, formatted_text).await?;
+                    } else {
+                        let unsent_message = ctx.reply_formatted_text(formatted_text).await?;
+                        message = Some(
+                            ctx.bot_state.message_queue.wait_for_message(unsent_message.id).await?,
+                        );
+                    }
+
+                    last_update = Instant::now();
+                    changed_after_last_update = false;
                 }
 
-                last_update = Instant::now();
-                changed_after_last_update = false;
+                if finished {
+                    break;
+                }
             }
 
-            if finished {
-                break;
+            if !rate_limited {
+                return Ok(());
             }
         }
 
-        Ok(())
+        Err(last_error_message.unwrap_or_else(|| CommandError::Custom("no keys available".into())))
     }
 }
 struct GenerationProgress {
