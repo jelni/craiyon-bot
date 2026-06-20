@@ -53,7 +53,7 @@ pub struct ErrorResponse {
 pub struct Error {
     pub code: u16,
     pub message: String,
-    pub details: Vec<Details>,
+    pub details: Option<Vec<Details>>,
 }
 
 #[derive(Deserialize)]
@@ -68,7 +68,7 @@ pub enum Details {
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        if let Some(retry_delay) = self.details.iter().find_map(|detail| match detail {
+        if let Some(retry_delay) = self.details.iter().flatten().find_map(|detail| match detail {
             Details::RetryInfo { retry_delay } => Some(retry_delay),
             Details::Other => None,
         }) {
