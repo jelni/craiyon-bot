@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
 use tdlib::enums::{
-    self, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent, MessageReplyTo,
-    ReplyMarkup, StickerFormat,
+    self, ButtonStyle, ChatMemberStatus, ChatType, InlineKeyboardButtonType, MessageContent,
+    MessageReplyTo, ReplyMarkup, StickerFormat,
 };
 use tdlib::functions;
 use tdlib::types::{
@@ -205,6 +205,8 @@ pub fn donate_markup(name: &str, url: impl Into<String>) -> ReplyMarkup {
     ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
         rows: vec![vec![InlineKeyboardButton {
             text: format!("donate to {name}"),
+            icon_custom_emoji_id: 0,
+            style: ButtonStyle::Default,
             r#type: InlineKeyboardButtonType::Url(InlineKeyboardButtonTypeUrl { url: url.into() }),
         }]],
     })

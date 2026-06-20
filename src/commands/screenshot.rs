@@ -74,6 +74,7 @@ impl CommandTrait for Screenshot {
                         path: temp_file.path().to_str().unwrap().into(),
                     }),
                     thumbnail: None,
+                    video: None,
                     added_sticker_file_ids: Vec::new(),
                     width: 0,
                     height: 0,

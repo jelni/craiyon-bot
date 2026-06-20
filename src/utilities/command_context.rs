@@ -110,15 +110,9 @@ impl CommandContext {
     }
 
     pub async fn send_typing(&self) -> TdResult<()> {
-        // HACK(jel): TDLib's documentation doesn't mention that `topic_id` is optional,
-        // so such request cannot currently be constructed
-        let Some(topic_id) = &self.message.topic_id else {
-            return Ok(());
-        };
-
         functions::send_chat_action(
             self.message.chat_id,
-            topic_id.clone(),
+            self.message.topic_id.clone(),
             String::new(),
             Some(ChatAction::Typing),
             self.client_id,

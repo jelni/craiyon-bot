@@ -5,7 +5,9 @@ use async_trait::async_trait;
 use counter::Counter;
 use image::{DynamicImage, ImageFormat};
 use reqwest::Url;
-use tdlib::enums::{InlineKeyboardButtonType, InputFile, InputMessageContent, ReplyMarkup};
+use tdlib::enums::{
+    ButtonStyle, InlineKeyboardButtonType, InputFile, InputMessageContent, ReplyMarkup,
+};
 use tdlib::types::{
     FormattedText, InlineKeyboardButton, InlineKeyboardButtonTypeUrl, InputFileLocal,
     InputMessagePhoto, ReplyMarkupInlineKeyboard,
@@ -105,6 +107,7 @@ impl CommandTrait for StableHorde {
                         path: temp_file.path().to_str().unwrap().into(),
                     }),
                     thumbnail: None,
+                    video: None,
                     added_sticker_file_ids: Vec::new(),
                     width: image.width().try_into().unwrap(),
                     height: image.height().try_into().unwrap(),
@@ -116,6 +119,8 @@ impl CommandTrait for StableHorde {
                 Some(ReplyMarkup::InlineKeyboard(ReplyMarkupInlineKeyboard {
                     rows: vec![vec![InlineKeyboardButton {
                         text: "generated thanks to Stable Horde".into(),
+                        icon_custom_emoji_id: 0,
+                        style: ButtonStyle::Default,
                         r#type: InlineKeyboardButtonType::Url(InlineKeyboardButtonTypeUrl {
                             url: "https://stablehorde.net/".into(),
                         }),

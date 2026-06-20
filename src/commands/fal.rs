@@ -65,6 +65,7 @@ impl CommandTrait for Fal {
             InputMessageContent::InputMessagePhoto(InputMessagePhoto {
                 photo: InputFile::Remote(InputFileRemote { id: image.url.clone() }),
                 thumbnail: None,
+                video: None,
                 added_sticker_file_ids: Vec::new(),
                 width: image.width.try_into().unwrap(),
                 height: image.height.try_into().unwrap(),
